@@ -1,0 +1,4 @@
+/bin/
+
+# `go build ./...` writes the binary here now that cmd/codefall is the only package it matches.
+/codefall
