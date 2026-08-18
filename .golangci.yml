@@ -1,0 +1,59 @@
+# The encoded layer rule — see ADR-GO-02. This file is generated for this project, not copied from a
+# template: depguard's allow/deny lists are literal prefix matches with no glob support, so every
+# component's own import paths have to be named here.
+#
+# THERE ARE NO COMPONENTS YET, so the layer rules below currently match no files and report `0
+# issues` — which, per ADR-GO-02, is indistinguishable from a rule that is broken. They were proven
+# against deliberate violations when written; re-prove them the same way with the first real
+# component.
+#
+# ADDING A COMPONENT: add an `application-layer` allow entry for its `internal/domain` package, and a
+# `shared-modules` deny entry for its facade. Without the first, its application/ layer silently
+# loses access to its own domain/.
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - depguard
+  settings:
+    depguard:
+      rules:
+        # Rule 2 (inward only) + rule 5 (no transport, no storage) for the innermost ring.
+        domain-layer:
+          list-mode: strict
+          files:
+            - "**/internal/domain/**"
+          allow:
+            - $gostd
+          deny:
+            - pkg: net
+              desc: "domain/ names no transport (ADR-GO-02 rule 5)"
+            - pkg: database/sql
+              desc: "domain/ names no storage (ADR-GO-02 rule 5)"
+            - pkg: os
+              desc: "domain/ does no IO (ADR-BASE-01)"
+
+        # Same, plus each component's own domain/ — and nothing else, so an outward import of
+        # infrastructure/ or presentation/ fails while still compiling. One allow entry per
+        # component; there are none yet.
+        application-layer:
+          list-mode: strict
+          files:
+            - "**/internal/application/**"
+          allow:
+            - $gostd
+          deny:
+            - pkg: net
+              desc: "application/ names no transport (ADR-GO-02 rule 5)"
+            - pkg: database/sql
+              desc: "application/ names no storage (ADR-GO-02 rule 5)"
+
+        # Rule 4 — shared modules are one-way; components may import them, never the reverse — is
+        # not expressible until there is a component facade to deny. Add it with the first one:
+        #
+        #   shared-modules:
+        #     files: ["**/internal/shared/**"]
+        #     deny:
+        #       - pkg: github.com/lividlabs/codefall-cli/internal/<component>
+        #         desc: "shared modules must not import components (ADR-GO-02 rule 4)"
