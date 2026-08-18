@@ -22,6 +22,7 @@ Decided at scaffold, 2026-08-16.
 - **Boundary enforcement is wired**, ahead of the code it will govern: `internal/` facades
   (compiler) plus `depguard` strict allow-lists in `.golangci.yml` (ADR-GO-02), both proven against
   deliberate violations at scaffold time.
+- follows codefall `0.3.0` as of `2026-08-16`
 
 ## Open
 
