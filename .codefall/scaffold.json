@@ -1,0 +1,42 @@
+{
+  "pluginVersion": "0.3.0",
+  "scaffoldedAt": "2026-08-16",
+  "profiles": ["go"],
+  "decisions": {
+    "shape": "one-cohesive-domain",
+    "architecture": "package-by-component",
+    "depth": "project-files"
+  },
+  "adrs": [
+    {
+      "id": "ADR-BASE-01",
+      "file": "docs/adrs/ADR-BASE-01-clean-architecture.md",
+      "amended": true,
+      "sha256": "399be56b899e58d292cd4ef6f17e87b493e481e2fe847b33136248caefda0ecc"
+    },
+    {
+      "id": "ADR-BASE-02",
+      "file": "docs/adrs/ADR-BASE-02-package-by-component.md",
+      "amended": true,
+      "sha256": "88d8e0a693b1ed8a6cb458e1f0881a0cbceef81a694396434a362f430c56e8be"
+    },
+    {
+      "id": "ADR-GO-01",
+      "file": "docs/adrs/ADR-GO-01-dependency-injection.md",
+      "amended": true,
+      "sha256": "315a71510f35b5e8fda7a0e57f54af05c12081549b5210f2128af812227d6b9d"
+    },
+    {
+      "id": "ADR-GO-02",
+      "file": "docs/adrs/ADR-GO-02-boundary-enforcement.md",
+      "amended": true,
+      "sha256": "c9c05dcb1214712536e59161e479774d775eae0a7b91be242609bda1443a2fee"
+    },
+    {
+      "id": "ADR-GO-03",
+      "file": "docs/adrs/ADR-GO-03-optional-values.md",
+      "amended": true,
+      "sha256": "3aa2dced240b5d6fe36bb12128b72e726d93a8dba7b4880865ba847aa631d853"
+    }
+  ]
+}
