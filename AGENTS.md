@@ -15,14 +15,17 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   [ADR-GO-01 Dependency Injection](docs/adrs/ADR-GO-01-dependency-injection.md) ·
   [ADR-GO-02 Boundary enforcement](docs/adrs/ADR-GO-02-boundary-enforcement.md) ·
   [ADR-GO-03 Optional values](docs/adrs/ADR-GO-03-optional-values.md)
-- This project's own decisions start at `ADR-001` — none yet. New ones use
-  [`docs/adrs/_TEMPLATE.md`](docs/adrs/_TEMPLATE.md); decisions still moving live in
+- This project's own decisions: [ADR-001 Facade contracts](docs/adrs/ADR-001-facade-contracts.md).
+  New ones use [`docs/adrs/_TEMPLATE.md`](docs/adrs/_TEMPLATE.md); decisions still moving live in
   [`docs/decision-log.md`](docs/decision-log.md).
 
 ## Structure
 
 - Package-by-component: capabilities as directories under `internal/<component>/`. The component's
   root package **is** the facade; exported identifiers there are its whole public API.
+- What crosses a facade is a **contract** — a struct of primitives, ids, `mo.Option[T]`, and
+  collections of those, declared in the component's root package. A facade never accepts or returns a
+  `domain` type; reference another component's entity by id (ADR-001).
 - Clean layers nest inside the component's own `internal/`: `domain/` `application/`
   `infrastructure/` `presentation/`.
 - Shared technical modules under `internal/shared/<module>/`, each its own facade.
@@ -38,9 +41,12 @@ The why lives in the ADRs. This file is the operative rules only — never resta
 
 ## DI
 
-- `samber/do`, one injector per app, built in the composition root. It is the only place naming
-  concrete implementations.
-- **The provider returns the interface, never the concrete type:**
+- `samber/do`, one injector per app, built in the composition root. Each component exports a
+  registration function from its facade package; the root calls it. A component's concrete types are
+  named only in that function — `main` cannot import `internal/<component>/internal/*`, so the
+  compiler enforces this.
+- **The provider returns the interface, never the concrete type** (this code lives in the
+  component's registration function, not in `main`):
 
   ```go
   do.Provide(injector, func(i do.Injector) (application.OrderRepository, error) {
@@ -78,6 +84,13 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   reach-around must fail `go build`. An outward layer import must fail `golangci-lint run` *while
   still compiling*. Checking only the first tests the compiler, not the configuration.
 
+## Workflow
+
+- Conventional commits, with a body that says *why*.
+- Work happens on a branch or worktree, never on `main`. Stacked branches are fine for landing
+  large work as smaller reviewable pieces.
+- Deliberately minimal: no branching model beyond this is decided here.
+
 ## Gotchas
 
 - A `depguard` rule whose `files` pattern matches nothing reports `0 issues` and exits 0, looking
@@ -96,5 +109,9 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   first component.
 - **`go.mod` requires nothing.** `samber/do` and `samber/mo` are decided (ADR-GO-01, ADR-GO-03) but
   not yet imported. Add each with the code that needs it, not up front.
+- **A facade that returns a `domain` type compiles for its callers even though they cannot import
+  that package.** Go's `internal/` rule restricts naming a package, not holding a value: `o :=
+  orders.Find(id)` infers the type and `o.Total()` works, while `var o *domain.Order` does not
+  compile. Neither the compiler nor `depguard` catches this — ADR-001 is a review rule.
 - **A CLI framework is expected but not chosen** (docs/decision-log.md, Open). Whichever it is, it is
   a `presentation/` concern — it must not appear in `domain/` or `application/`.

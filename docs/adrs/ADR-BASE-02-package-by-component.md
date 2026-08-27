@@ -43,16 +43,26 @@ fit instead.
 ### When to prefer ports-and-adapters instead
 
 Choose **ports-and-adapters** (organize inside = framework-free core vs outside = adapters) when:
-- your capability boundaries are genuinely unknown and you want zero commitment yet,
 - the domain is one cohesive thing rather than several separable capabilities, or
-- there is no service-extraction goal.
+- your capability boundaries are genuinely unknown and you want zero commitment yet.
 
-Package-by-component's advantage — a component boundary that doubles as a future-service seam — only
-pays off once boundaries are known.
+These are alternatives, so **either one alone is enough** — which is why the list must stay short and
+must not include proxies for the real question.
+
+Package-by-component's advantage — an enforced boundary around each capability, which also doubles as
+a service seam if you ever want one — only pays off once boundaries are known.
+
+**Not having a service-extraction goal is not a reason to choose ports-and-adapters.** The payoff here
+is encapsulation, not deployment: without an enforced boundary, package-by-component degrades into
+package-by-feature with everything public, and that degradation is just as bad in a CLI that will
+never be split as in a platform that will. A tool with three separable capabilities and no intention
+of ever deploying them apart still gets a screaming domain, per-capability facades, local reasoning,
+and a contained blast radius. Extraction readiness is what becomes moot when nothing
+will ever be extracted — the layout does not.
 
 ### For this project
 
-`codefall-cli`'s capabilities are **not named yet**, which is the first of the three conditions above.
+`codefall-cli`'s capabilities are **not named yet**, which is the second of the two conditions above.
 We choose **package-by-component anyway**, deliberately: in Go the component boundary is the
 compiler-enforced `internal/` layout (ADR-GO-02), and retrofitting it later rewrites every import path
 in the repo — a cost ports-and-adapters would defer rather than avoid.
@@ -64,8 +74,9 @@ first real capability fills them in. Start with one coarse component, not three 
 
 ## Consequences
 
-- The structure screams the domain, and component boundaries double as extraction (microservice)
-  seams.
+- The structure screams the domain. Component boundaries double as extraction (microservice) seams
+  only on a surface that can be split — this CLI cannot be, so what the boundary buys here is
+  encapsulation and local reasoning, not deployment options.
 - It asks you to commit to capability boundaries — **start coarse and split** as the domain
   clarifies; re-slicing an existing boundary is the expensive case.
 - Cross-component workflows go through facades / app-layer coordination rather than reaching across.
