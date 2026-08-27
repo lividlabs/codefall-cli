@@ -2,9 +2,9 @@
 
 A Go command-line tool. One surface, one app, one module.
 
-**State: scaffolded, empty.** `internal/` has no components and `cmd/codefall/main.go` prints a
-banner without wiring anything. The rules below are the ones the first component must satisfy — they
-are not describing code that exists yet.
+**State: one component.** `internal/doctor/` (`codefall doctor`) is the first component and the
+reference for the rules below; `cmd/codefall/main.go` is the composition root and builds the
+injector.
 
 ## Applicable ADRs
 
@@ -36,8 +36,9 @@ The why lives in the ADRs. This file is the operative rules only — never resta
 
 - Dependencies point inward only. Interfaces live in `application/` with the use cases that need
   them; `domain/` = entities + value objects + errors.
-- `domain/` imports the standard library and nothing else. `application/` adds only its own
-  component's `domain/`. No `net/http`, `database/sql`, drivers, or CLI framework in either.
+- `domain/` imports the standard library and `samber/mo` (ADR-GO-03) and nothing else.
+  `application/` adds only its own component's `domain/`. No `net/http`, `database/sql`, drivers, or
+  CLI framework in either.
 - Handlers and commands are thin; use cases never see delivery types.
 
 ## DI
@@ -83,6 +84,9 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   never with Cobra templates.
 - Commands are built in a component's `presentation/`, exported through its facade, and mounted on
   the root in the composition root. Flags are `pflag` — never the standard library `flag`.
+- A component's facade exports `Register(do.Injector)` and `Command(do.Injector) *cobra.Command`;
+  `main` calls the first and mounts the second. A component with several top-level commands adds
+  `Commands(do.Injector) []*cobra.Command` when that happens.
 - Styling is Lip Gloss v2 (`charm.land/lipgloss/v2`), used where it helps. Plain text is the
   default; parsed output (anything piped or `--json`-style) is never styled; human output goes
   through a `colorprofile`-aware writer (`lipgloss.Fprint*` or `colorprofile.NewWriter`), never a
@@ -124,15 +128,19 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   provider's return type is the discipline.
 - **`.golangci.yml` needs a new `application-layer` allow-list entry for every component you add** —
   `depguard`'s `allow` is literal prefix matching with no globs, so a new component's `application/`
-  package silently loses access to its own `domain/` until its import path is named there. Rule 4
-  (shared modules) is commented out in that file for the same reason: it has no component facade to
-  deny yet.
-- **The layer rules match no files today** and so report `0 issues` — indistinguishable from a broken
-  config. They were proven against deliberate violations at scaffold time; prove them again with the
-  first component.
-- **`go.mod` requires nothing.** `samber/do`, `samber/mo`, Cobra, Fang, Lip Gloss, and Huh are
-  decided (ADR-GO-01, ADR-GO-03, ADR-002) but not yet imported. Add each with the code that needs
-  it, not up front.
+  package silently loses access to its own `domain/` until its import path is named there. The
+  `shared-modules` rule needs a deny entry per component for the same reason.
+- **The `shared-modules` rule matches no files** until `internal/shared/` exists, and so reports `0
+  issues` — indistinguishable from a broken config. Prove it against a deliberate violation when
+  that directory arrives. The `domain-layer` and `application-layer` rules were re-proven on
+  2026-08-27 against a Cobra import from `internal/doctor/internal/application/`.
+- **`depguard` matches `_test.go` too.** Inner-layer tests are internal test packages (`package
+  domain`, `package application`), and a `domain` test cannot import `os` — which is why the schema
+  test that holds `schemas/settings.schema.json` equal to the domain constants lives in the facade
+  package.
+- **`go.mod` requires `samber/do`, `samber/mo`, Cobra, Fang, Lip Gloss v2, and `colorprofile`.** Huh
+  (ADR-002) arrives with the first prompt. Add each library with the code that needs it, not up
+  front.
 - **A facade that returns a `domain` type compiles for its callers even though they cannot import
   that package.** Go's `internal/` rule restricts naming a package, not holding a value: `o :=
   orders.Find(id)` infers the type and `o.Total()` works, while `var o *domain.Order` does not

@@ -45,18 +45,29 @@ Decided at scaffold, 2026-08-16.
   transitively with Huh and is the answer if a TUI is ever needed; that is a consequence of ADR-002,
   not a new decision. None of it is imported yet — each library arrives with the code that first
   calls it.
+- **First component, 2026-08-27.** `internal/doctor/` is the first capability under `internal/`:
+  `codefall doctor` reports whether a directory has `.codefall/settings.json`, Beads, and an
+  authenticated `gh` with the scopes codefall needs. It reports and never repairs — it prints the
+  remedy for every unmet check and `codefall init` will be the thing that runs them. The composition
+  root now exists: `cmd/codefall/main.go` builds the injector, calls `doctor.Register`, mounts
+  `doctor.Command`, and hands the tree to `fang.Execute`. The layer rules were re-proven the way
+  ADR-GO-02 requires — a facade reach-around from `main` failed `go build`, and a Cobra import from
+  `internal/doctor/internal/application/` compiled and failed `golangci-lint run` on the
+  `application-layer` rule. Facade shape, settling ADR-002's open question:
+  `Register(do.Injector)` plus `Command(do.Injector) *cobra.Command`, with
+  `Commands(do.Injector) []*cobra.Command` when a component has several top-level commands. No
+  report contract crosses the facade yet, because nothing outside doctor consumes one; add
+  `doctor.Report`/`doctor.CheckResult` with the first external consumer, likely `init` (ADR-001).
+  Now imported: Cobra, Fang, `samber/do`, `samber/mo`, `charm.land/lipgloss/v2`, and
+  `github.com/charmbracelet/colorprofile`. Huh still waits for the first prompt.
+  `schemas/settings.schema.json` is the published definition of `.codefall/settings.json`; the Go
+  validator is hand-written in `domain/` so no schema library ships in the binary, and a test holds
+  the two equal. One correction to ADR-002: Fang v1.0.0 does import `charm.land/lipgloss/v2`, so its
+  note that Fang imports neither Lip Gloss major is out of date. Harmless — it is the v2 major, and
+  the v1 generation stays out of the graph.
 
 ## Open
 
-- **Name the capabilities.** The top-level components are still unknown. Start with one coarse
-  component under `internal/`, not three speculative ones.
-- **The composition root does not exist yet.** ADR-GO-01 stands, but `main.go` builds no injector
-  because there is no object graph. Build it with the first component; the provider must return the
-  interface, never the concrete type, and the root calls each component's exported registration
-  function and resolves facades only (ADR-GO-01 as amended 2026-08-19).
-- **The layer rules currently match no files.** `.golangci.yml` reports `0 issues` because there is
-  no `internal/*/internal/domain` or `application` to check — per ADR-GO-02 that looks identical to
-  a broken config. Re-prove both halves with the first component.
 - **UI composition.** Shared UI widgets — theme, styles, the colour-profile writer, key maps,
   reusable Bubble Tea models (list, table, status bar) — under `internal/shared/ui/`, generic over
   the data they show; rule 4 means that module never imports a business component. Each component's
