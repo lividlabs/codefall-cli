@@ -190,7 +190,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.CodefallDir.ID: domain.StatusFail}, afterCodefallDir...),
 			target:     domain.CodefallDir.ID,
-			wantDetail: "not found",
+			wantDetail: ".codefall/ not found",
 			wantRemedy: mo.Some(schemaRemedy),
 		},
 		{
@@ -200,7 +200,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.CodefallDir.ID: domain.StatusFail}, afterCodefallDir...),
 			target:     domain.CodefallDir.ID,
-			wantDetail: "cannot stat " + codefallDir + ": permission denied",
+			wantDetail: "Cannot stat " + codefallDir + ": permission denied",
 			wantRemedy: mo.None[string](),
 		},
 		{
@@ -210,7 +210,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.SettingsFile.ID: domain.StatusFail}, afterSettingsFile...),
 			target:     domain.SettingsFile.ID,
-			wantDetail: "not found",
+			wantDetail: ".codefall/settings.json not found",
 			wantRemedy: mo.Some(schemaRemedy),
 		},
 		{
@@ -220,7 +220,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.SettingsFile.ID: domain.StatusFail}, afterSettingsFile...),
 			target:     domain.SettingsFile.ID,
-			wantDetail: "cannot read: permission denied",
+			wantDetail: "Cannot read .codefall/settings.json: permission denied",
 			wantRemedy: mo.None[string](),
 		},
 		{
@@ -230,7 +230,8 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.SettingsJSON.ID: domain.StatusFail}, afterSettingsJSON...),
 			target:     domain.SettingsJSON.ID,
-			wantDetail: "invalid JSON at byte 18: invalid character ',' looking for beginning of object key string",
+			wantDetail: "settings.json is not valid JSON at byte 18: " +
+				"invalid character ',' looking for beginning of object key string",
 			wantRemedy: mo.None[string](),
 		},
 		{
@@ -240,7 +241,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.SettingsComplete.ID: domain.StatusFail}),
 			target:     domain.SettingsComplete.ID,
-			wantDetail: "top level must be a JSON object",
+			wantDetail: "settings.json's top level must be a JSON object",
 			wantRemedy: mo.Some(fixRemedy),
 		},
 		{
@@ -250,7 +251,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.SettingsComplete.ID: domain.StatusFail}),
 			target:     domain.SettingsComplete.ID,
-			wantDetail: "version: must be 1; tracker: missing",
+			wantDetail: "settings.json is incomplete: version: must be 1; tracker: missing",
 			wantRemedy: mo.Some(fixRemedy),
 		},
 		{
@@ -260,7 +261,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.BeadsInstalled.ID: domain.StatusFail}, afterBeadsMissing...),
 			target:     domain.BeadsInstalled.ID,
-			wantDetail: "not found on PATH",
+			wantDetail: "bd is not on PATH",
 			wantRemedy: mo.Some("brew install beads"),
 		},
 		{
@@ -283,7 +284,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.BeadsInitialized.ID: domain.StatusWarn}),
 			target:     domain.BeadsInitialized.ID,
-			wantDetail: "bd info exited 1: Error: no beads database found",
+			wantDetail: "This repository has no Beads database (bd info exited 1: Error: no beads database found)",
 			wantRemedy: mo.Some("bd init"),
 		},
 		{
@@ -293,7 +294,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.BeadsInitialized.ID: domain.StatusWarn}),
 			target:     domain.BeadsInitialized.ID,
-			wantDetail: "could not run bd info: run bd: fork/exec: resource temporarily unavailable",
+			wantDetail: "Could not run bd info: run bd: fork/exec: resource temporarily unavailable",
 			wantRemedy: mo.Some("bd init"),
 		},
 		{
@@ -303,7 +304,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.GHInstalled.ID: domain.StatusFail}, afterGHMissing...),
 			target:     domain.GHInstalled.ID,
-			wantDetail: "not found on PATH",
+			wantDetail: "gh is not on PATH",
 			wantRemedy: mo.Some("brew install gh"),
 		},
 		{
@@ -313,7 +314,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.GHAuthenticated.ID: domain.StatusFail}, afterGHAuth...),
 			target:     domain.GHAuthenticated.ID,
-			wantDetail: "could not run gh auth status: run gh: signal: killed",
+			wantDetail: "Could not run gh auth status: run gh: signal: killed",
 			wantRemedy: mo.None[string](),
 		},
 		{
@@ -326,7 +327,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.GHAuthenticated.ID: domain.StatusFail}, afterGHAuth...),
 			target:     domain.GHAuthenticated.ID,
-			wantDetail: "unexpected output from gh auth status: unknown flag: --json",
+			wantDetail: "Unexpected output from gh auth status: unknown flag: --json",
 			wantRemedy: mo.Some("gh auth login"),
 		},
 		{
@@ -338,7 +339,7 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:       outcomes(map[string]domain.Status{domain.GHAuthenticated.ID: domain.StatusFail}, afterGHAuth...),
 			target:     domain.GHAuthenticated.ID,
-			wantDetail: "no active github.com account",
+			wantDetail: "No active github.com account",
 			wantRemedy: mo.Some("gh auth login"),
 		},
 		{
@@ -358,7 +359,7 @@ func TestDiagnoseRun(t *testing.T) {
 			mutate:     withScopes("gist, project, read:org"),
 			want:       outcomes(map[string]domain.Status{domain.GHScopes.ID: domain.StatusFail}),
 			target:     domain.GHScopes.ID,
-			wantDetail: "missing repo",
+			wantDetail: "The token is missing repo",
 			wantRemedy: mo.Some("gh auth refresh -s repo"),
 		},
 		{
@@ -372,7 +373,7 @@ func TestDiagnoseRun(t *testing.T) {
 			mutate:     withScopes("repo, workflow"),
 			want:       outcomes(map[string]domain.Status{domain.GHScopes.ID: domain.StatusWarn}),
 			target:     domain.GHScopes.ID,
-			wantDetail: "missing read:project, project",
+			wantDetail: "The token is missing read:project, project",
 			wantRemedy: mo.Some("gh auth refresh -s read:project -s project"),
 		},
 		{
@@ -380,7 +381,7 @@ func TestDiagnoseRun(t *testing.T) {
 			mutate:     withScopes("gist"),
 			want:       outcomes(map[string]domain.Status{domain.GHScopes.ID: domain.StatusFail}),
 			target:     domain.GHScopes.ID,
-			wantDetail: "missing repo, read:project, project",
+			wantDetail: "The token is missing repo, read:project, project",
 			wantRemedy: mo.Some("gh auth refresh -s repo -s read:project -s project"),
 		},
 	} {

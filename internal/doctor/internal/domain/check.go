@@ -30,11 +30,26 @@ func (s Status) String() string {
 	}
 }
 
-// Check identifies one thing doctor looks at. The ID is stable and machine-readable; the Title is
-// what a person reads.
-type Check struct {
+// Category is the part of a project's setup a check belongs to. The report groups by category, so a
+// healthy project is three lines rather than nine.
+type Category struct {
 	ID    string
 	Title string
+}
+
+// The three categories, in the order doctor reports them.
+var (
+	CategorySettings = Category{ID: "settings", Title: "Settings"}
+	CategoryBeads    = Category{ID: "beads", Title: "Beads"}
+	CategoryGitHub   = Category{ID: "github", Title: "GitHub CLI"}
+)
+
+// Check identifies one thing doctor looks at. The ID is stable and machine-readable; the Title is
+// what a person reads; the Category is the section it is reported under.
+type Check struct {
+	ID       string
+	Title    string
+	Category Category
 }
 
 // Result is the outcome of running one check. Detail is absent on a bare PASS, and Remedy is absent
@@ -68,13 +83,13 @@ func (c Check) Fail(detail string, remedy mo.Option[string]) Result {
 
 // The nine checks doctor runs, in the order it runs them.
 var (
-	CodefallDir      = Check{ID: "codefall-dir", Title: ".codefall/ exists"}
-	SettingsFile     = Check{ID: "settings-file", Title: ".codefall/settings.json exists"}
-	SettingsJSON     = Check{ID: "settings-json", Title: "settings.json is valid JSON"}
-	SettingsComplete = Check{ID: "settings-complete", Title: "settings.json is complete"}
-	BeadsInstalled   = Check{ID: "bd-installed", Title: "bd is on PATH"}
-	BeadsInitialized = Check{ID: "beads-initialized", Title: "Beads is initialized here"}
-	GHInstalled      = Check{ID: "gh-installed", Title: "gh is on PATH"}
-	GHAuthenticated  = Check{ID: "gh-auth", Title: "gh is logged in to github.com"}
-	GHScopes         = Check{ID: "gh-scopes", Title: "gh token has the required scopes"}
+	CodefallDir      = Check{ID: "codefall-dir", Title: ".codefall/ exists", Category: CategorySettings}
+	SettingsFile     = Check{ID: "settings-file", Title: ".codefall/settings.json exists", Category: CategorySettings}
+	SettingsJSON     = Check{ID: "settings-json", Title: "settings.json is valid JSON", Category: CategorySettings}
+	SettingsComplete = Check{ID: "settings-complete", Title: "settings.json is complete", Category: CategorySettings}
+	BeadsInstalled   = Check{ID: "bd-installed", Title: "bd is on PATH", Category: CategoryBeads}
+	BeadsInitialized = Check{ID: "beads-initialized", Title: "Beads is initialized here", Category: CategoryBeads}
+	GHInstalled      = Check{ID: "gh-installed", Title: "gh is on PATH", Category: CategoryGitHub}
+	GHAuthenticated  = Check{ID: "gh-auth", Title: "gh is logged in to github.com", Category: CategoryGitHub}
+	GHScopes         = Check{ID: "gh-scopes", Title: "gh token has the required scopes", Category: CategoryGitHub}
 )

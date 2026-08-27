@@ -17,7 +17,7 @@ import (
 func (d *Diagnose) beads(ctx context.Context, dir string, results []domain.Result) []domain.Result {
 	path, installed := d.runner.LookPath("bd").Get()
 	if !installed {
-		return append(results, domain.BeadsInstalled.Fail("not found on PATH", mo.Some("brew install beads")))
+		return append(results, domain.BeadsInstalled.Fail("bd is not on PATH", mo.Some("brew install beads")))
 	}
 
 	results = append(results, domain.BeadsInstalled.PassWithDetail(d.toolVersion(ctx, dir, path, "bd", "version")))
@@ -29,10 +29,11 @@ func (d *Diagnose) beads(ctx context.Context, dir string, results []domain.Resul
 	switch {
 	case err != nil:
 		return append(results, domain.BeadsInitialized.Warn(
-			fmt.Sprintf("could not run bd info: %v", err), initRemedy))
+			fmt.Sprintf("Could not run bd info: %v", err), initRemedy))
 	case result.ExitCode != 0:
 		return append(results, domain.BeadsInitialized.Warn(
-			fmt.Sprintf("bd info exited %d: %s", result.ExitCode, firstLine(result.Stderr)), initRemedy))
+			fmt.Sprintf("This repository has no Beads database (bd info exited %d: %s)",
+				result.ExitCode, firstLine(result.Stderr)), initRemedy))
 	}
 
 	return append(results, domain.BeadsInitialized.Pass())

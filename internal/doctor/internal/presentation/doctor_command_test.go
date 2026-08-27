@@ -52,7 +52,10 @@ func run(t *testing.T, diagnose DiagnoseUseCase, args ...string) (string, error)
 func TestDoctorCommandPrintsAPassingReport(t *testing.T) {
 	diagnose := &fakeDiagnose{report: domain.NewReport(
 		domain.CodefallDir.Pass(),
+		domain.SettingsComplete.Pass(),
 		domain.BeadsInstalled.PassWithDetail("bd version 1.2.2 (Homebrew)"),
+		domain.GHInstalled.PassWithDetail("gh version 2.97.0 (2026-07-31)"),
+		domain.GHAuthenticated.PassWithDetail("logged in as djensen47"),
 	)}
 
 	out, err := run(t, diagnose)
@@ -60,16 +63,22 @@ func TestDoctorCommandPrintsAPassingReport(t *testing.T) {
 		t.Fatalf("Execute: %v", err)
 	}
 
-	want := "PASS  .codefall/ exists\n" +
-		"PASS  bd is on PATH — bd version 1.2.2 (Homebrew)\n"
+	// A section whose passing checks reported nothing about themselves has no parenthetical.
+	want := "[✓] Settings\n" +
+		"[✓] Beads (bd version 1.2.2 (Homebrew))\n" +
+		"[✓] GitHub CLI (gh version 2.97.0 (2026-07-31), logged in as djensen47)\n" +
+		"• No issues found.\n"
 	if out != want {
 		t.Errorf("output =\n%q\nwant\n%q", out, want)
 	}
 }
 
-func TestDoctorCommandPrintsWarningsWithTheirRemedy(t *testing.T) {
+func TestDoctorCommandPrintsWarningsWithTheirRemedyAndSucceeds(t *testing.T) {
 	diagnose := &fakeDiagnose{report: domain.NewReport(
-		domain.BeadsInitialized.Warn("bd info exited 1: Error: no beads database found", mo.Some("bd init")),
+		domain.BeadsInstalled.PassWithDetail("bd version 1.2.2 (Homebrew)"),
+		domain.BeadsInitialized.Warn(
+			"This repository has no Beads database (bd info exited 1: Error: no beads database found)",
+			mo.Some("bd init")),
 	)}
 
 	out, err := run(t, diagnose)
@@ -77,7 +86,10 @@ func TestDoctorCommandPrintsWarningsWithTheirRemedy(t *testing.T) {
 		t.Fatalf("Execute: %v", err)
 	}
 
-	want := "WARN  Beads is initialized here — bd info exited 1: Error: no beads database found (fix: bd init)\n"
+	want := "[!] Beads (bd version 1.2.2 (Homebrew))\n" +
+		"    ! This repository has no Beads database (bd info exited 1: Error: no beads database found)\n" +
+		"      fix: bd init\n" +
+		"• Doctor found issues in 1 category.\n"
 	if out != want {
 		t.Errorf("output =\n%q\nwant\n%q", out, want)
 	}
@@ -88,20 +100,37 @@ func TestDoctorCommandFailsWhenAnyCheckFails(t *testing.T) {
 		name    string
 		report  domain.Report
 		wantErr string
+		want    string
 	}{
 		{
-			name:    "one failure",
-			report:  domain.NewReport(domain.SettingsFile.Fail("not found", mo.None[string]())),
-			wantErr: "doctor: 1 check failed",
+			name: "one category",
+			report: domain.NewReport(
+				domain.CodefallDir.Pass(),
+				domain.SettingsFile.Fail(".codefall/settings.json not found", mo.None[string]()),
+			),
+			wantErr: "doctor found issues in 1 category",
+			want: "[✗] Settings\n" +
+				"    ✗ .codefall/settings.json not found\n",
 		},
 		{
-			name: "two failures",
+			name: "a failure and a warning in different categories",
 			report: domain.NewReport(
-				domain.SettingsFile.Fail("not found", mo.None[string]()),
-				domain.BeadsInitialized.Warn("no database", mo.Some("bd init")),
-				domain.GHScopes.Fail("missing repo", mo.Some("gh auth refresh -s repo")),
+				domain.CodefallDir.Pass(),
+				domain.SettingsFile.Fail(".codefall/settings.json not found",
+					mo.Some("create .codefall/settings.json")),
+				domain.BeadsInstalled.PassWithDetail("bd version 1.2.2 (Homebrew)"),
+				domain.BeadsInitialized.Warn("This repository has no Beads database", mo.Some("bd init")),
+				domain.GHInstalled.PassWithDetail("gh version 2.97.0 (2026-07-31)"),
+				domain.GHAuthenticated.PassWithDetail("logged in as djensen47"),
 			),
-			wantErr: "doctor: 2 checks failed",
+			wantErr: "doctor found issues in 2 categories",
+			want: "[✗] Settings\n" +
+				"    ✗ .codefall/settings.json not found\n" +
+				"      fix: create .codefall/settings.json\n" +
+				"[!] Beads (bd version 1.2.2 (Homebrew))\n" +
+				"    ! This repository has no Beads database\n" +
+				"      fix: bd init\n" +
+				"[✓] GitHub CLI (gh version 2.97.0 (2026-07-31), logged in as djensen47)\n",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -110,11 +139,10 @@ func TestDoctorCommandFailsWhenAnyCheckFails(t *testing.T) {
 				t.Fatalf("Execute error = %v, want %q", err, tc.wantErr)
 			}
 
-			// Every line is printed before the error is returned.
-			for _, result := range tc.report.Results() {
-				if !strings.Contains(out, result.Check.Title) {
-					t.Errorf("output does not mention %q:\n%s", result.Check.Title, out)
-				}
+			// The whole report is printed before the error is returned, and no summary line with it:
+			// Fang renders the error as the summary.
+			if out != tc.want {
+				t.Errorf("output =\n%q\nwant\n%q", out, tc.want)
 			}
 		})
 	}
@@ -156,37 +184,84 @@ func TestDoctorCommandDiagnosesTheWorkingDirectory(t *testing.T) {
 	}
 }
 
-func TestFormatLine(t *testing.T) {
+func TestSectionHeader(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		section domain.Section
+		want    string
+	}{
+		{
+			name: "a clean section with nothing to report",
+			section: domain.Section{
+				Category: domain.CategorySettings,
+				Results:  []domain.Result{domain.CodefallDir.Pass(), domain.SettingsComplete.Pass()},
+			},
+			want: "[✓] Settings",
+		},
+		{
+			name: "the passing details, joined",
+			section: domain.Section{
+				Category: domain.CategoryGitHub,
+				Results: []domain.Result{
+					domain.GHInstalled.PassWithDetail("gh version 2.97.0 (2026-07-31)"),
+					domain.GHAuthenticated.PassWithDetail("logged in as djensen47"),
+					domain.GHScopes.Pass(),
+				},
+			},
+			want: "[✓] GitHub CLI (gh version 2.97.0 (2026-07-31), logged in as djensen47)",
+		},
+		{
+			name: "a warning takes the mark, and the passing details stay",
+			section: domain.Section{
+				Category: domain.CategoryBeads,
+				Results: []domain.Result{
+					domain.BeadsInstalled.PassWithDetail("bd version 1.2.2 (Homebrew)"),
+					domain.BeadsInitialized.Warn("no database", mo.Some("bd init")),
+				},
+			},
+			want: "[!] Beads (bd version 1.2.2 (Homebrew))",
+		},
+		{
+			name: "a failure takes the mark, and only passing details are parenthesised",
+			section: domain.Section{
+				Category: domain.CategorySettings,
+				Results: []domain.Result{
+					domain.CodefallDir.Pass(),
+					domain.SettingsFile.Fail(".codefall/settings.json not found", mo.None[string]()),
+				},
+			},
+			want: "[✗] Settings",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Only the mark is styled; strip the styling to compare the text.
+			if got := stripANSI(sectionHeader(tc.section)); got != tc.want {
+				t.Errorf("sectionHeader() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestProblemLine(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		result domain.Result
 		want   string
 	}{
 		{
-			name:   "a bare pass",
-			result: domain.CodefallDir.Pass(),
-			want:   "PASS  .codefall/ exists",
+			name:   "a warning",
+			result: domain.BeadsInitialized.Warn("This repository has no Beads database", mo.Some("bd init")),
+			want:   "    ! This repository has no Beads database",
 		},
 		{
-			name:   "a pass with detail",
-			result: domain.GHAuthenticated.PassWithDetail("as djensen47"),
-			want:   "PASS  gh is logged in to github.com — as djensen47",
-		},
-		{
-			name:   "a warning with a remedy",
-			result: domain.BeadsInitialized.Warn("no database", mo.Some("bd init")),
-			want:   "WARN  Beads is initialized here — no database (fix: bd init)",
-		},
-		{
-			name:   "a failure without a remedy",
-			result: domain.SettingsJSON.Fail("invalid JSON at byte 4: unexpected end", mo.None[string]()),
-			want:   "FAIL  settings.json is valid JSON — invalid JSON at byte 4: unexpected end",
+			name:   "a failure",
+			result: domain.SettingsJSON.Fail("settings.json is not valid JSON at byte 4: x", mo.None[string]()),
+			want:   "    ✗ settings.json is not valid JSON at byte 4: x",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// formatLine styles the status word; strip the styling to compare the text.
-			if got := stripANSI(formatLine(tc.result)); got != tc.want {
-				t.Errorf("formatLine() = %q, want %q", got, tc.want)
+			if got := stripANSI(problemLine(tc.result)); got != tc.want {
+				t.Errorf("problemLine() = %q, want %q", got, tc.want)
 			}
 		})
 	}

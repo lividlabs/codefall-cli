@@ -34,7 +34,7 @@ const githubHost = "github.com"
 func (d *Diagnose) github(ctx context.Context, dir string, results []domain.Result) []domain.Result {
 	path, installed := d.runner.LookPath("gh").Get()
 	if !installed {
-		return append(results, domain.GHInstalled.Fail("not found on PATH", mo.Some("brew install gh")))
+		return append(results, domain.GHInstalled.Fail("gh is not on PATH", mo.Some("brew install gh")))
 	}
 
 	results = append(results, domain.GHInstalled.PassWithDetail(d.toolVersion(ctx, dir, path, "gh", "--version")))
@@ -44,7 +44,7 @@ func (d *Diagnose) github(ctx context.Context, dir string, results []domain.Resu
 	result, err := d.runner.Run(ctx, dir, "gh", "auth", "status", "--json", "hosts")
 	if err != nil {
 		return append(results, domain.GHAuthenticated.Fail(
-			fmt.Sprintf("could not run gh auth status: %v", err), mo.None[string]()))
+			fmt.Sprintf("Could not run gh auth status: %v", err), mo.None[string]()))
 	}
 
 	var status ghAuthStatus
@@ -56,12 +56,12 @@ func (d *Diagnose) github(ctx context.Context, dir string, results []domain.Resu
 		}
 
 		return append(results, domain.GHAuthenticated.Fail(
-			"unexpected output from gh auth status: "+detail, loginRemedy))
+			"Unexpected output from gh auth status: "+detail, loginRemedy))
 	}
 
 	account, found := activeAccount(status)
 	if !found {
-		return append(results, domain.GHAuthenticated.Fail("no active "+githubHost+" account", loginRemedy))
+		return append(results, domain.GHAuthenticated.Fail("No active "+githubHost+" account", loginRemedy))
 	}
 
 	if account.State != "success" {
@@ -73,7 +73,7 @@ func (d *Diagnose) github(ctx context.Context, dir string, results []domain.Resu
 		return append(results, domain.GHAuthenticated.Fail(detail, loginRemedy))
 	}
 
-	results = append(results, domain.GHAuthenticated.PassWithDetail("as "+account.Login))
+	results = append(results, domain.GHAuthenticated.PassWithDetail("logged in as "+account.Login))
 
 	return append(results, scopeResult(account.Scopes))
 }
@@ -103,7 +103,7 @@ func scopeResult(scopes string) domain.Result {
 		remedy += " -s " + scope
 	}
 
-	detail := "missing " + strings.Join(all, ", ")
+	detail := "The token is missing " + strings.Join(all, ", ")
 
 	if len(missing.Required) > 0 {
 		return domain.GHScopes.Fail(detail, mo.Some(remedy))

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
@@ -20,12 +21,19 @@ type DiagnoseUseCase interface {
 	Run(ctx context.Context, dir string) (domain.Report, error)
 }
 
-// Only the status word is styled: the rest of a line is a path, a version, or a command to type, and
+// Only the status mark is styled: the rest of a line is a path, a version, or a command to type, and
 // colour there would be decoration rather than information.
 var statusStyles = map[domain.Status]lipgloss.Style{
 	domain.StatusPass: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Green),
 	domain.StatusWarn: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Yellow),
 	domain.StatusFail: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Red),
+}
+
+// The mark each status prints, in the header's brackets and in front of a problem line.
+var statusMarks = map[domain.Status]string{
+	domain.StatusPass: "✓",
+	domain.StatusWarn: "!",
+	domain.StatusFail: "✗",
 }
 
 // NewDoctorCommand builds `codefall doctor`.
@@ -49,47 +57,113 @@ func NewDoctorCommand(diagnose DiagnoseUseCase) *cobra.Command {
 			}
 
 			// One colorprofile writer for the whole report; lipgloss.Fprint* would build one per line.
-			if err := renderReport(colorprofile.NewWriter(cmd.OutOrStdout(), os.Environ()), report); err != nil {
+			out := colorprofile.NewWriter(cmd.OutOrStdout(), os.Environ())
+
+			if err := renderReport(out, report); err != nil {
 				return err
 			}
 
-			// Fang renders this; nothing here calls os.Exit.
-			if failed := report.Failed(); failed > 0 {
-				return fmt.Errorf("doctor: %d %s failed", failed, plural(failed, "check", "checks"))
+			issues := report.SectionsWithIssues()
+
+			// Fang renders this; nothing here calls os.Exit. A failing run prints no summary line
+			// because the error is the summary.
+			if report.Failed() > 0 {
+				return fmt.Errorf("doctor found issues in %d %s",
+					issues, plural(issues, "category", "categories"))
 			}
 
-			return nil
+			return writeLine(out, summaryLine(issues))
 		},
 	}
 }
 
+// renderReport prints one header line per category and, under it, one line per problem. A check that
+// passed says all it has to say in its section's header.
 func renderReport(w io.Writer, report domain.Report) error {
-	for _, result := range report.Results() {
-		if _, err := fmt.Fprintln(w, formatLine(result)); err != nil {
-			return fmt.Errorf("write report: %w", err)
+	for _, section := range report.Sections() {
+		if err := writeLine(w, sectionHeader(section)); err != nil {
+			return err
+		}
+
+		for _, result := range section.Results {
+			if result.Status == domain.StatusPass {
+				continue
+			}
+
+			if err := writeLine(w, problemLine(result)); err != nil {
+				return err
+			}
+
+			if remedy, ok := result.Remedy.Get(); ok {
+				if err := writeLine(w, "      fix: "+remedy); err != nil {
+					return err
+				}
+			}
 		}
 	}
 
 	return nil
 }
 
-func formatLine(result domain.Result) string {
-	status := result.Status.String()
-	if style, ok := statusStyles[result.Status]; ok {
-		status = style.Render(status)
+// sectionHeader is the category's status, its title, and whatever its passing checks reported about
+// themselves — the versions and the account, the things worth knowing when nothing is wrong.
+func sectionHeader(section domain.Section) string {
+	header := "[" + mark(section.Status()) + "] " + section.Category.Title
+
+	var details []string
+
+	for _, result := range section.Results {
+		if detail, ok := result.Detail.Get(); ok && result.Status == domain.StatusPass {
+			details = append(details, detail)
+		}
 	}
 
-	line := status + "  " + result.Check.Title
+	if len(details) > 0 {
+		header += " (" + strings.Join(details, ", ") + ")"
+	}
+
+	return header
+}
+
+// problemLine is a warning or a failure, indented under its header. The check's title is not printed:
+// the detail is written as a sentence that stands on its own.
+func problemLine(result domain.Result) string {
+	line := "    " + mark(result.Status)
 
 	if detail, ok := result.Detail.Get(); ok {
-		line += " — " + detail
-	}
-
-	if remedy, ok := result.Remedy.Get(); ok {
-		line += " (fix: " + remedy + ")"
+		line += " " + detail
 	}
 
 	return line
+}
+
+func summaryLine(issues int) string {
+	if issues == 0 {
+		return "• No issues found."
+	}
+
+	return fmt.Sprintf("• Doctor found issues in %d %s.", issues, plural(issues, "category", "categories"))
+}
+
+func mark(status domain.Status) string {
+	glyph, ok := statusMarks[status]
+	if !ok {
+		glyph = "?"
+	}
+
+	if style, ok := statusStyles[status]; ok {
+		return style.Render(glyph)
+	}
+
+	return glyph
+}
+
+func writeLine(w io.Writer, line string) error {
+	if _, err := fmt.Fprintln(w, line); err != nil {
+		return fmt.Errorf("write report: %w", err)
+	}
+
+	return nil
 }
 
 func plural(n int, one, many string) string {

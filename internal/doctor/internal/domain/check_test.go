@@ -78,11 +78,14 @@ func TestWarnAndFailCarryDetailAndRemedy(t *testing.T) {
 	}
 }
 
+// allChecks is the nine checks in the order doctor runs them.
+var allChecks = []Check{
+	CodefallDir, SettingsFile, SettingsJSON, SettingsComplete,
+	BeadsInstalled, BeadsInitialized, GHInstalled, GHAuthenticated, GHScopes,
+}
+
 func TestCheckIdentifiersAreDistinct(t *testing.T) {
-	checks := []Check{
-		CodefallDir, SettingsFile, SettingsJSON, SettingsComplete,
-		BeadsInstalled, BeadsInitialized, GHInstalled, GHAuthenticated, GHScopes,
-	}
+	checks := allChecks
 
 	seen := map[string]bool{}
 
@@ -96,5 +99,43 @@ func TestCheckIdentifiersAreDistinct(t *testing.T) {
 		}
 
 		seen[check.ID] = true
+	}
+}
+
+func TestEveryCheckBelongsToOneOfTheThreeCategories(t *testing.T) {
+	want := map[string]Category{
+		CodefallDir.ID:      CategorySettings,
+		SettingsFile.ID:     CategorySettings,
+		SettingsJSON.ID:     CategorySettings,
+		SettingsComplete.ID: CategorySettings,
+		BeadsInstalled.ID:   CategoryBeads,
+		BeadsInitialized.ID: CategoryBeads,
+		GHInstalled.ID:      CategoryGitHub,
+		GHAuthenticated.ID:  CategoryGitHub,
+		GHScopes.ID:         CategoryGitHub,
+	}
+
+	for _, check := range allChecks {
+		if got := check.Category; got != want[check.ID] {
+			t.Errorf("%s category = %+v, want %+v", check.ID, got, want[check.ID])
+		}
+	}
+}
+
+func TestCategoriesAreDistinctAndNamed(t *testing.T) {
+	categories := []Category{CategorySettings, CategoryBeads, CategoryGitHub}
+
+	seen := map[string]bool{}
+
+	for _, category := range categories {
+		if category.ID == "" || category.Title == "" {
+			t.Errorf("category %+v has an empty field", category)
+		}
+
+		if seen[category.ID] {
+			t.Errorf("duplicate category ID %q", category.ID)
+		}
+
+		seen[category.ID] = true
 	}
 }
