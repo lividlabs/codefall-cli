@@ -308,6 +308,39 @@ func TestProblemLine(t *testing.T) {
 	}
 }
 
+// Dimming is invisible to the tests above, because the colorprofile writer strips it before the
+// buffer sees it. Assert it against the styled strings, written to a plain buffer.
+func TestSecondaryTextIsFaint(t *testing.T) {
+	const faint = "\x1b[2m"
+
+	section := domain.Section{
+		Category: domain.CategoryBeads,
+		Results: []domain.Result{
+			domain.BeadsInstalled.PassWithDetail("bd version 1.2.2 (Homebrew)"),
+			domain.BeadsInitialized.Warn("This repository has no Beads database", mo.Some("bd init")),
+		},
+	}
+
+	if header := sectionHeader(section); !strings.Contains(header, faint+"(bd version 1.2.2 (Homebrew))") {
+		t.Errorf("sectionHeader() = %q, want the parenthetical dimmed, parentheses included", header)
+	}
+
+	// The sentence that says what is wrong is the one thing left at full strength.
+	if problem := problemLine(section.Results[1]); strings.Contains(problem, faint) {
+		t.Errorf("problemLine() = %q, want nothing dimmed", problem)
+	}
+
+	var out bytes.Buffer
+
+	if err := renderReport(&out, domain.NewReport(section.Results...)); err != nil {
+		t.Fatalf("renderReport: %v", err)
+	}
+
+	if !strings.Contains(out.String(), faint+"fix: bd init") {
+		t.Errorf("renderReport() =\n%q\nwant the whole fix line dimmed", out.String())
+	}
+}
+
 // Under `go test` stdout is not a terminal, so there is nobody to ask about the background and
 // nothing to see either way. Dark is the answer, matching what lipgloss falls back to.
 func TestHasDarkBackgroundDefaultsToDarkWithoutATerminal(t *testing.T) {

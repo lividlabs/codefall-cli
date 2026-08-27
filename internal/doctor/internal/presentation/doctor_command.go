@@ -66,6 +66,11 @@ func hasDarkBackground() bool {
 	return lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
 }
 
+// Secondary text is dimmed rather than coloured: the versions and accounts in a header, and the
+// remedy under a problem. What is left at full strength is the sentence that says what is wrong,
+// which is the only thing a reader has to take in.
+var faintStyle = lipgloss.NewStyle().Faint(true)
+
 // The mark each status prints, in the header's brackets and in front of a problem line.
 var statusMarks = map[domain.Status]string{
 	domain.StatusPass: "✓",
@@ -137,7 +142,7 @@ func renderReport(w io.Writer, report domain.Report) error {
 			}
 
 			if remedy, ok := result.Remedy.Get(); ok {
-				if err := writeLine(w, "      fix: "+remedy); err != nil {
+				if err := writeLine(w, "      "+faintStyle.Render("fix: "+remedy)); err != nil {
 					return err
 				}
 			}
@@ -161,7 +166,7 @@ func sectionHeader(section domain.Section) string {
 	}
 
 	if len(details) > 0 {
-		header += " (" + strings.Join(details, ", ") + ")"
+		header += " " + faintStyle.Render("("+strings.Join(details, ", ")+")")
 	}
 
 	return header
