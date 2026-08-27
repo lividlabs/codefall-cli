@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/tree"
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/exp/charmtone"
 	"github.com/charmbracelet/x/term"
@@ -128,28 +129,62 @@ func renderReport(w io.Writer, report domain.Report) error {
 	}
 
 	for _, section := range report.Sections() {
-		if err := writeLine(w, sectionHeader(section)); err != nil {
+		if err := writeLine(w, sectionTree(section)); err != nil {
 			return err
-		}
-
-		for _, result := range section.Results {
-			if result.Status == domain.StatusPass {
-				continue
-			}
-
-			if err := writeLine(w, problemLine(result)); err != nil {
-				return err
-			}
-
-			if remedy, ok := result.Remedy.Get(); ok {
-				if err := writeLine(w, "      "+faintStyle.Render("fix: "+remedy)); err != nil {
-					return err
-				}
-			}
 		}
 	}
 
 	return nil
+}
+
+// sectionTree draws one category: the header is the root, each problem is a child of it, and a
+// remedy is a child of the problem it repairs. A section whose checks all passed is a root on its
+// own, because its header already says everything there is to say.
+func sectionTree(section domain.Section) string {
+	guide := faintStyle.PaddingRight(1)
+
+	root := tree.Root(sectionHeader(section)).
+		Enumerator(enumerator).
+		Indenter(indenter).
+		EnumeratorStyle(guide).
+		IndenterStyle(guide)
+
+	for _, result := range section.Results {
+		if result.Status == domain.StatusPass {
+			continue
+		}
+
+		problem := tree.Root(problemLine(result))
+
+		if remedy, ok := result.Remedy.Get(); ok {
+			problem.Child(faintStyle.Render("fix: " + remedy))
+		}
+
+		root.Child(problem)
+	}
+
+	return root.String()
+}
+
+// enumerator draws the elbow in front of a child, rounded on the last one. Two characters rather
+// than the tree package's three, which keeps a remedy's text at the column its problem's mark sits
+// in.
+func enumerator(children tree.Children, index int) string {
+	if children.Length()-1 == index {
+		return "╰─"
+	}
+
+	return "├─"
+}
+
+// indenter carries the vertical down the left of a problem's remedy while the section still has
+// problems to come, and drops it once there are none.
+func indenter(children tree.Children, index int) string {
+	if children.Length()-1 == index {
+		return "  "
+	}
+
+	return "│ "
 }
 
 // sectionHeader is the category's status, its title, and whatever its passing checks reported about
@@ -172,10 +207,10 @@ func sectionHeader(section domain.Section) string {
 	return header
 }
 
-// problemLine is a warning or a failure, indented under its header. The check's title is not printed:
-// the detail is written as a sentence that stands on its own.
+// problemLine is a warning or a failure, hung off its header by the tree. The check's title is not
+// printed: the detail is written as a sentence that stands on its own.
 func problemLine(result domain.Result) string {
-	line := "    " + mark(result.Status)
+	line := mark(result.Status)
 
 	if detail, ok := result.Detail.Get(); ok {
 		line += " " + detail

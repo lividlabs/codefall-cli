@@ -126,8 +126,8 @@ func TestDoctorCommandPrintsWarningsWithTheirRemedyAndSucceeds(t *testing.T) {
 
 	want := headingLines +
 		"[!] Beads (bd version 1.2.2 (Homebrew))\n" +
-		"    ! This repository has no Beads database (bd info exited 1: Error: no beads database found)\n" +
-		"      fix: bd init\n" +
+		"╰─ ! This repository has no Beads database (bd info exited 1: Error: no beads database found)\n" +
+		"   ╰─ fix: bd init\n" +
 		"• Doctor found issues in 1 category.\n"
 	if out != want {
 		t.Errorf("output =\n%q\nwant\n%q", out, want)
@@ -150,7 +150,7 @@ func TestDoctorCommandFailsWhenAnyCheckFails(t *testing.T) {
 			wantErr: "doctor found issues in 1 category",
 			want: headingLines +
 				"[✗] Settings\n" +
-				"    ✗ .codefall/settings.json not found\n",
+				"╰─ ✗ .codefall/settings.json not found\n",
 		},
 		{
 			name: "a failure and a warning in different categories",
@@ -166,11 +166,11 @@ func TestDoctorCommandFailsWhenAnyCheckFails(t *testing.T) {
 			wantErr: "doctor found issues in 2 categories",
 			want: headingLines +
 				"[✗] Settings\n" +
-				"    ✗ .codefall/settings.json not found\n" +
-				"      fix: create .codefall/settings.json\n" +
+				"╰─ ✗ .codefall/settings.json not found\n" +
+				"   ╰─ fix: create .codefall/settings.json\n" +
 				"[!] Beads (bd version 1.2.2 (Homebrew))\n" +
-				"    ! This repository has no Beads database\n" +
-				"      fix: bd init\n" +
+				"╰─ ! This repository has no Beads database\n" +
+				"   ╰─ fix: bd init\n" +
 				"[✓] GitHub CLI (gh version 2.97.0 (2026-07-31), logged in as djensen47)\n",
 		},
 	} {
@@ -292,12 +292,12 @@ func TestProblemLine(t *testing.T) {
 		{
 			name:   "a warning",
 			result: domain.BeadsInitialized.Warn("This repository has no Beads database", mo.Some("bd init")),
-			want:   "    ! This repository has no Beads database",
+			want:   "! This repository has no Beads database",
 		},
 		{
 			name:   "a failure",
 			result: domain.SettingsJSON.Fail("settings.json is not valid JSON at byte 4: x", mo.None[string]()),
-			want:   "    ✗ settings.json is not valid JSON at byte 4: x",
+			want:   "✗ settings.json is not valid JSON at byte 4: x",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -305,6 +305,45 @@ func TestProblemLine(t *testing.T) {
 				t.Errorf("problemLine() = %q, want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+// Two problems in one section is the shape the whole-command tests above never reach, and it is the
+// only one that draws the square elbow and the vertical carried down past it.
+func TestSectionTreeGuidesEveryProblemAndItsRemedy(t *testing.T) {
+	section := domain.Section{
+		Category: domain.CategorySettings,
+		Results: []domain.Result{
+			domain.CodefallDir.Pass(),
+			domain.SettingsFile.Fail(".codefall/settings.json not found",
+				mo.Some("create .codefall/settings.json")),
+			domain.SettingsJSON.Fail("settings.json is not valid JSON at byte 4: x", mo.None[string]()),
+		},
+	}
+
+	want := "[✗] Settings\n" +
+		"├─ ✗ .codefall/settings.json not found\n" +
+		"│  ╰─ fix: create .codefall/settings.json\n" +
+		"╰─ ✗ settings.json is not valid JSON at byte 4: x"
+
+	if got := stripANSI(sectionTree(section)); got != want {
+		t.Errorf("sectionTree() =\n%q\nwant\n%q", got, want)
+	}
+}
+
+// A passing section has no children, so it draws no guides at all.
+func TestSectionTreeOfAPassingSectionIsItsHeaderAlone(t *testing.T) {
+	section := domain.Section{
+		Category: domain.CategoryBeads,
+		Results: []domain.Result{
+			domain.BeadsInstalled.PassWithDetail("bd version 1.2.2 (Homebrew)"),
+			domain.BeadsInitialized.Pass(),
+		},
+	}
+
+	want := "[✓] Beads (bd version 1.2.2 (Homebrew))"
+	if got := stripANSI(sectionTree(section)); got != want {
+		t.Errorf("sectionTree() = %q, want %q", got, want)
 	}
 }
 
