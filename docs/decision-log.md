@@ -22,7 +22,23 @@ Decided at scaffold, 2026-08-16.
 - **Boundary enforcement is wired**, ahead of the code it will govern: `internal/` facades
   (compiler) plus `depguard` strict allow-lists in `.golangci.yml` (ADR-GO-02), both proven against
   deliberate violations at scaffold time.
-- follows codefall `0.3.0` as of `2026-08-16`
+- **Contracts cross facades, not entities.** A facade returns a data shape declared in the
+  component's root package, never a `domain` type — recorded as `ADR-001`. Go's `internal/` rule
+  does not cover this: it restricts naming a package, not holding a value, so a leaked entity
+  compiles for a caller that cannot import it. Neither the compiler nor `depguard` can catch it.
+- **`ADR-BASE-03` (extraction readiness) is deliberately not part of this project's set.** Its gate
+  is whether a surface could ever be split into a service, and a CLI cannot. Four of its five rules
+  have no referent here; the fifth is `ADR-001`. If a backing service ever appears, revisit.
+- follows codefall `0.4.0` as of `2026-08-19`
+- grafted codefall `0.4.0` on `2026-08-19` — took the `ADR-BASE-02` revision (re-applied in place,
+  carrying the `For this project` amendment forward; no supersession, as no code had been written
+  against it) and the `AGENTS.md` workflow defaults. Skipped `ADR-BASE-03` as inapplicable.
+  `ADR-BASE-01` and `ADR-GO-01/02/03` were already current.
+- **ADR-GO-01 amended, 2026-08-19.** Its claim that the composition root "is the only place that
+  names concrete implementations" contradicted the layout: `cmd/` cannot import
+  `internal/<component>/internal/*`. Concretes are named in each component's registration function;
+  `main` calls those functions and resolves facades only. The same fix is owed to the plugin
+  templates (go and typescript-react profiles).
 
 ## Open
 
@@ -30,10 +46,11 @@ Decided at scaffold, 2026-08-16.
   component under `internal/`, not three speculative ones.
 - **CLI framework.** A library is expected to run the whole thing (`cobra`, `urfave/cli`, or
   similar) but none is chosen. It is a `presentation/` concern and must stay out of `domain/` and
-  `application/` — ADR-GO-02 rule 5. Record the choice as `ADR-001`.
+  `application/` — ADR-GO-02 rule 5. Record the choice as `ADR-002`.
 - **The composition root does not exist yet.** ADR-GO-01 stands, but `main.go` builds no injector
   because there is no object graph. Build it with the first component; the provider must return the
-  interface, never the concrete type.
+  interface, never the concrete type, and the root calls each component's exported registration
+  function and resolves facades only (ADR-GO-01 as amended 2026-08-19).
 - **The layer rules currently match no files.** `.golangci.yml` reports `0 issues` because there is
   no `internal/*/internal/domain` or `application` to check — per ADR-GO-02 that looks identical to
   a broken config. Re-prove both halves with the first component.

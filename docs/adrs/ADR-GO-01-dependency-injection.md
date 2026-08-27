@@ -26,14 +26,17 @@ Consequences section names how it is contained.
 ### Container
 
 - **`samber/do` v2**, one **injector per app**, built in the composition root at `cmd/<app>/main.go`.
-  The composition root is the only place that names concrete implementations.
+  Concrete implementations are named only in the owning component's registration function; the
+  composition root cannot import them — `internal/<component>/internal/*` is unreachable from
+  `cmd/` — and assembles components by facade.
 - Components export a registration function that the root calls. A component registers its own
   services; it never reaches into another component's registrations.
 
 ### Registration — the provider returns the interface
 
 The service is keyed by the provider's **static return type**. Declare the interface there, never the
-concrete type:
+concrete type. This code lives in the component's registration function — the only place that can
+import both `application` and `infrastructure`:
 
 ```go
 do.Provide(injector, func(i do.Injector) (application.OrderRepository, error) {
@@ -141,9 +144,10 @@ consumer's interface to make it "match" the thing behind it.
   made compile-time safe — `func As[Alias any, Initial Alias]()` is rejected with `cannot use a type
   parameter as constraint`, so the check must be a runtime error. Discipline plus `do.As` is the
   whole mitigation.
-- Missing registrations surface at startup rather than at build. Resolve every service the app needs
-  in the composition root so that failure happens on the first line of `main`, not on the first
-  request.
+- Missing registrations surface at startup rather than at build. Resolve every component facade in
+  the composition root so that failure happens on the first line of `main`, not on the first
+  request — resolution is lazy, so constructing a facade invokes its providers and builds the
+  component's whole graph.
 - Lazy instantiation, scopes, and ordered shutdown come free, which is the trade being made for the
   point above.
 - Component-scoped interfaces keep the number of interfaces bounded by components times gateway
