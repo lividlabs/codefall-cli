@@ -283,7 +283,7 @@ func indenter(children tree.Children, index int) string {
 // sectionHeader is the category's status, its title, and whatever its passing checks reported about
 // themselves — the versions and the account, the things worth knowing when nothing is wrong.
 func sectionHeader(section domain.Section) string {
-	header := "[" + mark(section.Status()) + "] " + section.Category.Title
+	header := bracketedMark(section.Status()) + " " + section.Category.Title
 
 	var details []string
 
@@ -324,13 +324,24 @@ func summaryLine(issues int) string {
 		fmt.Sprintf("• Doctor found issues in %d %s.", issues, plural(issues, "category", "categories")))
 }
 
+// mark is the bare glyph a problem line hangs off, in its status's colour.
 func mark(status domain.Status) string {
-	glyph, ok := statusMarks[status]
-	if !ok {
-		glyph = "?"
+	return statusStyle(status).Render(glyph(status))
+}
+
+// bracketedMark is the header's form of the same thing. The brackets are rendered inside the style
+// rather than around it, so the three characters read as one token instead of a coloured glyph
+// between two uncoloured ones.
+func bracketedMark(status domain.Status) string {
+	return statusStyle(status).Render("[" + glyph(status) + "]")
+}
+
+func glyph(status domain.Status) string {
+	if g, ok := statusMarks[status]; ok {
+		return g
 	}
 
-	return statusStyle(status).Render(glyph)
+	return "?"
 }
 
 // statusStyle is the one place a status becomes a colour, so the marks and the summary line cannot

@@ -276,9 +276,58 @@ func TestSectionHeader(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// Only the mark is styled; strip the styling to compare the text.
+			// Only the mark and the parenthetical are styled; strip the styling to compare the text.
 			if got := stripANSI(sectionHeader(tc.section)); got != tc.want {
 				t.Errorf("sectionHeader() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// The brackets belong to the mark rather than to the line around it: all three characters are
+// rendered by one style, so a header opens with a single coloured token.
+func TestSectionHeaderStylesTheBracketsWithTheMark(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		section domain.Section
+		status  domain.Status
+		want    string
+	}{
+		{
+			name: "a passing section",
+			section: domain.Section{
+				Category: domain.CategorySettings,
+				Results:  []domain.Result{domain.CodefallDir.Pass()},
+			},
+			status: domain.StatusPass,
+			want:   "[✓]",
+		},
+		{
+			name: "a warning",
+			section: domain.Section{
+				Category: domain.CategoryBeads,
+				Results:  []domain.Result{domain.BeadsInitialized.Warn("no database", mo.Some("bd init"))},
+			},
+			status: domain.StatusWarn,
+			want:   "[!]",
+		},
+		{
+			name: "a failure",
+			section: domain.Section{
+				Category: domain.CategorySettings,
+				Results: []domain.Result{
+					domain.SettingsFile.Fail(".codefall/settings.json not found", mo.None[string]()),
+				},
+			},
+			status: domain.StatusFail,
+			want:   "[✗]",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			want := statusStyle(tc.status).Render(tc.want)
+
+			if got := sectionHeader(tc.section); !strings.HasPrefix(got, want+" ") {
+				t.Errorf("sectionHeader() = %q, want it to open with the styled token %q", got, want)
 			}
 		})
 	}
