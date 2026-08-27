@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 
+	"charm.land/bubbles/v2/spinner"
+	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/tree"
 	"github.com/charmbracelet/colorprofile"
@@ -60,11 +62,18 @@ var statusStyles = sync.OnceValue(func() map[domain.Status]lipgloss.Style {
 // strips the colour on its way out — so the answer is the dark variant, which is the one lipgloss
 // itself falls back to.
 func hasDarkBackground() bool {
-	if !term.IsTerminal(os.Stdout.Fd()) {
+	if !stdoutIsTerminal() {
 		return true
 	}
 
 	return lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
+}
+
+// stdoutIsTerminal decides both questions that depend on who is reading: whether the terminal can be
+// asked about its background, and whether a spinner has anywhere to run. A pipe, a file, CI, and the
+// tests all answer no.
+func stdoutIsTerminal() bool {
+	return term.IsTerminal(os.Stdout.Fd())
 }
 
 // Secondary text is dimmed rather than coloured: the versions and accounts in a header, and the
@@ -94,7 +103,7 @@ func NewDoctorCommand(diagnose DiagnoseUseCase) *cobra.Command {
 				return fmt.Errorf("doctor: %w", err)
 			}
 
-			report, err := diagnose.Run(cmd.Context(), dir)
+			report, err := runDiagnose(cmd.Context(), diagnose, dir)
 			if err != nil {
 				return fmt.Errorf("doctor: %w", err)
 			}
@@ -118,6 +127,90 @@ func NewDoctorCommand(diagnose DiagnoseUseCase) *cobra.Command {
 			return writeLine(out, summaryLine(issues))
 		},
 	}
+}
+
+// spinnerLabel is what the spinner says while the checks run. The checks shell out to bd and gh, so
+// a run is slow enough to be worth acknowledging.
+const spinnerLabel = "Running checks…"
+
+// runDiagnose runs the use case, spinning while it works when there is a terminal to spin on.
+// Anywhere else — a pipe, a file, CI, a test — it calls the use case directly and the command writes
+// exactly the bytes it wrote before the spinner existed.
+func runDiagnose(ctx context.Context, diagnose DiagnoseUseCase, dir string) (domain.Report, error) {
+	if !stdoutIsTerminal() {
+		return diagnose.Run(ctx, dir)
+	}
+
+	// WithContext is what makes a cancelled command abort: the program stops with an error rather
+	// than spinning until the use case notices.
+	final, err := tea.NewProgram(newDiagnoseSpinner(ctx, diagnose, dir), tea.WithContext(ctx)).Run()
+	if err != nil {
+		return domain.Report{}, fmt.Errorf("spinner: %w", err)
+	}
+
+	model, ok := final.(diagnoseSpinner)
+	if !ok {
+		return domain.Report{}, fmt.Errorf("spinner: finished as %T, want %T", final, diagnoseSpinner{})
+	}
+
+	return model.report, model.err
+}
+
+// diagnosedMsg carries the use case's outcome back into the program. It holds the error rather than
+// failing the program with it, because the command decides what an error means, not the spinner.
+type diagnosedMsg struct {
+	report domain.Report
+	err    error
+}
+
+// diagnoseSpinner is the whole terminal program: a frame, a label, and one command running the use
+// case. It draws nothing once the answer arrives, so the report prints on a clean line.
+type diagnoseSpinner struct {
+	spinner spinner.Model
+	run     tea.Cmd
+	report  domain.Report
+	err     error
+	done    bool
+}
+
+func newDiagnoseSpinner(ctx context.Context, diagnose DiagnoseUseCase, dir string) diagnoseSpinner {
+	return diagnoseSpinner{
+		spinner: spinner.New(
+			spinner.WithSpinner(spinner.MiniDot),
+			spinner.WithStyle(statusStyle(domain.StatusPass)),
+		),
+		run: func() tea.Msg {
+			report, err := diagnose.Run(ctx, dir)
+
+			return diagnosedMsg{report: report, err: err}
+		},
+	}
+}
+
+func (m diagnoseSpinner) Init() tea.Cmd {
+	return tea.Batch(m.spinner.Tick, m.run)
+}
+
+func (m diagnoseSpinner) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if done, ok := msg.(diagnosedMsg); ok {
+		m.report, m.err, m.done = done.report, done.err, true
+
+		return m, tea.Quit
+	}
+
+	var cmd tea.Cmd
+
+	m.spinner, cmd = m.spinner.Update(msg)
+
+	return m, cmd
+}
+
+func (m diagnoseSpinner) View() tea.View {
+	if m.done {
+		return tea.NewView("")
+	}
+
+	return tea.NewView(m.spinner.View() + " " + faintStyle.Render(spinnerLabel))
 }
 
 // renderReport prints the heading, then one header line per category and, under it, one line per

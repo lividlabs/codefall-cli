@@ -98,8 +98,8 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   `ACCESSIBLE` environment variable.
 - Charm's v2 generation only. Nothing that imports the v1 paths
   (`github.com/charmbracelet/{lipgloss,bubbletea,bubbles,huh}`) is added. A TUI, if ever needed, is
-  Bubble Tea (`charm.land/bubbletea/v2`), already in the graph through Huh — no new ADR for the
-  library.
+  Bubble Tea (`charm.land/bubbletea/v2`), already in the graph through doctor's spinner — no new ADR
+  for the library. Bubble Tea appears in `presentation/` only.
 
 ## Enforcement
 
@@ -138,10 +138,11 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   domain`, `package application`), and a `domain` test cannot import `os` — which is why the schema
   test that holds `schemas/settings.schema.json` equal to the domain constants lives in the facade
   package.
-- **`go.mod` requires `samber/do`, `samber/mo`, Cobra, Fang, Lip Gloss v2, `colorprofile`,
-  `x/exp/charmtone`, and `x/term`** — the last two for the Charm palette and the terminal detection
-  Fang's own theme uses. Huh (ADR-002) arrives with the first prompt. Add each library with the code
-  that needs it, not up front.
+- **`go.mod` requires `samber/do`, `samber/mo`, Cobra, Fang, Lip Gloss v2, Bubble Tea v2, Bubbles v2,
+  `colorprofile`, `x/exp/charmtone`, and `x/term`** — the last two for the Charm palette and the
+  terminal detection Fang's own theme uses, Bubble Tea and Bubbles for doctor's spinner. Huh
+  (ADR-002) arrives with the first prompt. Add each library with the code that needs it, not up
+  front.
 - **A facade that returns a `domain` type compiles for its callers even though they cannot import
   that package.** Go's `internal/` rule restricts naming a package, not holding a value: `o :=
   orders.Find(id)` infers the type and `o.Total()` works, while `var o *domain.Order` does not

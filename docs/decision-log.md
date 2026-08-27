@@ -60,6 +60,8 @@ Decided at scaffold, 2026-08-16.
   `doctor.Report`/`doctor.CheckResult` with the first external consumer, likely `init` (ADR-001).
   Now imported: Cobra, Fang, `samber/do`, `samber/mo`, `charm.land/lipgloss/v2`, and
   `github.com/charmbracelet/colorprofile`. Huh still waits for the first prompt.
+  Bubble Tea and Bubbles v2 joined with doctor's spinner, in `presentation/` only — an ADR-002
+  consequence rather than a new decision, and not the TUI question ADR-003 would settle.
   `schemas/settings.schema.json` is the published definition of `.codefall/settings.json`; the Go
   validator is hand-written in `domain/` so no schema library ships in the binary, and a test holds
   the two equal. One correction to ADR-002: Fang v1.0.0 does import `charm.land/lipgloss/v2`, so its
