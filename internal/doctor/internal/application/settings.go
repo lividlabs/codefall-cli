@@ -1,0 +1,83 @@
+package application
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/fs"
+	"path/filepath"
+	"strings"
+
+	"github.com/samber/mo"
+
+	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
+)
+
+// settings runs checks 1 to 4. Each one is the prerequisite of the next, so the first failure ends
+// the group and the remaining checks are absent from the report.
+//
+// Decoding happens here rather than in infrastructure, which returns bytes, or in the domain, which
+// must not name an encoding. It decodes into the generic document so the domain's field table stays
+// the single definition of the settings shape and every problem is reported at once.
+func (d *Diagnose) settings(_ context.Context, dir string, results []domain.Result) []domain.Result {
+	codefallDir := filepath.Join(dir, ".codefall")
+	settingsPath := filepath.Join(codefallDir, "settings.json")
+	createRemedy := mo.Some("create .codefall/settings.json; schema: " + domain.SettingsSchemaID)
+
+	exists, err := d.files.DirExists(codefallDir)
+
+	switch {
+	case err != nil:
+		return append(results, domain.CodefallDir.Fail(
+			fmt.Sprintf("cannot stat %s: %v", codefallDir, err), mo.None[string]()))
+	case !exists:
+		return append(results, domain.CodefallDir.Fail("not found", createRemedy))
+	}
+
+	results = append(results, domain.CodefallDir.Pass())
+
+	data, err := d.files.ReadFile(settingsPath)
+
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return append(results, domain.SettingsFile.Fail("not found", createRemedy))
+	case err != nil:
+		return append(results, domain.SettingsFile.Fail(
+			fmt.Sprintf("cannot read: %v", err), mo.None[string]()))
+	}
+
+	results = append(results, domain.SettingsFile.Pass())
+
+	fixRemedy := mo.Some("fix the fields above; schema: " + domain.SettingsSchemaID)
+
+	var doc domain.Document
+
+	if err := json.Unmarshal(data, &doc); err != nil {
+		var syntaxErr *json.SyntaxError
+		if errors.As(err, &syntaxErr) {
+			return append(results, domain.SettingsJSON.Fail(
+				fmt.Sprintf("invalid JSON at byte %d: %v", syntaxErr.Offset, syntaxErr), mo.None[string]()))
+		}
+
+		// Well-formed JSON that is not an object parses cleanly and is simply the wrong shape, so
+		// check 3 passes and check 4 carries the complaint.
+		var typeErr *json.UnmarshalTypeError
+		if errors.As(err, &typeErr) {
+			results = append(results, domain.SettingsJSON.Pass())
+
+			return append(results, domain.SettingsComplete.Fail("top level must be a JSON object", fixRemedy))
+		}
+
+		return append(results, domain.SettingsJSON.Fail(
+			fmt.Sprintf("invalid JSON: %v", err), mo.None[string]()))
+	}
+
+	results = append(results, domain.SettingsJSON.Pass())
+
+	if problems := domain.ValidateSettings(doc); len(problems) > 0 {
+		return append(results, domain.SettingsComplete.Fail(strings.Join(problems, "; "), fixRemedy))
+	}
+
+	return append(results, domain.SettingsComplete.Pass())
+}

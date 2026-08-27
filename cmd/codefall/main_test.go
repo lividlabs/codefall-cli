@@ -2,17 +2,46 @@ package main
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 )
 
-func TestRunPrintsWelcome(t *testing.T) {
+// These exercise the composition root end to end — a real injector, real providers, the real command
+// tree — but only through paths that stop at help or at argument parsing. Nothing here executes bd
+// or gh.
+
+func TestRunPrintsSubcommandHelp(t *testing.T) {
 	var out bytes.Buffer
 
-	if err := run(nil, &out); err != nil {
+	if err := run([]string{"doctor", "--help"}, &out, &out); err != nil {
 		t.Fatalf("run: %v", err)
 	}
 
-	if got, want := out.String(), "Welcome to Codefall\n"; got != want {
-		t.Errorf("output = %q, want %q", got, want)
+	for _, want := range []string{"USAGE", "codefall doctor"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("output does not contain %q:\n%s", want, out.String())
+		}
+	}
+}
+
+func TestRunWithoutArgumentsPrintsRootHelp(t *testing.T) {
+	var out bytes.Buffer
+
+	if err := run([]string{}, &out, &out); err != nil {
+		t.Fatalf("run: %v", err)
+	}
+
+	for _, want := range []string{"COMMANDS", "doctor"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("output does not contain %q:\n%s", want, out.String())
+		}
+	}
+}
+
+func TestRunRejectsUnknownCommand(t *testing.T) {
+	var out bytes.Buffer
+
+	if err := run([]string{"nope"}, &out, &out); err == nil {
+		t.Fatalf("run: want an error, got nil\n%s", out.String())
 	}
 }
