@@ -308,6 +308,14 @@ func TestProblemLine(t *testing.T) {
 	}
 }
 
+// Under `go test` stdout is not a terminal, so there is nobody to ask about the background and
+// nothing to see either way. Dark is the answer, matching what lipgloss falls back to.
+func TestHasDarkBackgroundDefaultsToDarkWithoutATerminal(t *testing.T) {
+	if !hasDarkBackground() {
+		t.Error("hasDarkBackground() = false, want true when stdout is not a terminal")
+	}
+}
+
 // stripANSI removes the escape sequences lipgloss renders, which the colorprofile writer would
 // normally downsample away on its way to a non-terminal.
 func stripANSI(s string) string {

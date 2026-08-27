@@ -8,10 +8,12 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/exp/charmtone"
+	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
 	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
@@ -36,10 +38,32 @@ type DiagnoseUseCase interface {
 
 // Only the status mark is styled: the rest of a line is a path, a version, or a command to type, and
 // colour there would be decoration rather than information.
-var statusStyles = map[domain.Status]lipgloss.Style{
-	domain.StatusPass: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Green),
-	domain.StatusWarn: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Yellow),
-	domain.StatusFail: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Red),
+//
+// The colours come from the Charm palette, picked light/dark-aware the way Fang's own colour scheme
+// picks its. Failure is Cherry in both, because it is the one mark that has to read as alarming
+// whatever the terminal looks like — and it is the colour Fang paints its error header.
+//
+// The scheme is built once, on first use, because deciding it means asking the terminal a question.
+var statusStyles = sync.OnceValue(func() map[domain.Status]lipgloss.Style {
+	c := lipgloss.LightDark(hasDarkBackground())
+
+	return map[domain.Status]lipgloss.Style{
+		domain.StatusPass: lipgloss.NewStyle().Bold(true).Foreground(c(charmtone.Guac, charmtone.Julep)),
+		domain.StatusWarn: lipgloss.NewStyle().Bold(true).Foreground(c(charmtone.Mustard, charmtone.Citron)),
+		domain.StatusFail: lipgloss.NewStyle().Bold(true).Foreground(charmtone.Cherry),
+	}
+})
+
+// hasDarkBackground asks the terminal for its background colour, the way Fang does before building
+// its styles. When stdout is not a terminal there is nothing to ask and nothing to see — colorprofile
+// strips the colour on its way out — so the answer is the dark variant, which is the one lipgloss
+// itself falls back to.
+func hasDarkBackground() bool {
+	if !term.IsTerminal(os.Stdout.Fd()) {
+		return true
+	}
+
+	return lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
 }
 
 // The mark each status prints, in the header's brackets and in front of a problem line.
@@ -169,7 +193,7 @@ func mark(status domain.Status) string {
 		glyph = "?"
 	}
 
-	if style, ok := statusStyles[status]; ok {
+	if style, ok := statusStyles()[status]; ok {
 		return style.Render(glyph)
 	}
 
