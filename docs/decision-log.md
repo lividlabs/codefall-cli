@@ -39,14 +39,17 @@ Decided at scaffold, 2026-08-16.
   `internal/<component>/internal/*`. Concretes are named in each component's registration function;
   `main` calls those functions and resolves facades only. The same fix is owed to the plugin
   templates (go and typescript-react profiles).
+- **CLI libraries, 2026-08-27.** Cobra for the command tree, run through Fang; Lip Gloss v2 for
+  styled output where it helps; Huh v2 for prompts. Charm's v2 generation only, on the
+  `charm.land/…/v2` paths — the two majors do not mix. Recorded as `ADR-002`. Bubble Tea arrives
+  transitively with Huh and is the answer if a TUI is ever needed; that is a consequence of ADR-002,
+  not a new decision. None of it is imported yet — each library arrives with the code that first
+  calls it.
 
 ## Open
 
 - **Name the capabilities.** The top-level components are still unknown. Start with one coarse
   component under `internal/`, not three speculative ones.
-- **CLI framework.** A library is expected to run the whole thing (`cobra`, `urfave/cli`, or
-  similar) but none is chosen. It is a `presentation/` concern and must stay out of `domain/` and
-  `application/` — ADR-GO-02 rule 5. Record the choice as `ADR-002`.
 - **The composition root does not exist yet.** ADR-GO-01 stands, but `main.go` builds no injector
   because there is no object graph. Build it with the first component; the provider must return the
   interface, never the concrete type, and the root calls each component's exported registration
