@@ -15,8 +15,9 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   [ADR-GO-01 Dependency Injection](docs/adrs/ADR-GO-01-dependency-injection.md) ·
   [ADR-GO-02 Boundary enforcement](docs/adrs/ADR-GO-02-boundary-enforcement.md) ·
   [ADR-GO-03 Optional values](docs/adrs/ADR-GO-03-optional-values.md)
-- This project's own decisions: [ADR-001 Facade contracts](docs/adrs/ADR-001-facade-contracts.md).
-  New ones use [`docs/adrs/_TEMPLATE.md`](docs/adrs/_TEMPLATE.md); decisions still moving live in
+- This project's own decisions: [ADR-001 Facade contracts](docs/adrs/ADR-001-facade-contracts.md) ·
+  [ADR-002 CLI libraries](docs/adrs/ADR-002-cli-libraries.md). New ones use
+  [`docs/adrs/_TEMPLATE.md`](docs/adrs/_TEMPLATE.md); decisions still moving live in
   [`docs/decision-log.md`](docs/decision-log.md).
 
 ## Structure
@@ -74,6 +75,28 @@ The why lives in the ADRs. This file is the operative rules only — never resta
 - Errors stay `(T, error)` with `%w` wrapping and `errors.Is` / `errors.As`. Do not use `mo.Result`.
 - If a caller needs to know *why* something is missing, it is an error, not a `None`.
 
+## CLI
+
+- Cobra (`github.com/spf13/cobra`) defines the command tree; `fang.Execute` runs it from
+  `cmd/codefall/main.go`, the only importer of `github.com/charmbracelet/fang`. Fang owns help,
+  usage, error, `--version`, `completion`, and `man` output — change it with `fang.With*` options,
+  never with Cobra templates.
+- Commands are built in a component's `presentation/`, exported through its facade, and mounted on
+  the root in the composition root. Flags are `pflag` — never the standard library `flag`.
+- Styling is Lip Gloss v2 (`charm.land/lipgloss/v2`), used where it helps. Plain text is the
+  default; parsed output (anything piped or `--json`-style) is never styled; human output goes
+  through a `colorprofile`-aware writer (`lipgloss.Fprint*` or `colorprofile.NewWriter`), never a
+  rendered style written straight to `os.Stdout`.
+- Prompts are Huh v2 (`charm.land/huh/v2`), in `presentation/` only, collecting values into a
+  contract for a use case. A command that prompts by default also runs without prompting: every
+  prompted value is also a flag, and if `stdin` is not a terminal and a value is missing, fail
+  naming the flag — never block on input. Run with `RunWithContext`; `WithAccessible` follows the
+  `ACCESSIBLE` environment variable.
+- Charm's v2 generation only. Nothing that imports the v1 paths
+  (`github.com/charmbracelet/{lipgloss,bubbletea,bubbles,huh}`) is added. A TUI, if ever needed, is
+  Bubble Tea (`charm.land/bubbletea/v2`), already in the graph through Huh — no new ADR for the
+  library.
+
 ## Enforcement
 
 - `internal/` facades are enforced by the compiler — a reach-around fails `go build`.
@@ -107,11 +130,13 @@ The why lives in the ADRs. This file is the operative rules only — never resta
 - **The layer rules match no files today** and so report `0 issues` — indistinguishable from a broken
   config. They were proven against deliberate violations at scaffold time; prove them again with the
   first component.
-- **`go.mod` requires nothing.** `samber/do` and `samber/mo` are decided (ADR-GO-01, ADR-GO-03) but
-  not yet imported. Add each with the code that needs it, not up front.
+- **`go.mod` requires nothing.** `samber/do`, `samber/mo`, Cobra, Fang, Lip Gloss, and Huh are
+  decided (ADR-GO-01, ADR-GO-03, ADR-002) but not yet imported. Add each with the code that needs
+  it, not up front.
 - **A facade that returns a `domain` type compiles for its callers even though they cannot import
   that package.** Go's `internal/` rule restricts naming a package, not holding a value: `o :=
   orders.Find(id)` infers the type and `o.Total()` works, while `var o *domain.Order` does not
   compile. Neither the compiler nor `depguard` catches this — ADR-001 is a review rule.
-- **A CLI framework is expected but not chosen** (docs/decision-log.md, Open). Whichever it is, it is
-  a `presentation/` concern — it must not appear in `domain/` or `application/`.
+- **A v1-generation Charm import compiles and quietly doubles the dependency graph.** On any change
+  to `go.mod`, check `go mod graph` for a `github.com/charmbracelet/lipgloss` or `bubbletea` line
+  without `/v2`. Nothing else catches it (ADR-002).

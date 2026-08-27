@@ -33,6 +33,12 @@ linters:
               desc: "domain/ names no storage (ADR-GO-02 rule 5)"
             - pkg: os
               desc: "domain/ does no IO (ADR-BASE-01)"
+            - pkg: github.com/spf13/
+              desc: "domain/ names no CLI framework — Cobra, pflag (ADR-GO-02 rule 5, ADR-002)"
+            - pkg: github.com/charmbracelet/
+              desc: "domain/ names no CLI framework — Fang and Charm helpers (ADR-GO-02 rule 5, ADR-002)"
+            - pkg: charm.land/
+              desc: "domain/ names no CLI framework — Charm v2 libraries (ADR-GO-02 rule 5, ADR-002)"
 
         # Same, plus each component's own domain/ — and nothing else, so an outward import of
         # infrastructure/ or presentation/ fails while still compiling. One allow entry per
@@ -48,6 +54,12 @@ linters:
               desc: "application/ names no transport (ADR-GO-02 rule 5)"
             - pkg: database/sql
               desc: "application/ names no storage (ADR-GO-02 rule 5)"
+            - pkg: github.com/spf13/
+              desc: "application/ names no CLI framework — Cobra, pflag (ADR-GO-02 rule 5, ADR-002)"
+            - pkg: github.com/charmbracelet/
+              desc: "application/ names no CLI framework — Fang and Charm helpers (ADR-GO-02 rule 5, ADR-002)"
+            - pkg: charm.land/
+              desc: "application/ names no CLI framework — Charm v2 libraries (ADR-GO-02 rule 5, ADR-002)"
 
         # Rule 4 — shared modules are one-way; components may import them, never the reverse — is
         # not expressible until there is a component facade to deny. Add it with the first one:
