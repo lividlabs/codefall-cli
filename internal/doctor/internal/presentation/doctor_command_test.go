@@ -380,6 +380,33 @@ func TestSecondaryTextIsFaint(t *testing.T) {
 	}
 }
 
+// The summary carries the same colour as the mark for the status it reports, bullet and all, so the
+// closing line agrees with what the report above it said.
+func TestSummaryLineTakesTheColourOfTheStatusItReports(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		issues int
+		status domain.Status
+		want   string
+	}{
+		{name: "clean", issues: 0, status: domain.StatusPass, want: "• No issues found."},
+		{name: "one category", issues: 1, status: domain.StatusWarn, want: "• Doctor found issues in 1 category."},
+		{name: "several", issues: 3, status: domain.StatusWarn, want: "• Doctor found issues in 3 categories."},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := summaryLine(tc.issues)
+
+			if stripANSI(got) != tc.want {
+				t.Errorf("summaryLine(%d) = %q, want the text %q", tc.issues, got, tc.want)
+			}
+
+			if want := statusStyle(tc.status).Render(tc.want); got != want {
+				t.Errorf("summaryLine(%d) = %q, want it styled as %q", tc.issues, got, want)
+			}
+		})
+	}
+}
+
 // Under `go test` stdout is not a terminal, so there is nobody to ask about the background and
 // nothing to see either way. Dark is the answer, matching what lipgloss falls back to.
 func TestHasDarkBackgroundDefaultsToDarkWithoutATerminal(t *testing.T) {

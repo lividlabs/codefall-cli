@@ -219,12 +219,16 @@ func problemLine(result domain.Result) string {
 	return line
 }
 
+// summaryLine closes a run that had nothing to fail on, so it carries the status it is reporting:
+// the pass colour when the report is clean, the warning colour when it is not. A failing run never
+// reaches here — its error is its summary, and Fang renders that.
 func summaryLine(issues int) string {
 	if issues == 0 {
-		return "• No issues found."
+		return statusStyle(domain.StatusPass).Render("• No issues found.")
 	}
 
-	return fmt.Sprintf("• Doctor found issues in %d %s.", issues, plural(issues, "category", "categories"))
+	return statusStyle(domain.StatusWarn).Render(
+		fmt.Sprintf("• Doctor found issues in %d %s.", issues, plural(issues, "category", "categories")))
 }
 
 func mark(status domain.Status) string {
@@ -233,11 +237,17 @@ func mark(status domain.Status) string {
 		glyph = "?"
 	}
 
+	return statusStyle(status).Render(glyph)
+}
+
+// statusStyle is the one place a status becomes a colour, so the marks and the summary line cannot
+// drift apart. An unknown status is left unstyled.
+func statusStyle(status domain.Status) lipgloss.Style {
 	if style, ok := statusStyles()[status]; ok {
-		return style.Render(glyph)
+		return style
 	}
 
-	return glyph
+	return lipgloss.NewStyle()
 }
 
 func writeLine(w io.Writer, line string) error {
