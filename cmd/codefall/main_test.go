@@ -44,4 +44,21 @@ func TestRunRejectsUnknownCommand(t *testing.T) {
 	if err := run([]string{"nope"}, &out, &out); err == nil {
 		t.Fatalf("run: want an error, got nil\n%s", out.String())
 	}
+
+	// The chip and the message share a line: Fang's default puts them on two, indented, which reads
+	// as a broken layout under doctor's report. The message is matched without regard to case
+	// because Fang's ErrorText style capitalises its first word.
+	var found bool
+
+	for _, line := range strings.Split(out.String(), "\n") {
+		if strings.Contains(line, "ERROR") && strings.Contains(strings.ToLower(line), "unknown command") {
+			found = true
+
+			break
+		}
+	}
+
+	if !found {
+		t.Errorf("no single line holds both %q and %q:\n%s", "ERROR", "unknown command", out.String())
+	}
 }
