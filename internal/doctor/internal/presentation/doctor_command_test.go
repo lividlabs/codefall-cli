@@ -13,6 +13,10 @@ import (
 	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
 )
 
+// headingLines is the report's opening chip as it reaches a non-terminal stdout: colorprofile has
+// stripped the colour, and the padding the chip style adds survives as ordinary spaces.
+const headingLines = " DOCTOR SUMMARY \n\n"
+
 type fakeDiagnose struct {
 	report domain.Report
 	err    error
@@ -64,12 +68,46 @@ func TestDoctorCommandPrintsAPassingReport(t *testing.T) {
 	}
 
 	// A section whose passing checks reported nothing about themselves has no parenthetical.
-	want := "[✓] Settings\n" +
+	want := headingLines +
+		"[✓] Settings\n" +
 		"[✓] Beads (bd version 1.2.2 (Homebrew))\n" +
 		"[✓] GitHub CLI (gh version 2.97.0 (2026-07-31), logged in as djensen47)\n" +
 		"• No issues found.\n"
 	if out != want {
 		t.Errorf("output =\n%q\nwant\n%q", out, want)
+	}
+}
+
+// The heading is the one line that paints a background, so it is the one whose plain-text form is
+// worth asserting: colorprofile has to strip the styling on a non-terminal stdout and under
+// NO_COLOR, leaving the word.
+func TestDoctorCommandHeadingDegradesToPlainText(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		noColor bool
+	}{
+		{name: "a non-terminal stdout"},
+		{name: "NO_COLOR", noColor: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.noColor {
+				t.Setenv("NO_COLOR", "1")
+			}
+
+			out, err := run(t, &fakeDiagnose{report: domain.NewReport(domain.CodefallDir.Pass())})
+			if err != nil {
+				t.Fatalf("Execute: %v", err)
+			}
+
+			if strings.ContainsRune(out, 0x1b) {
+				t.Errorf("output = %q, want no escape sequences", out)
+			}
+
+			first, _, _ := strings.Cut(out, "\n")
+			if strings.TrimSpace(first) != heading {
+				t.Errorf("first line = %q, want the plain text %q", first, heading)
+			}
+		})
 	}
 }
 
@@ -86,7 +124,8 @@ func TestDoctorCommandPrintsWarningsWithTheirRemedyAndSucceeds(t *testing.T) {
 		t.Fatalf("Execute: %v", err)
 	}
 
-	want := "[!] Beads (bd version 1.2.2 (Homebrew))\n" +
+	want := headingLines +
+		"[!] Beads (bd version 1.2.2 (Homebrew))\n" +
 		"    ! This repository has no Beads database (bd info exited 1: Error: no beads database found)\n" +
 		"      fix: bd init\n" +
 		"• Doctor found issues in 1 category.\n"
@@ -109,7 +148,8 @@ func TestDoctorCommandFailsWhenAnyCheckFails(t *testing.T) {
 				domain.SettingsFile.Fail(".codefall/settings.json not found", mo.None[string]()),
 			),
 			wantErr: "doctor found issues in 1 category",
-			want: "[✗] Settings\n" +
+			want: headingLines +
+				"[✗] Settings\n" +
 				"    ✗ .codefall/settings.json not found\n",
 		},
 		{
@@ -124,7 +164,8 @@ func TestDoctorCommandFailsWhenAnyCheckFails(t *testing.T) {
 				domain.GHAuthenticated.PassWithDetail("logged in as djensen47"),
 			),
 			wantErr: "doctor found issues in 2 categories",
-			want: "[✗] Settings\n" +
+			want: headingLines +
+				"[✗] Settings\n" +
 				"    ✗ .codefall/settings.json not found\n" +
 				"      fix: create .codefall/settings.json\n" +
 				"[!] Beads (bd version 1.2.2 (Homebrew))\n" +

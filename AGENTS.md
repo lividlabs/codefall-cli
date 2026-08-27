@@ -138,9 +138,9 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   domain`, `package application`), and a `domain` test cannot import `os` — which is why the schema
   test that holds `schemas/settings.schema.json` equal to the domain constants lives in the facade
   package.
-- **`go.mod` requires `samber/do`, `samber/mo`, Cobra, Fang, Lip Gloss v2, and `colorprofile`.** Huh
-  (ADR-002) arrives with the first prompt. Add each library with the code that needs it, not up
-  front.
+- **`go.mod` requires `samber/do`, `samber/mo`, Cobra, Fang, Lip Gloss v2, `colorprofile`, and
+  `x/exp/charmtone`** — the last for the Charm palette Fang's own theme uses. Huh (ADR-002) arrives
+  with the first prompt. Add each library with the code that needs it, not up front.
 - **A facade that returns a `domain` type compiles for its callers even though they cannot import
   that package.** Go's `internal/` rule restricts naming a package, not holding a value: `o :=
   orders.Find(id)` infers the type and `o.Total()` works, while `var o *domain.Order` does not

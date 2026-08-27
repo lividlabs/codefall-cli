@@ -11,10 +11,23 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
+	"github.com/charmbracelet/x/exp/charmtone"
 	"github.com/spf13/cobra"
 
 	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
 )
+
+// heading is the report's first line, drawn as a chip the way Fang draws its ERROR header: the same
+// foreground-on-background pair, padding, and weight, in the colour Fang gives a title. The
+// colorprofile writer strips the styling on a non-terminal stdout and under NO_COLOR, leaving the
+// word itself.
+const heading = "DOCTOR SUMMARY"
+
+var headingStyle = lipgloss.NewStyle().
+	Bold(true).
+	Foreground(charmtone.Butter).
+	Background(charmtone.Charple).
+	Padding(0, 1)
 
 // DiagnoseUseCase is what the command needs from the application layer, declared by its consumer.
 type DiagnoseUseCase interface {
@@ -77,9 +90,14 @@ func NewDoctorCommand(diagnose DiagnoseUseCase) *cobra.Command {
 	}
 }
 
-// renderReport prints one header line per category and, under it, one line per problem. A check that
-// passed says all it has to say in its section's header.
+// renderReport prints the heading, then one header line per category and, under it, one line per
+// problem. A check that passed says all it has to say in its section's header.
 func renderReport(w io.Writer, report domain.Report) error {
+	// The trailing newline is the blank line between the heading and the first section.
+	if err := writeLine(w, headingStyle.Render(heading)+"\n"); err != nil {
+		return err
+	}
+
 	for _, section := range report.Sections() {
 		if err := writeLine(w, sectionHeader(section)); err != nil {
 			return err
