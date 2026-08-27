@@ -57,6 +57,15 @@ Decided at scaffold, 2026-08-16.
 - **The layer rules currently match no files.** `.golangci.yml` reports `0 issues` because there is
   no `internal/*/internal/domain` or `application` to check — per ADR-GO-02 that looks identical to
   a broken config. Re-prove both halves with the first component.
+- **UI composition.** Shared UI widgets — theme, styles, the colour-profile writer, key maps,
+  reusable Bubble Tea models (list, table, status bar) — under `internal/shared/ui/`, generic over
+  the data they show; rule 4 means that module never imports a business component. Each component's
+  `presentation/` binds its own data to a shared widget, and a shell owns arrangement and navigation
+  (`main` for the command tree; `main` or an `internal/tui/` component for a TUI — unsettled). A
+  facade re-exports a view type by alias when the shell must name it. Alternatives seen and not
+  taken: one shared module holding all presentation (breaks rule 4); a shell rendering generic
+  widgets from contracts alone (widens every facade). Graduates to `ADR-003` with the first
+  component that has a view, or a committed TUI, whichever comes first.
 
 ## Parking lot
 
