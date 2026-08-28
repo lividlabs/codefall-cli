@@ -235,6 +235,20 @@ Decided at scaffold, 2026-08-16.
   failed the `pure-shared-modules` rule, and `internal/shared/ui` imported from
   `internal/initcmd/internal/domain/` failed the `domain-layer` rule — while that same package's
   import of `internal/shared/settings`, which is what the whole change rests on, passes.
+- **Where init gets the repository, 2026-08-28.** `--github-repo` is a flag nobody should have to
+  type in the repository it names. Init asks two sources for it, in order: `gh repo view --json
+  nameWithOwner`, and then `git remote get-url origin`. gh goes first because it answers with the
+  repository as GitHub knows it today, which is right after a rename and for a fork whose remote
+  still names the upstream; the remote goes second because it needs neither authentication nor
+  network, and git is already required on every run while gh is required on none. Before the
+  fallback, a machine without gh — or with gh installed and signed out — had to be told what the
+  `.git/config` in front of it already said. The answer is used the same way either source produced
+  it: it pre-fills the survey field when somebody is answering, and stands in for the flag when
+  nobody is. A remote is only an answer when its host is `github.com` and what it points at passes
+  the same `ValidateRepo` the flag passes — anything else, including an SSH host alias like
+  `github.com-work` that a multi-account setup uses, is None and the flag is how the person says so.
+  Only `origin` is consulted: a project whose GitHub repository is under some other remote name is
+  one its owner knows better than init does.
 
 ## Open
 

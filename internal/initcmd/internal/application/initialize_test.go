@@ -468,18 +468,30 @@ func TestSettingsExist(t *testing.T) {
 }
 
 func TestSuggestGitHubRepo(t *testing.T) {
-	const command = "gh repo view --json nameWithOwner --jq .nameWithOwner"
+	const (
+		ghRepoView   = "gh repo view --json nameWithOwner --jq .nameWithOwner"
+		gitRemoteURL = "git remote get-url origin"
+	)
 
-	installed := func() *fakeCommandRunner {
+	withGH := func() *fakeCommandRunner {
 		runner := newFakeCommandRunner()
 		runner.paths["gh"] = "/opt/homebrew/bin/gh"
 
 		return runner
 	}
 
+	withGit := func(runner *fakeCommandRunner, url string) *fakeCommandRunner {
+		runner.paths["git"] = "/usr/bin/git"
+		runner.runs[gitRemoteURL] = CommandResult{Stdout: url}
+
+		return runner
+	}
+
+	// gh answering means the remote is never consulted, because gh knows the repository as GitHub
+	// knows it now and the remote only knows what it was cloned from.
 	t.Run("the repository gh names, trimmed", func(t *testing.T) {
-		runner := installed()
-		runner.runs[command] = CommandResult{Stdout: "lividlabs/codefall-cli\n"}
+		runner := withGit(withGH(), "git@github.com:lividlabs/stale.git\n")
+		runner.runs[ghRepoView] = CommandResult{Stdout: "lividlabs/codefall-cli\n"}
 
 		got := NewInitialize(newFakeFileSystem(), runner).SuggestGitHubRepo(t.Context(), workingDir)
 		if repo, ok := got.Get(); !ok || repo != "lividlabs/codefall-cli" {
@@ -497,34 +509,72 @@ func TestSuggestGitHubRepo(t *testing.T) {
 		runner func() *fakeCommandRunner
 	}{
 		{
-			name:   "gh is not installed",
+			name: "gh is not installed",
+			runner: func() *fakeCommandRunner {
+				return withGit(newFakeCommandRunner(), "git@github.com:lividlabs/codefall-cli.git\n")
+			},
+		},
+		{
+			name: "gh is installed but has no answer",
+			runner: func() *fakeCommandRunner {
+				runner := withGit(withGH(), "https://github.com/lividlabs/codefall-cli.git\n")
+				runner.runs[ghRepoView] = CommandResult{ExitCode: 1, Stderr: "not logged in\n"}
+
+				return runner
+			},
+		},
+	} {
+		t.Run("the origin remote when "+tc.name, func(t *testing.T) {
+			got := NewInitialize(newFakeFileSystem(), tc.runner()).SuggestGitHubRepo(t.Context(), workingDir)
+			if repo, ok := got.Get(); !ok || repo != "lividlabs/codefall-cli" {
+				t.Errorf("SuggestGitHubRepo = %v, want Some(%q)", got, "lividlabs/codefall-cli")
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		name   string
+		runner func() *fakeCommandRunner
+	}{
+		{
+			name:   "neither tool is installed",
 			runner: newFakeCommandRunner,
 		},
 		{
 			name: "the directory is not a GitHub repository",
 			runner: func() *fakeCommandRunner {
-				runner := installed()
-				runner.runs[command] = CommandResult{ExitCode: 1, Stderr: "not a git repository\n"}
+				runner := withGH()
+				runner.paths["git"] = "/usr/bin/git"
+				runner.runs[ghRepoView] = CommandResult{ExitCode: 1, Stderr: "not a git repository\n"}
+				runner.runs[gitRemoteURL] = CommandResult{ExitCode: 128, Stderr: "No such remote\n"}
 
 				return runner
 			},
 		},
 		{
-			name: "gh could not be started",
+			name: "neither tool could be started",
 			runner: func() *fakeCommandRunner {
-				runner := installed()
-				runner.errs[command] = errors.New("broken pipe")
+				runner := withGH()
+				runner.paths["git"] = "/usr/bin/git"
+				runner.errs[ghRepoView] = errors.New("broken pipe")
+				runner.errs[gitRemoteURL] = errors.New("broken pipe")
 
 				return runner
 			},
 		},
 		{
-			name: "gh said nothing",
+			name: "both tools said nothing",
 			runner: func() *fakeCommandRunner {
-				runner := installed()
-				runner.runs[command] = CommandResult{Stdout: "  \n"}
+				runner := withGH()
+				runner.runs[ghRepoView] = CommandResult{Stdout: "  \n"}
 
-				return runner
+				return withGit(runner, "\n")
+			},
+		},
+		{
+			name: "the remote is not on GitHub",
+			runner: func() *fakeCommandRunner {
+				return withGit(newFakeCommandRunner(), "git@gitlab.com:lividlabs/codefall-cli.git\n")
 			},
 		},
 	} {
@@ -532,6 +582,52 @@ func TestSuggestGitHubRepo(t *testing.T) {
 			got := NewInitialize(newFakeFileSystem(), tc.runner()).SuggestGitHubRepo(t.Context(), workingDir)
 			if got.IsPresent() {
 				t.Errorf("SuggestGitHubRepo = %v, want None", got)
+			}
+		})
+	}
+}
+
+// TestRepoFromRemoteURL covers the shapes git writes and the ones it does not, because the whole
+// point of the fallback is that it reads what is already in .git/config.
+func TestRepoFromRemoteURL(t *testing.T) {
+	const repo = "lividlabs/codefall-cli"
+
+	for _, tc := range []struct {
+		url  string
+		want string
+	}{
+		{url: "git@github.com:lividlabs/codefall-cli.git\n", want: repo},
+		{url: "git@github.com:lividlabs/codefall-cli", want: repo},
+		{url: "https://github.com/lividlabs/codefall-cli.git", want: repo},
+		{url: "https://github.com/lividlabs/codefall-cli/", want: repo},
+		{url: "https://djensen@github.com/lividlabs/codefall-cli.git", want: repo},
+		{url: "ssh://git@github.com/lividlabs/codefall-cli.git", want: repo},
+		{url: "ssh://git@github.com:443/lividlabs/codefall-cli.git", want: repo},
+		{url: "git://github.com/lividlabs/codefall-cli.git", want: repo},
+		{url: "https://GitHub.com/lividlabs/codefall-cli.git", want: repo},
+		// Somebody else's forge, an SSH host alias a multi-account setup uses, a path with no
+		// repository in it, and a local clone: none of them name a repository on GitHub.
+		{url: "git@gitlab.com:lividlabs/codefall-cli.git", want: ""},
+		{url: "https://github.example.com/lividlabs/codefall-cli.git", want: ""},
+		{url: "git@github.com-work:lividlabs/codefall-cli.git", want: ""},
+		{url: "https://github.com/lividlabs", want: ""},
+		{url: "https://github.com/lividlabs/codefall-cli/tree/main", want: ""},
+		{url: "/Users/djensen/code/lividlabs/codefall-cli", want: ""},
+		{url: "", want: ""},
+	} {
+		t.Run(tc.url, func(t *testing.T) {
+			got := repoFromRemoteURL(tc.url)
+
+			if tc.want == "" {
+				if got.IsPresent() {
+					t.Errorf("repoFromRemoteURL(%q) = %v, want None", tc.url, got)
+				}
+
+				return
+			}
+
+			if repo, ok := got.Get(); !ok || repo != tc.want {
+				t.Errorf("repoFromRemoteURL(%q) = %v, want Some(%q)", tc.url, got, tc.want)
 			}
 		})
 	}
