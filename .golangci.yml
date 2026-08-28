@@ -20,11 +20,12 @@
 # `shared-modules` deny entry for its facade. Without the first, its application/ layer silently
 # loses access to its own domain/.
 #
-# ADDING A PURE SHARED MODULE: three entries — a `domain-layer` allow entry, an `application-layer`
-# allow entry, and a `pure-shared-modules` files entry (ADR-003). The first two let the inner layers
-# import it; the third is what holds it to the standard library and samber/mo, which is the only
-# reason the first two are safe. A shared module not named in all three is impure and stays out of
-# domain/ and application/.
+# ADDING A PURE SHARED MODULE: four entries — a `domain-layer` allow entry, an `application-layer`
+# allow entry, a `pure-shared-modules` files entry, and a `pure-shared-modules` allow entry (ADR-003).
+# The first two let the inner layers import it; the third holds it to the standard library, samber/mo,
+# and the other pure modules named in the fourth, which is what lets pure modules import one another
+# while still denying everything impure. A shared module not named in all four is impure and stays out
+# of domain/ and application/.
 version: "2"
 
 linters:
@@ -102,7 +103,8 @@ linters:
         # those layers themselves have. This rule is what makes the two allow entries above safe: it
         # is the difference between "pure" as a claim in a comment and "pure" as a property the build
         # checks. An impure import here fails lint while still compiling. One files entry per pure
-        # module; the allow list is deliberately not extended per module.
+        # module; the allow list carries $gostd, samber/mo, and every pure module (so pure modules may
+        # import one another), and nothing else.
         pure-shared-modules:
           list-mode: strict
           files:
@@ -111,6 +113,8 @@ linters:
           allow:
             - $gostd
             - github.com/samber/mo
+            - github.com/lividlabs/codefall-cli/internal/shared/settings
+            - github.com/lividlabs/codefall-cli/internal/shared/text
 
 # gofmt as a rule the linter enforces, not a habit. golangci-lint v2 runs formatters as their own
 # stage, and `golangci-lint run` fails on a file that gofmt would rewrite. Proven on 2026-08-27
