@@ -1,43 +1,37 @@
 // Package infrastructure implements initcmd's gateways against the real process: the file system it
-// writes into and the external tools codefall depends on.
+// writes into and the external tools codefall depends on. Both are thin adapters over
+// `internal/shared/process` — what they add is initcmd's own terms, because a gateway interface
+// belongs to the use case that declared it. The permissions a write uses are the shared module's
+// decision, not this one's and not the use case's.
 package infrastructure
 
 import (
-	"io/fs"
-	"os"
-)
-
-// The permissions init creates things with. A repository's configuration is not a secret and is read
-// by the tools codefall drives, so the directory is traversable and the file is world-readable — the
-// modes git itself uses for a checkout. The use case does not choose them: it asks for a directory
-// and a file, and this is where the operating system's terms are decided.
-const (
-	dirMode  fs.FileMode = 0o755
-	fileMode fs.FileMode = 0o644
+	"github.com/lividlabs/codefall-cli/internal/shared/process"
 )
 
 // OSFileSystem reads and writes the working directory through the operating system.
-type OSFileSystem struct{}
+type OSFileSystem struct {
+	files *process.FileSystem
+}
 
 // NewOSFileSystem builds the real file system gateway.
 func NewOSFileSystem() *OSFileSystem {
-	return &OSFileSystem{}
+	return &OSFileSystem{files: process.NewFileSystem()}
 }
 
-// ReadFile returns a file's bytes. os.ReadFile's *PathError already satisfies
-// errors.Is(err, fs.ErrNotExist), which is what the use case branches on.
-func (*OSFileSystem) ReadFile(path string) ([]byte, error) {
-	return os.ReadFile(path)
+// ReadFile returns a file's bytes. A missing file satisfies errors.Is(err, fs.ErrNotExist), which is
+// what the use case branches on.
+func (f *OSFileSystem) ReadFile(path string) ([]byte, error) {
+	return f.files.ReadFile(path)
 }
 
-// MkdirAll creates path and every parent it needs. An existing directory is success, which is what
-// makes init safe to run again.
-func (*OSFileSystem) MkdirAll(path string) error {
-	return os.MkdirAll(path, dirMode)
+// MkdirAll creates path and every parent it needs, and does nothing when it already exists, which is
+// what makes init safe to run again.
+func (f *OSFileSystem) MkdirAll(path string) error {
+	return f.files.MkdirAll(path)
 }
 
-// WriteFile writes data to path, replacing whatever was there. The mode applies only to a file this
-// call creates; the permissions of one that already exists are left alone, as os.WriteFile has it.
-func (*OSFileSystem) WriteFile(path string, data []byte) error {
-	return os.WriteFile(path, data, fileMode)
+// WriteFile writes data to path, replacing whatever was there.
+func (f *OSFileSystem) WriteFile(path string, data []byte) error {
+	return f.files.WriteFile(path, data)
 }

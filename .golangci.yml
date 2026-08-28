@@ -2,11 +2,17 @@
 # template: depguard's allow/deny lists are literal prefix matches with no glob support, so every
 # component's own import paths have to be named here.
 #
-# Components: doctor, initcmd. The layer rules were proven against a deliberate Cobra import from
-# `application/` on 2026-08-27 — from doctor's when they were written, and from initcmd's when it was
-# added. The `shared-modules` rule matches no files until `internal/shared/` exists, so it reports
-# `0 issues` — which, per ADR-GO-02, is indistinguishable from a rule that is broken; prove it
-# against a deliberate violation when that directory arrives.
+# Components: doctor, initcmd. Shared modules: internal/shared/ui, internal/shared/process. The layer
+# rules were proven against a deliberate Cobra import from `application/` on 2026-08-27 — from
+# doctor's when they were written, and from initcmd's when it was added — and re-proven the same day
+# against an `internal/shared/ui` import from `internal/initcmd/internal/application/` and from
+# `internal/doctor/internal/domain/`. The `shared-modules` rule was proven on 2026-08-27, once per
+# deny entry.
+#
+# Proving `shared-modules` needs a throwaway package: a real shared module imports a component only
+# in a build that already has an import cycle, and a cycle is a compile error rather than the lint
+# failure ADR-GO-02 asks for. Add `internal/shared/proof/` importing a component's facade, confirm
+# `go build ./...` passes and `golangci-lint run` fails on this rule, and delete it.
 #
 # ADDING A COMPONENT: add an `application-layer` allow entry for its `internal/domain` package, and a
 # `shared-modules` deny entry for its facade. Without the first, its application/ layer silently
@@ -67,7 +73,7 @@ linters:
               desc: "application/ names no CLI framework — Charm v2 libraries (ADR-GO-02 rule 5, ADR-002)"
 
         # Rule 4 — shared modules are one-way; components may import them, never the reverse. One
-        # deny entry per component. This rule matches no files until `internal/shared/` exists.
+        # deny entry per component.
         shared-modules:
           files:
             - "**/internal/shared/**"

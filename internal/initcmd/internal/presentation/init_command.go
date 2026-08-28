@@ -1,26 +1,26 @@
 // Package presentation builds initcmd's command. It is thin: it collects answers — from flags, from a
-// survey, or from gh — hands them to the use case as a contract, and prints what each step did.
+// survey, or from gh — hands them to the use case as a contract, and prints what each step did. The
+// palette, the writer, and the spinner are the shared UI module's; what belongs here is which tone a
+// step's outcome is drawn in.
 package presentation
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 
 	"charm.land/huh/v2"
 	"charm.land/lipgloss/v2"
-	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/term"
 	"github.com/samber/mo"
 	"github.com/spf13/cobra"
 
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/ui"
 )
 
 // InitializeUseCase is what the command needs from the application layer, declared by its consumer.
@@ -109,8 +109,8 @@ func runInit(cmd *cobra.Command, initialize InitializeUseCase, flags *initFlags)
 		return err
 	}
 
-	// One colorprofile writer for the whole run; lipgloss.Fprint* would build one per line.
-	out := colorprofile.NewWriter(cmd.OutOrStdout(), os.Environ())
+	// One colour-profile writer for the whole run.
+	out := ui.NewWriter(cmd.OutOrStdout())
 
 	if _, err := runInitialize(cmd.Context(), initialize, request, out); err != nil {
 		if errors.Is(err, errCancelled) {
@@ -120,7 +120,7 @@ func runInit(cmd *cobra.Command, initialize InitializeUseCase, flags *initFlags)
 		return fmt.Errorf("init: %w", err)
 	}
 
-	return writeLine(out, faintStyle().Render(nextStep))
+	return ui.WriteLine(out, ui.Style(ui.ToneFaint).Render(nextStep))
 }
 
 // buildRequest turns the flags into the use case's contract, asking for whatever they left out.
@@ -448,51 +448,8 @@ var stdinIsTerminal = func() bool {
 	return term.IsTerminal(os.Stdin.Fd())
 }
 
-// stdoutIsTerminal decides both questions that depend on who is reading: whether the terminal can be
-// asked about its background, and whether a spinner has anywhere to run. A pipe, a file, CI, and the
-// tests all answer no.
-func stdoutIsTerminal() bool {
-	return term.IsTerminal(os.Stdout.Fd())
-}
-
-// hasDarkBackground asks the terminal for its background colour, the way Fang does before building
-// its styles. When stdout is not a terminal there is nothing to ask and nothing to see — colorprofile
-// strips the colour on its way out — so the answer is the dark variant, which is the one lipgloss
-// itself falls back to.
-func hasDarkBackground() bool {
-	if !stdoutIsTerminal() {
-		return true
-	}
-
-	return lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
-}
-
-// The palette is doctor's: the same teal for something that was done and the same amber for
-// something that was not, so the two commands read as one tool. Only the mark is coloured — the rest
-// of a line is a path or a reason, where colour would be decoration rather than information.
-//
-// The scheme is built once, on first use, because deciding it means asking the terminal a question.
-var outcomeStyles = sync.OnceValue(func() map[domain.Outcome]lipgloss.Style {
-	c := lipgloss.LightDark(hasDarkBackground())
-
-	return map[domain.Outcome]lipgloss.Style{
-		domain.OutcomeDone: lipgloss.NewStyle().Bold(true).
-			Foreground(c(lipgloss.Color("#2F6B6B"), lipgloss.Color("#6AB3B3"))),
-		domain.OutcomeSkipped: lipgloss.NewStyle().Bold(true).
-			Foreground(c(lipgloss.Color("#7E6217"), lipgloss.Color("#D9B44A"))),
-	}
-})
-
-// Secondary text is dimmed and tinted teal-grey, as it is in doctor: here it is the closing line
-// that says what to run next, and the label under the spinner.
-var faintStyle = sync.OnceValue(func() lipgloss.Style {
-	c := lipgloss.LightDark(hasDarkBackground())
-
-	return lipgloss.NewStyle().Faint(true).Foreground(c(lipgloss.Color("#526D71"), lipgloss.Color("#8AA3A8")))
-})
-
-// The mark each outcome prints. A skipped step is a dash rather than doctor's warning glyph: nothing
-// is wrong, the work was simply already done.
+// The mark each outcome prints. A skipped step is a dash rather than the shared warning glyph:
+// nothing is wrong, the work was simply already done.
 var outcomeMarks = map[domain.Outcome]string{
 	domain.OutcomeDone:    "✓",
 	domain.OutcomeSkipped: "-",
@@ -511,19 +468,22 @@ func glyph(outcome domain.Outcome) string {
 	return "?"
 }
 
-// outcomeStyle is the one place an outcome becomes a colour. An unknown outcome is left unstyled.
+// outcomeStyle is the one place an outcome becomes a style. An unknown outcome is left unstyled.
 func outcomeStyle(outcome domain.Outcome) lipgloss.Style {
-	if style, ok := outcomeStyles()[outcome]; ok {
-		return style
-	}
-
-	return lipgloss.NewStyle()
+	return ui.Style(tone(outcome))
 }
 
-func writeLine(w io.Writer, line string) error {
-	if _, err := fmt.Fprintln(w, line); err != nil {
-		return fmt.Errorf("write report: %w", err)
+// tone is initcmd's whole share of the palette: the same teal doctor gives a passing check for a
+// step that was done, and the same amber it gives a warning for one that was not, so the two
+// commands read as one tool. Only the mark is coloured — the rest of a line is a path or a reason,
+// where colour would be decoration rather than information.
+func tone(outcome domain.Outcome) ui.Tone {
+	switch outcome {
+	case domain.OutcomeDone:
+		return ui.TonePrimary
+	case domain.OutcomeSkipped:
+		return ui.ToneWarn
+	default:
+		return ui.ToneNone
 	}
-
-	return nil
 }

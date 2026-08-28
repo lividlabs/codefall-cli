@@ -179,17 +179,42 @@ Decided at scaffold, 2026-08-16.
   alone whatever it holds, because writing a pointer over somebody's rules throws them away rather
   than pointing at them.
 
+- **Shared modules, 2026-08-27.** `internal/shared/` exists, with the two modules the second
+  component turned out to have copied from the first. `internal/shared/ui/` owns the palette, the
+  styles, the marks, the colour-profile writer, and the spinner runner; a component maps its own
+  vocabulary onto a `ui.Tone` and owns nothing else about how a line looks — doctor maps a check's
+  status, initcmd maps a step's outcome and keeps its own dash for a skipped step, because nothing
+  is wrong there. `ui.RunWithSpinner` is one entry point covering both paths, so neither command
+  re-implements the branch between a terminal and a pipe: it takes the writer, draws finished lines
+  under the spinner and writes them again once Bubble Tea has cleared its frames, and writes them as
+  they arrive when there is nothing to spin on. `internal/shared/process/` owns running an external
+  tool and reaching the file system, including the `0o755`/`0o644` modes. Each component's
+  `infrastructure/` is now an adapter over it: the gateway interface and the result type stay the
+  consumer's to declare (ADR-GO-01), so the two `CommandRunner` interfaces and the two
+  `CommandResult` structs remain, and what the adapter adds is the translation.
+  What deliberately stays duplicated is `firstLine` and the settings-format constants in both
+  `domain/` packages: the layer rules keep `domain/` and `application/` off shared modules
+  altogether, and moving those would mean either widening those allow-lists or moving the constants
+  out of the layer that owns them. Both copies are pinned by each component's own schema test
+  against `schemas/settings.schema.json`, which is what makes the duplication safe rather than
+  merely tolerated. The `shared-modules` rule now matches files and was proven, once per deny entry;
+  proving it needs a throwaway `internal/shared/proof/` package, because a real shared module
+  importing a component is an import cycle and so a compile error rather than the lint failure
+  ADR-GO-02 asks for. `domain/` and `application/` were re-proven against an `internal/shared/ui`
+  import the same way.
+
 ## Open
 
-- **UI composition.** Shared UI widgets — theme, styles, the colour-profile writer, key maps,
-  reusable Bubble Tea models (list, table, status bar) — under `internal/shared/ui/`, generic over
-  the data they show; rule 4 means that module never imports a business component. Each component's
-  `presentation/` binds its own data to a shared widget, and a shell owns arrangement and navigation
-  (`main` for the command tree; `main` or an `internal/tui/` component for a TUI — unsettled). A
-  facade re-exports a view type by alias when the shell must name it. Alternatives seen and not
-  taken: one shared module holding all presentation (breaks rule 4); a shell rendering generic
-  widgets from contracts alone (widens every facade). Graduates to `ADR-003` with the first
-  component that has a view, or a committed TUI, whichever comes first.
+- **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
+  the colour-profile writer, and the spinner runner now live in `internal/shared/ui/`, and rule 4
+  holds there — proven, not assumed. What is still open is the other half: reusable Bubble Tea
+  models (list, table, status bar) generic over the data they show, with each component's
+  `presentation/` binding its own data, and a shell owning arrangement and navigation (`main` for
+  the command tree; `main` or an `internal/tui/` component for a TUI — unsettled). A facade
+  re-exports a view type by alias when the shell must name it. Alternatives seen and not taken: one
+  shared module holding all presentation (breaks rule 4); a shell rendering generic widgets from
+  contracts alone (widens every facade). Graduates to `ADR-003` with the first component that has a
+  view, or a committed TUI, whichever comes first.
 
 ## Parking lot
 
