@@ -1,4 +1,4 @@
-// Package infrastructure implements setup's gateways against the real process: the file system it
+// Package infrastructure implements initcmd's gateways against the real process: the file system it
 // writes into and the external tools codefall depends on.
 package infrastructure
 

@@ -1,4 +1,4 @@
-package setup_test
+package initcmd_test
 
 import (
 	"encoding/json"
@@ -7,13 +7,13 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
 )
 
-// schemas/settings.schema.json is the published definition of .codefall/settings.json, and setup is
-// what writes that file. This test holds the two equal from setup's side, as doctor's holds them
-// equal from the side that reads it — a file setup wrote and doctor rejected would be the worst
-// possible bug in either component.
+// schemas/settings.schema.json is the published definition of .codefall/settings.json, and initcmd
+// is what writes that file. This test holds the two equal from initcmd's side, as doctor's holds
+// them equal from the side that reads it — a file initcmd wrote and doctor rejected would be the
+// worst possible bug in either component.
 //
 // It lives in the facade package rather than beside the domain because depguard denies os in domain
 // tests and //go:embed cannot reach outside its own package directory. `go test` runs with the
@@ -36,7 +36,7 @@ func loadSchema(t *testing.T) map[string]any {
 	return schema
 }
 
-func TestSchemaIdentityMatchesWhatSetupWrites(t *testing.T) {
+func TestSchemaIdentityMatchesWhatInitcmdWrites(t *testing.T) {
 	schema := loadSchema(t)
 
 	if got := text(t, schema, "$id"); got != domain.SettingsSchemaID {

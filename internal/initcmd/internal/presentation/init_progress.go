@@ -10,8 +10,8 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/application"
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
 )
 
 // openingLabel is what the spinner says before the first step reports itself.

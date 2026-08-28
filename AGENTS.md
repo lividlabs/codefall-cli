@@ -3,7 +3,7 @@
 A Go command-line tool. One surface, one app, one module.
 
 **State: two components.** `internal/doctor/` (`codefall doctor`) is the first and the reference for
-the rules below; `internal/setup/` (`codefall init`) is the second, and follows it.
+the rules below; `internal/initcmd/` (`codefall init`) is the second, and follows it.
 `cmd/codefall/main.go` is the composition root and builds the injector.
 
 ## Applicable ADRs

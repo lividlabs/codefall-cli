@@ -1,4 +1,4 @@
-// Package domain holds setup's entities and value objects: the settings a project is initialised
+// Package domain holds initcmd's entities and value objects: the settings a project is initialised
 // with, the trackers and harnesses codefall knows about, and the steps a run is made of. It performs
 // no IO and names no delivery, encoding, or infrastructure type (ADR-BASE-01).
 package domain
@@ -13,7 +13,7 @@ import (
 )
 
 // The published constants of the settings format. The schema test holds schemas/settings.schema.json
-// equal to these, so what setup writes and what the schema promises cannot drift apart.
+// equal to these, so what initcmd writes and what the schema promises cannot drift apart.
 const (
 	SettingsVersion  = 1
 	SettingsSchemaID = "https://raw.githubusercontent.com/lividlabs/codefall-cli/main/schemas/settings.schema.json"

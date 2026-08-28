@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/application"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
 )
 
 var _ application.CommandRunner = (*ExecCommandRunner)(nil)

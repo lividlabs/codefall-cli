@@ -1,5 +1,5 @@
-// Package application holds setup's one use case. It owns the gateway interfaces the steps need and
-// depends on nothing but the standard library, mo, and setup's own domain.
+// Package application holds initcmd's one use case. It owns the gateway interfaces the steps need
+// and depends on nothing but the standard library, mo, and initcmd's own domain.
 package application
 
 import (
@@ -8,10 +8,10 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
 )
 
-// FileSystem is setup's view of the working directory (one gateway role). It reads what is already
+// FileSystem is initcmd's view of the working directory (one gateway role). It reads what is already
 // there and writes what init creates; the permissions those writes use are infrastructure's
 // decision, not the use case's.
 type FileSystem interface {
@@ -24,7 +24,7 @@ type FileSystem interface {
 }
 
 // CommandRunner locates and runs the external tools codefall depends on (one gateway role). It is
-// the same role doctor declares, because it is the same job: setup asks gh what repository this
+// the same role doctor declares, because it is the same job: initcmd asks gh what repository this
 // directory belongs to, asks git about the directory, and runs the harness and Beads.
 type CommandRunner interface {
 	// LookPath returns where a tool lives, or None when it is not on PATH. There is no useful "why"

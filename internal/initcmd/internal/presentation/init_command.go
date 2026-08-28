@@ -1,4 +1,4 @@
-// Package presentation builds setup's command. It is thin: it collects answers — from flags, from a
+// Package presentation builds initcmd's command. It is thin: it collects answers — from flags, from a
 // survey, or from gh — hands them to the use case as a contract, and prints what each step did.
 package presentation
 
@@ -19,8 +19,8 @@ import (
 	"github.com/samber/mo"
 	"github.com/spf13/cobra"
 
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/application"
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
 )
 
 // InitializeUseCase is what the command needs from the application layer, declared by its consumer.
