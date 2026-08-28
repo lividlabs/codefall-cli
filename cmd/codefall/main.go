@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"image/color"
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/fang"
 	"github.com/charmbracelet/x/term"
@@ -53,7 +54,41 @@ func run(args []string, stdout, stderr io.Writer) error {
 	root.SetErr(stderr)
 	root.AddCommand(doctor.Command(injector))
 
-	return fang.Execute(context.Background(), root, fang.WithErrorHandler(renderError))
+	return fang.Execute(
+		context.Background(),
+		root,
+		fang.WithColorSchemeFunc(codefallColorScheme),
+		fang.WithErrorHandler(renderError),
+	)
+}
+
+// codefallColorScheme is the teal trail palette. It replaces Fang's default
+// playful purples and pinks with desaturated teals for primary UI, muted amber
+// for warnings, and muted coral for errors, matching the brand image.
+// Light and dark variants are chosen the way Fang does, via the LightDark
+// function it passes in.
+func codefallColorScheme(c lipgloss.LightDarkFunc) fang.ColorScheme {
+    return fang.ColorScheme{
+        Base:           c(lipgloss.Color("#3A3943"), lipgloss.Color("#DFDBDD")),
+        Title:          c(lipgloss.Color("#2F6B6B"), lipgloss.Color("#6AB3B3")),
+        Description:    c(lipgloss.Color("#3A3943"), lipgloss.Color("#DFDBDD")),
+        Codeblock:      c(lipgloss.Color("#E8F0F0"), lipgloss.Color("#1E3436")),
+        Program:        c(lipgloss.Color("#2F6B6B"), lipgloss.Color("#6AB3B3")),
+        DimmedArgument: c(lipgloss.Color("#526D71"), lipgloss.Color("#8AA3A8")),
+        Comment:        c(lipgloss.Color("#526D71"), lipgloss.Color("#8AA3A8")),
+        Flag:           c(lipgloss.Color("#2F6B6B"), lipgloss.Color("#6AB3B3")),
+        FlagDefault:    c(lipgloss.Color("#526D71"), lipgloss.Color("#8AA3A8")),
+        Command:        c(lipgloss.Color("#2F6B6B"), lipgloss.Color("#6AB3B3")),
+        QuotedString:   c(lipgloss.Color("#7E6217"), lipgloss.Color("#D9B44A")),
+        Argument:       c(lipgloss.Color("#3A3943"), lipgloss.Color("#DFDBDD")),
+        Help:           c(lipgloss.Color("#3A3943"), lipgloss.Color("#DFDBDD")),
+        Dash:           c(lipgloss.Color("#526D71"), lipgloss.Color("#8AA3A8")),
+        ErrorHeader: [2]color.Color{
+            c(lipgloss.Color("#F5E6E3"), lipgloss.Color("#F5E6E3")),
+            c(lipgloss.Color("#9E3A3A"), lipgloss.Color("#A8433C")),
+        },
+        ErrorDetails: c(lipgloss.Color("#9E3A3A"), lipgloss.Color("#E08878")),
+    }
 }
 
 // renderError is Fang's error block on one line. The default indents the ERROR chip by two columns,

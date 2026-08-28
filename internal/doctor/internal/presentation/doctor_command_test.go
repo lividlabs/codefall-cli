@@ -400,7 +400,11 @@ func TestSectionTreeOfAPassingSectionIsItsHeaderAlone(t *testing.T) {
 // Dimming is invisible to the tests above, because the colorprofile writer strips it before the
 // buffer sees it. Assert it against the styled strings, written to a plain buffer.
 func TestSecondaryTextIsFaint(t *testing.T) {
-	const faint = "\x1b[2m"
+	// faint is dim + teal-grey. The exact escape is faint (2) plus a 24-bit
+	// foreground, e.g. "\x1b[2;38;2;138;163;168m" on dark. Check for the
+	// faint attribute rather than an exact byte sequence so the test does not
+	// pin the colour.
+	const faintAttr = "\x1b[2"
 
 	section := domain.Section{
 		Category: domain.CategoryBeads,
@@ -410,12 +414,13 @@ func TestSecondaryTextIsFaint(t *testing.T) {
 		},
 	}
 
-	if header := sectionHeader(section); !strings.Contains(header, faint+"(bd version 1.2.2 (Homebrew))") {
+	header := sectionHeader(section)
+	if !strings.Contains(header, faintAttr) || !strings.Contains(header, "(bd version 1.2.2 (Homebrew))") {
 		t.Errorf("sectionHeader() = %q, want the parenthetical dimmed, parentheses included", header)
 	}
 
 	// The sentence that says what is wrong is the one thing left at full strength.
-	if problem := problemLine(section.Results[1]); strings.Contains(problem, faint) {
+	if problem := problemLine(section.Results[1]); strings.Contains(problem, faintAttr) {
 		t.Errorf("problemLine() = %q, want nothing dimmed", problem)
 	}
 
@@ -425,8 +430,8 @@ func TestSecondaryTextIsFaint(t *testing.T) {
 		t.Fatalf("renderReport: %v", err)
 	}
 
-	if !strings.Contains(out.String(), faint+"fix: bd init") {
-		t.Errorf("renderReport() =\n%q\nwant the whole fix line dimmed", out.String())
+	if s := out.String(); !strings.Contains(s, faintAttr) || !strings.Contains(s, "fix: bd init") {
+		t.Errorf("renderReport() =\n%q\nwant the whole fix line dimmed", s)
 	}
 }
 

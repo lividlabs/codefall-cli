@@ -15,7 +15,6 @@ import (
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/tree"
 	"github.com/charmbracelet/colorprofile"
-	"github.com/charmbracelet/x/exp/charmtone"
 	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
@@ -28,11 +27,14 @@ import (
 // word itself.
 const heading = "DOCTOR SUMMARY"
 
-var headingStyle = lipgloss.NewStyle().
-	Bold(true).
-	Foreground(charmtone.Butter).
-	Background(charmtone.Charple).
-	Padding(0, 1)
+var headingStyle = sync.OnceValue(func() lipgloss.Style {
+    c := lipgloss.LightDark(hasDarkBackground())
+    return lipgloss.NewStyle().
+        Bold(true).
+        Foreground(c(lipgloss.Color("#C8DADA"), lipgloss.Color("#C8DADA"))).
+        Background(c(lipgloss.Color("#143337"), lipgloss.Color("#3A7680"))).
+        Padding(0, 1)
+})
 
 // DiagnoseUseCase is what the command needs from the application layer, declared by its consumer.
 type DiagnoseUseCase interface {
@@ -42,19 +44,18 @@ type DiagnoseUseCase interface {
 // Only the status mark is styled: the rest of a line is a path, a version, or a command to type, and
 // colour there would be decoration rather than information.
 //
-// The colours come from the Charm palette, picked light/dark-aware the way Fang's own colour scheme
-// picks its. Failure is Cherry in both, because it is the one mark that has to read as alarming
-// whatever the terminal looks like — and it is the colour Fang paints its error header.
+// The palette is the teal trail from the brand image — desaturated teals for pass, muted amber for
+// warn, muted coral for fail — picked light/dark-aware the way Fang's own colour scheme picks its.
+// Fail and warn are warm hues so they do not collapse into the teal.
 //
 // The scheme is built once, on first use, because deciding it means asking the terminal a question.
 var statusStyles = sync.OnceValue(func() map[domain.Status]lipgloss.Style {
-	c := lipgloss.LightDark(hasDarkBackground())
-
-	return map[domain.Status]lipgloss.Style{
-		domain.StatusPass: lipgloss.NewStyle().Bold(true).Foreground(c(charmtone.Guac, charmtone.Julep)),
-		domain.StatusWarn: lipgloss.NewStyle().Bold(true).Foreground(c(charmtone.Mustard, charmtone.Citron)),
-		domain.StatusFail: lipgloss.NewStyle().Bold(true).Foreground(charmtone.Cherry),
-	}
+    c := lipgloss.LightDark(hasDarkBackground())
+    return map[domain.Status]lipgloss.Style{
+        domain.StatusPass: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#2F6B6B"), lipgloss.Color("#6AB3B3"))),
+        domain.StatusWarn: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#7E6217"), lipgloss.Color("#D9B44A"))),
+        domain.StatusFail: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#9E3A3A"), lipgloss.Color("#E08878"))),
+    }
 })
 
 // hasDarkBackground asks the terminal for its background colour, the way Fang does before building
@@ -76,10 +77,14 @@ func stdoutIsTerminal() bool {
 	return term.IsTerminal(os.Stdout.Fd())
 }
 
-// Secondary text is dimmed rather than coloured: the versions and accounts in a header, and the
+// Secondary text is dimmed and tinted teal-grey: the versions and accounts in a header, and the
 // remedy under a problem. What is left at full strength is the sentence that says what is wrong,
 // which is the only thing a reader has to take in.
-var faintStyle = lipgloss.NewStyle().Faint(true)
+var faintStyle = sync.OnceValue(func() lipgloss.Style {
+	c := lipgloss.LightDark(hasDarkBackground())
+
+	return lipgloss.NewStyle().Faint(true).Foreground(c(lipgloss.Color("#526D71"), lipgloss.Color("#8AA3A8")))
+})
 
 // The mark each status prints, in the header's brackets and in front of a problem line.
 var statusMarks = map[domain.Status]string{
@@ -210,14 +215,14 @@ func (m diagnoseSpinner) View() tea.View {
 		return tea.NewView("")
 	}
 
-	return tea.NewView(m.spinner.View() + " " + faintStyle.Render(spinnerLabel))
+	return tea.NewView(m.spinner.View() + " " + faintStyle().Render(spinnerLabel))
 }
 
 // renderReport prints the heading, then one header line per category and, under it, one line per
 // problem. A check that passed says all it has to say in its section's header.
 func renderReport(w io.Writer, report domain.Report) error {
 	// The trailing newline is the blank line between the heading and the first section.
-	if err := writeLine(w, headingStyle.Render(heading)+"\n"); err != nil {
+	if err := writeLine(w, headingStyle().Render(heading)+"\n"); err != nil {
 		return err
 	}
 
@@ -234,7 +239,7 @@ func renderReport(w io.Writer, report domain.Report) error {
 // remedy is a child of the problem it repairs. A section whose checks all passed is a root on its
 // own, because its header already says everything there is to say.
 func sectionTree(section domain.Section) string {
-	guide := faintStyle.PaddingRight(1)
+	guide := faintStyle().PaddingRight(1)
 
 	root := tree.Root(sectionHeader(section)).
 		Enumerator(enumerator).
@@ -250,7 +255,7 @@ func sectionTree(section domain.Section) string {
 		problem := tree.Root(problemLine(result))
 
 		if remedy, ok := result.Remedy.Get(); ok {
-			problem.Child(faintStyle.Render("fix: " + remedy))
+			problem.Child(faintStyle().Render("fix: " + remedy))
 		}
 
 		root.Child(problem)
@@ -294,7 +299,7 @@ func sectionHeader(section domain.Section) string {
 	}
 
 	if len(details) > 0 {
-		header += " " + faintStyle.Render("("+strings.Join(details, ", ")+")")
+		header += " " + faintStyle().Render("("+strings.Join(details, ", ")+")")
 	}
 
 	return header
