@@ -11,7 +11,7 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
 )
 
 const workingDir = "/work"

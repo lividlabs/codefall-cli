@@ -11,8 +11,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/application"
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
 )
 
 type fakeInitialize struct {

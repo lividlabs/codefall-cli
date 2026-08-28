@@ -1,11 +1,11 @@
-package setup_test
+package initcmd_test
 
 import (
 	"testing"
 
 	"github.com/samber/do/v2"
 
-	"github.com/lividlabs/codefall-cli/internal/setup"
+	"github.com/lividlabs/codefall-cli/internal/initcmd"
 )
 
 // A provider whose static return type is the concrete type compiles and then fails at runtime with
@@ -15,14 +15,14 @@ func TestRegisterProvidesEverythingCommandNeeds(t *testing.T) {
 	injector := do.New()
 	t.Cleanup(func() { _ = injector.Shutdown() })
 
-	setup.Register(injector)
+	initcmd.Register(injector)
 
-	cmd := setup.Command(injector)
+	cmd := initcmd.Command(injector)
 	if cmd == nil {
 		t.Fatal("Command returned nil")
 	}
 
-	// The package is setup; the command is init.
+	// The package is initcmd; the command is init.
 	if got := cmd.Name(); got != "init" {
 		t.Errorf("Command().Name() = %q, want %q", got, "init")
 	}

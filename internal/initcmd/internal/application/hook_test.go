@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
 )
 
 // beadsHook is the file the step writes into a project that had nothing to say about hooks. Key

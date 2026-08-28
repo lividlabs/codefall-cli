@@ -9,7 +9,7 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/application"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
 )
 
 // ExecCommandRunner runs external tools as child processes. This is the only file in the component

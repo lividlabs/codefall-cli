@@ -11,7 +11,7 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
 )
 
 // claudeCommand is how Claude Code is invoked. The CLI's name and the shape of its arguments are

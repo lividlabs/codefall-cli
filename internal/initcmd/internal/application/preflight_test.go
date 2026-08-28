@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lividlabs/codefall-cli/internal/setup/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
 )
 
 // beadsRequest is the run every preflight test makes: the tracker and the harness are settled, and
