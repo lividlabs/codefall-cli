@@ -18,6 +18,13 @@ const workingDir = "/work"
 var (
 	codefallDir  = filepath.Join(workingDir, ".codefall")
 	settingsFull = filepath.Join(codefallDir, "settings.json")
+	claudeFull   = filepath.Join(workingDir, ".claude", "settings.json")
+)
+
+// The two commands the plugin step runs, keyed the way the fake runner keys them.
+const (
+	marketplaceAdd = "claude plugin marketplace add lividlabs/codefall-plugin --scope project"
+	pluginInstall  = "claude plugin install codefall@codefall --scope project -y"
 )
 
 // --- fakes -------------------------------------------------------------------------------------
@@ -120,6 +127,15 @@ func (r *fakeCommandRunner) Run(
 	return r.runs[command], nil
 }
 
+// claudeInstalled is the runner a run with the claude-code harness needs: the harness CLI is on
+// PATH, and every command it is given succeeds, because the zero CommandResult exited 0.
+func claudeInstalled() *fakeCommandRunner {
+	runner := newFakeCommandRunner()
+	runner.paths["claude"] = "/opt/homebrew/bin/claude"
+
+	return runner
+}
+
 // recordingObserver is what a spinner does in production, without the terminal: it remembers what it
 // was told and in which order.
 type recordingObserver struct {
@@ -141,7 +157,7 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 	files := newFakeFileSystem()
 	observer := &recordingObserver{}
 
-	report, err := NewInitialize(files, newFakeCommandRunner()).Run(
+	report, err := NewInitialize(files, claudeInstalled()).Run(
 		t.Context(),
 		Request{
 			Dir:           workingDir,
@@ -157,8 +173,8 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 	}
 
 	results := report.Results()
-	if len(results) != 1 {
-		t.Fatalf("Results() = %+v, want one result", results)
+	if len(results) != 2 {
+		t.Fatalf("Results() = %+v, want the settings and the plugin result", results)
 	}
 
 	if results[0].Outcome != domain.OutcomeDone {
@@ -174,13 +190,15 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 		t.Errorf("created %q, want %q", files.made, []string{codefallDir})
 	}
 
-	// The observer sees the step start and finish, and what it sees on finishing is the result the
-	// report carries.
-	if len(observer.started) != 1 || observer.started[0] != domain.SettingsStep {
-		t.Errorf("started = %+v, want the settings step", observer.started)
+	// The observer sees every step start and finish, in order, and what it sees on finishing is the
+	// result the report carries.
+	if len(observer.started) != 2 ||
+		observer.started[0] != domain.SettingsStep ||
+		observer.started[1] != domain.PluginStep {
+		t.Errorf("started = %+v, want the settings step then the plugin step", observer.started)
 	}
 
-	if len(observer.finished) != 1 || observer.finished[0] != results[0] {
+	if len(observer.finished) != 2 || observer.finished[0] != results[0] || observer.finished[1] != results[1] {
 		t.Errorf("finished = %+v, want %+v", observer.finished, results)
 	}
 }
@@ -188,13 +206,14 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 func TestRunEncodesGitHubSettings(t *testing.T) {
 	files := newFakeFileSystem()
 
-	if _, err := NewInitialize(files, newFakeCommandRunner()).Run(
+	if _, err := NewInitialize(files, claudeInstalled()).Run(
 		t.Context(),
 		Request{
 			Dir:           workingDir,
 			Tracker:       domain.TrackerGitHub,
 			GitHubRepo:    mo.Some("owner/name"),
 			GitHubProject: mo.Some(3),
+			Harness:       domain.HarnessClaudeCode,
 		},
 		nil,
 	); err != nil {
@@ -226,8 +245,13 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 		want    string
 	}{
 		{
-			name:    "github without a project",
-			request: Request{Dir: workingDir, Tracker: domain.TrackerGitHub, GitHubRepo: mo.Some("owner/name")},
+			name: "github without a project",
+			request: Request{
+				Dir:        workingDir,
+				Tracker:    domain.TrackerGitHub,
+				GitHubRepo: mo.Some("owner/name"),
+				Harness:    domain.HarnessClaudeCode,
+			},
 			want: `  "tracker": "github",
   "github": {
     "repo": "owner/name"
@@ -237,7 +261,7 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 		},
 		{
 			name:    "beads",
-			request: Request{Dir: workingDir, Tracker: domain.TrackerBeads},
+			request: Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
 			want: `  "tracker": "beads",
   "beads": {}
 }
@@ -247,7 +271,7 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			files := newFakeFileSystem()
 
-			if _, err := NewInitialize(files, newFakeCommandRunner()).Run(t.Context(), tc.request, nil); err != nil {
+			if _, err := NewInitialize(files, claudeInstalled()).Run(t.Context(), tc.request, nil); err != nil {
 				t.Fatalf("Run: %v", err)
 			}
 
@@ -267,9 +291,9 @@ func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
 	files := newFakeFileSystem()
 	files.files[settingsFull] = []byte("{}\n")
 
-	report, err := NewInitialize(files, newFakeCommandRunner()).Run(
+	report, err := NewInitialize(files, claudeInstalled()).Run(
 		t.Context(),
-		Request{Dir: workingDir, Tracker: domain.TrackerBeads},
+		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,
 	)
 	if err != nil {
@@ -277,8 +301,8 @@ func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
 	}
 
 	results := report.Results()
-	if len(results) != 1 || results[0].Outcome != domain.OutcomeSkipped {
-		t.Fatalf("Results() = %+v, want one skipped result", results)
+	if len(results) != 2 || results[0].Outcome != domain.OutcomeSkipped {
+		t.Fatalf("Results() = %+v, want the settings step to have skipped", results)
 	}
 
 	want := ".codefall/settings.json already exists (use --force to rewrite it)"
@@ -295,9 +319,9 @@ func TestRunRewritesSettingsWithForce(t *testing.T) {
 	files := newFakeFileSystem()
 	files.files[settingsFull] = []byte("{}\n")
 
-	report, err := NewInitialize(files, newFakeCommandRunner()).Run(
+	report, err := NewInitialize(files, claudeInstalled()).Run(
 		t.Context(),
-		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Force: true},
+		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode, Force: true},
 		nil,
 	)
 	if err != nil {
@@ -347,12 +371,12 @@ func TestRunStopsOnAStepThatFails(t *testing.T) {
 
 			observer := &recordingObserver{}
 
-			request := Request{Dir: workingDir, Tracker: domain.TrackerGitHub}
+			request := Request{Dir: workingDir, Tracker: domain.TrackerGitHub, Harness: domain.HarnessClaudeCode}
 			if tc.name != "the settings could not be built" {
 				request.GitHubRepo = mo.Some("owner/name")
 			}
 
-			report, err := NewInitialize(files, newFakeCommandRunner()).Run(t.Context(), request, observer)
+			report, err := NewInitialize(files, claudeInstalled()).Run(t.Context(), request, observer)
 			if err == nil {
 				t.Fatalf("Run = %+v, want an error", report)
 			}
@@ -381,9 +405,9 @@ func TestRunReportsAnUnreadableSettingsFile(t *testing.T) {
 	files := newFakeFileSystem()
 	files.errs[settingsFull] = errors.New("permission denied")
 
-	if _, err := NewInitialize(files, newFakeCommandRunner()).Run(
+	if _, err := NewInitialize(files, claudeInstalled()).Run(
 		t.Context(),
-		Request{Dir: workingDir, Tracker: domain.TrackerBeads},
+		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,
 	); err == nil || !strings.Contains(err.Error(), "read .codefall/settings.json") {
 		t.Errorf("Run error = %v, want it to say the settings could not be read", err)
@@ -394,9 +418,9 @@ func TestRunStopsOnACancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	_, err := NewInitialize(newFakeFileSystem(), newFakeCommandRunner()).Run(
+	_, err := NewInitialize(newFakeFileSystem(), claudeInstalled()).Run(
 		ctx,
-		Request{Dir: workingDir, Tracker: domain.TrackerBeads},
+		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,
 	)
 	if !errors.Is(err, context.Canceled) {

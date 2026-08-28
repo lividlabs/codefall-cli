@@ -1,6 +1,6 @@
 // Package setup is the facade for `codefall init`, the command that makes a directory ready for
-// codefall: it writes the .codefall/settings.json that doctor checks, and the steps that install the
-// harness plugin and initialise the tracker are added to the same run.
+// codefall: it writes the .codefall/settings.json that doctor checks and installs the codefall
+// plugin for the harness, and the step that initialises the tracker is added to the same run.
 //
 // The package is named setup rather than init because a package called init cannot be imported
 // without an alias — `import ".../internal/init"` does not compile, since init must be a func. The

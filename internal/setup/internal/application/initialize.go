@@ -67,8 +67,8 @@ type Observer interface {
 	StepFinished(result domain.StepResult)
 }
 
-// Initialize sets a project up for codefall: it writes .codefall/settings.json, and the steps that
-// install the harness plugin and initialise Beads are appended to the same list.
+// Initialize sets a project up for codefall: it writes .codefall/settings.json and installs the
+// harness plugin, and the step that initialises Beads is appended to the same list.
 type Initialize struct {
 	files  FileSystem
 	runner CommandRunner
@@ -89,13 +89,22 @@ type step struct {
 
 // Run performs every step in order, telling the observer as each one starts and finishes. The first
 // step that fails ends the run, and its error names the step so the reader knows how far init got.
+//
+// The tools the run needs are checked before the first step starts, so a missing one leaves the
+// project untouched rather than half set up. That error already says what is wrong and what to do
+// about it, so it is returned as it is, with no step to name in front of it.
 func (i *Initialize) Run(ctx context.Context, request Request, observer Observer) (domain.Report, error) {
 	if observer == nil {
 		observer = silentObserver{}
 	}
 
+	if err := i.preflight(request); err != nil {
+		return domain.Report{}, err
+	}
+
 	steps := []step{
 		{Step: domain.SettingsStep, run: i.settings},
+		{Step: domain.PluginStep, run: i.plugin},
 	}
 
 	results := make([]domain.StepResult, 0, len(steps))

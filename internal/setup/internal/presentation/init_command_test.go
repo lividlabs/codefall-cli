@@ -301,7 +301,7 @@ func TestInitCommandPrintsALineForEachFinishedStepAndWhatToRunNext(t *testing.T)
 	initialize := newFakeInitialize()
 	initialize.report = domain.NewReport(
 		domain.SettingsStep.Done("wrote .codefall/settings.json (tracker: github, repo: owner/name)"),
-		domain.Step{ID: "later", Title: "A step from a later change"}.Skipped("nothing to do"),
+		domain.PluginStep.Skipped("codefall@codefall is already enabled in .claude/settings.json"),
 	)
 
 	out, err := run(t, initialize, "--tracker", "beads")
@@ -310,7 +310,7 @@ func TestInitCommandPrintsALineForEachFinishedStepAndWhatToRunNext(t *testing.T)
 	}
 
 	want := "✓ wrote .codefall/settings.json (tracker: github, repo: owner/name)\n" +
-		"- nothing to do\n" +
+		"- codefall@codefall is already enabled in .claude/settings.json\n" +
 		nextStep + "\n"
 	if out != want {
 		t.Errorf("output =\n%q\nwant\n%q", out, want)

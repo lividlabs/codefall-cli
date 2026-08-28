@@ -8,8 +8,24 @@ type Step struct {
 }
 
 // The steps an init run performs, in the order it performs them. Writing the settings file is the
-// first; installing the Claude Code plugin and initialising Beads follow it.
-var SettingsStep = Step{ID: "settings", Title: "Writing .codefall/settings.json"}
+// first, installing the harness plugin the second; initialising Beads follows them.
+var (
+	SettingsStep = Step{ID: "settings", Title: "Writing .codefall/settings.json"}
+	PluginStep   = Step{ID: "plugin", Title: "Installing the codefall plugin for Claude Code"}
+)
+
+// What codefall's plugin for Claude Code is called and where it comes from. These are facts about
+// codefall itself, which is why they live here; how the harness CLI is asked to install them is the
+// application layer's business.
+//
+// A plugin is identified as name@marketplace, so PluginID is the plugin's own name joined to
+// MarketplaceName — written out rather than composed, because it is the string the harness prints
+// and the string a person types.
+const (
+	PluginID          = "codefall@codefall"
+	MarketplaceName   = "codefall"
+	MarketplaceSource = "lividlabs/codefall-plugin"
+)
 
 // Outcome is what a step did. A step that could not do its work returns an error instead: there is
 // no failed outcome, because a failure stops the run.

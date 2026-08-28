@@ -29,6 +29,19 @@ func TestStepResults(t *testing.T) {
 	}
 }
 
+// A step is named by its id in the error that stops a run, so two steps cannot share one. The
+// plugin's identifier is its own name joined to the marketplace it comes from; the two are separate
+// constants because the harness CLI is given them separately.
+func TestTheStepsAndThePluginAreIdentifiedConsistently(t *testing.T) {
+	if SettingsStep.ID == PluginStep.ID {
+		t.Errorf("both steps have the id %q, want them distinct", PluginStep.ID)
+	}
+
+	if want := "codefall@" + MarketplaceName; PluginID != want {
+		t.Errorf("PluginID = %q, want %q", PluginID, want)
+	}
+}
+
 func TestReportKeepsStepOrder(t *testing.T) {
 	first := SettingsStep.Done("one")
 	second := Step{ID: "later", Title: "Later"}.Skipped("two")

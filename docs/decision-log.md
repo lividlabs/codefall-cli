@@ -86,6 +86,23 @@ Decided at scaffold, 2026-08-16.
   `internal/setup/internal/application/` compiled and failed `golangci-lint run` on the
   `application-layer` rule. Still no report contract crosses a facade: init does not consume
   doctor's.
+- **Init's plugin step, 2026-08-27.** `codefall init` installs the codefall plugin for Claude Code
+  as its second step, by running the harness's own CLI — `claude plugin marketplace add
+  lividlabs/codefall-plugin --scope project` and then `claude plugin install codefall@codefall
+  --scope project -y`. Both are project scope, so `.claude/settings.json` carries the marketplace
+  declaration and the enabled plugin and everyone who clones the repository gets them; a user-scope
+  install would work for whoever ran init and for nobody else. What is already done is read out of
+  that file rather than asked of `claude plugin list --json`, whose `enabled` field is computed from
+  the caller's working directory and stamped onto every row, so it misreports. The CLI merges into
+  the file, preserving keys it does not own, which is why init runs the CLI rather than writing the
+  file itself. The plugin's identifiers are domain constants because they are facts about codefall;
+  the CLI's name and argument shapes are application, because they are how a tool is asked. The step
+  switches on the harness with `claude-code` as its only case — presentation has already refused
+  every other value, so the default is unreachable and is where the next harness lands. Every run
+  now starts with a preflight that checks the tools it will reach for are on PATH, before the first
+  step: a tool that turns up missing halfway through leaves the project half set up, which is the
+  one state init exists to avoid. It reports every missing tool at once rather than the first, and
+  `bd` and git join `claude` there with the Beads step.
 
 ## Open
 
