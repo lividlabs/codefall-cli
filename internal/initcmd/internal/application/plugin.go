@@ -12,6 +12,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/text"
 )
 
 // claudeCommand is how Claude Code is invoked. The CLI's name and the shape of its arguments are
@@ -111,9 +112,9 @@ func (i *Initialize) claude(ctx context.Context, dir string, args ...string) err
 	}
 
 	if result.ExitCode != 0 {
-		detail := firstLine(result.Stderr)
+		detail := text.FirstLine(result.Stderr)
 		if detail == "" {
-			detail = firstLine(result.Stdout)
+			detail = text.FirstLine(result.Stdout)
 		}
 
 		return fmt.Errorf("%s exited %d: %s", command, result.ExitCode, detail)
@@ -180,11 +181,4 @@ func (i *Initialize) readClaudeFile(dir string) (mo.Option[[]byte], error) {
 
 func claudePath(dir string) string {
 	return filepath.Join(dir, claudeDir, claudeFile)
-}
-
-// firstLine is how a tool's chatty output becomes one line of an error, as it is in doctor.
-func firstLine(s string) string {
-	line, _, _ := strings.Cut(s, "\n")
-
-	return strings.TrimSpace(line)
 }

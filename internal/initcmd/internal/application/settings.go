@@ -12,6 +12,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/settings"
 )
 
 // Where settings live, relative to the directory init is run in. The display form is what a person
@@ -52,12 +53,12 @@ func (i *Initialize) settings(_ context.Context, request Request) (domain.StepRe
 		return domain.SettingsStep.Skipped(settingsName + " already exists (use --force to rewrite it)"), nil
 	}
 
-	settings, err := domain.NewSettings(request.Tracker, request.GitHubRepo, request.GitHubProject)
+	chosen, err := domain.NewSettings(request.Tracker, request.GitHubRepo, request.GitHubProject)
 	if err != nil {
 		return domain.StepResult{}, err
 	}
 
-	data, err := encodeSettings(settings)
+	data, err := encodeSettings(chosen)
 	if err != nil {
 		return domain.StepResult{}, err
 	}
@@ -70,7 +71,7 @@ func (i *Initialize) settings(_ context.Context, request Request) (domain.StepRe
 		return domain.StepResult{}, fmt.Errorf("write %s: %w", settingsName, err)
 	}
 
-	return domain.SettingsStep.Done(fmt.Sprintf("wrote %s (%s)", settingsName, describe(settings))), nil
+	return domain.SettingsStep.Done(fmt.Sprintf("wrote %s (%s)", settingsName, describe(chosen))), nil
 }
 
 func settingsPath(dir string) string {
@@ -78,10 +79,13 @@ func settingsPath(dir string) string {
 }
 
 // describe is what the step reports it wrote, in the terms the person answering the survey used.
-func describe(settings domain.Settings) string {
-	parts := []string{"tracker: " + settings.Tracker}
+//
+// A settings value is named `chosen` throughout this file because `settings` is now the shared
+// module that defines the format (ADR-003), and a local of that name would hide it.
+func describe(chosen domain.Settings) string {
+	parts := []string{"tracker: " + chosen.Tracker}
 
-	if github, ok := settings.GitHub.Get(); ok {
+	if github, ok := chosen.GitHub.Get(); ok {
 		parts = append(parts, "repo: "+github.Repo)
 
 		if project, ok := github.Project.Get(); ok {
@@ -126,28 +130,28 @@ func (gitHubDocument) IsZero() bool { return false }
 
 // encodeSettings renders settings as the bytes that go in the file: two-space indent and a trailing
 // newline, so the result is what a person would have written by hand and diffs a line at a time.
-func encodeSettings(settings domain.Settings) ([]byte, error) {
+func encodeSettings(chosen domain.Settings) ([]byte, error) {
 	document := settingsDocument{
-		Schema:  domain.SettingsSchemaID,
-		Version: domain.SettingsVersion,
-		Tracker: settings.Tracker,
+		Schema:  settings.SchemaID,
+		Version: settings.Version,
+		Tracker: chosen.Tracker,
 	}
 
 	// One case per tracker, so adding a tracker is a case here and a block above rather than a
-	// silent omission. NewSettings has already rejected any tracker the domain does not know, which
+	// silent omission. NewSettings has already rejected any tracker the format does not know, which
 	// is what makes the default unreachable.
-	switch settings.Tracker {
-	case domain.TrackerGitHub:
-		github, ok := settings.GitHub.Get()
+	switch chosen.Tracker {
+	case settings.TrackerGitHub:
+		github, ok := chosen.GitHub.Get()
 		if !ok {
-			return nil, fmt.Errorf("tracker %q has no github block", settings.Tracker)
+			return nil, fmt.Errorf("tracker %q has no github block", chosen.Tracker)
 		}
 
 		document.GitHub = mo.Some(gitHubDocument{Repo: github.Repo, Project: github.Project})
-	case domain.TrackerBeads:
+	case settings.TrackerBeads:
 		document.Beads = mo.Some(beadsDocument{})
 	default:
-		return nil, fmt.Errorf("tracker %q has no block to write", settings.Tracker)
+		return nil, fmt.Errorf("tracker %q has no block to write", chosen.Tracker)
 	}
 
 	data, err := json.MarshalIndent(document, "", "  ")

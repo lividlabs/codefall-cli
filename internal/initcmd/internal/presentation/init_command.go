@@ -20,6 +20,7 @@ import (
 
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/settings"
 	"github.com/lividlabs/codefall-cli/internal/shared/ui"
 )
 
@@ -82,9 +83,9 @@ type initFlags struct {
 
 func (f *initFlags) register(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.tracker, "tracker", "",
-		"issue tracker to use ("+strings.Join(domain.Trackers(), ", ")+")")
+		"issue tracker to use ("+strings.Join(settings.Trackers(), ", ")+")")
 	cmd.Flags().StringVar(&f.githubRepo, "github-repo", "",
-		"GitHub repository as owner/name (required when the tracker is "+domain.TrackerGitHub+")")
+		"GitHub repository as owner/name (required when the tracker is "+settings.TrackerGitHub+")")
 	cmd.Flags().IntVar(&f.githubProject, "github-project", 0,
 		"GitHub Project number (optional)")
 	cmd.Flags().StringVar(&f.harness, "harness", domain.HarnessClaudeCode,
@@ -135,7 +136,7 @@ func buildRequest(
 	request := application.Request{Dir: dir, Harness: harness, Force: flags.force}
 
 	if flags.tracker != "" {
-		tracker, err := domain.ParseTracker(flags.tracker)
+		tracker, err := settings.ParseTracker(flags.tracker)
 		if err != nil {
 			return application.Request{}, err
 		}
@@ -144,7 +145,7 @@ func buildRequest(
 	}
 
 	if flags.githubRepo != "" {
-		if err := domain.ValidateRepo(flags.githubRepo); err != nil {
+		if err := settings.ValidateRepo(flags.githubRepo); err != nil {
 			return application.Request{}, err
 		}
 
@@ -195,13 +196,13 @@ func buildRequest(
 // "the" opens the sentence rather than the flag name: Fang title-cases the first word of every
 // error it renders, which would turn --github-repo into --Github-Repo.
 func rejectGitHubFlags(cmd *cobra.Command, tracker string) error {
-	if tracker == "" || tracker == domain.TrackerGitHub {
+	if tracker == "" || tracker == settings.TrackerGitHub {
 		return nil
 	}
 
 	for _, name := range []string{"github-repo", "github-project"} {
 		if cmd.Flags().Changed(name) {
-			return fmt.Errorf("the --%s flag is only used with --tracker %s", name, domain.TrackerGitHub)
+			return fmt.Errorf("the --%s flag is only used with --tracker %s", name, settings.TrackerGitHub)
 		}
 	}
 
@@ -236,14 +237,14 @@ func collect(
 // project number is not one of those, so it is never on its own a reason to prompt.
 func needsAnswers(request application.Request) bool {
 	return request.Tracker == "" ||
-		(request.Tracker == domain.TrackerGitHub && request.GitHubRepo.IsAbsent())
+		(request.Tracker == settings.TrackerGitHub && request.GitHubRepo.IsAbsent())
 }
 
 // mightUseGitHub reports whether a repository could still be wanted — either because the tracker is
 // GitHub, or because it has not been chosen yet and might be.
 func mightUseGitHub(request application.Request) bool {
 	return request.GitHubRepo.IsAbsent() &&
-		(request.Tracker == "" || request.Tracker == domain.TrackerGitHub)
+		(request.Tracker == "" || request.Tracker == settings.TrackerGitHub)
 }
 
 // withoutPrompting is the path a script, CI, or an agent takes: what is known is used, and what is
@@ -256,7 +257,7 @@ func withoutPrompting(
 		return application.Request{}, missingFlag("--tracker")
 	}
 
-	if request.Tracker != domain.TrackerGitHub || request.GitHubRepo.IsPresent() {
+	if request.Tracker != settings.TrackerGitHub || request.GitHubRepo.IsPresent() {
 		return request, nil
 	}
 
@@ -281,7 +282,7 @@ func survey(
 ) (application.Request, error) {
 	// GitHub Issues is the first option and the starting value, so the highlighted answer is the
 	// one most projects want.
-	tracker := domain.TrackerGitHub
+	tracker := settings.TrackerGitHub
 	if request.Tracker != "" {
 		tracker = request.Tracker
 	}
@@ -303,7 +304,7 @@ func survey(
 	// may only be known once the form is running.
 	if fields := gitHubFields(request, &repo, &project); len(fields) > 0 {
 		groups = append(groups, huh.NewGroup(fields...).
-			WithHideFunc(func() bool { return tracker != domain.TrackerGitHub }))
+			WithHideFunc(func() bool { return tracker != settings.TrackerGitHub }))
 	}
 
 	if err := runForm(ctx, groups); err != nil {
@@ -354,7 +355,7 @@ func answered(
 ) (application.Request, error) {
 	request.Tracker = tracker
 
-	if tracker != domain.TrackerGitHub {
+	if tracker != settings.TrackerGitHub {
 		return request, nil
 	}
 
@@ -379,8 +380,8 @@ func trackerField(tracker *string) huh.Field {
 	return huh.NewSelect[string]().
 		Title("Which issue tracker should codefall use?").
 		Options(
-			huh.NewOption("GitHub Issues", domain.TrackerGitHub),
-			huh.NewOption("Beads", domain.TrackerBeads),
+			huh.NewOption("GitHub Issues", settings.TrackerGitHub),
+			huh.NewOption("Beads", settings.TrackerBeads),
 			huh.NewOption("Jira (not yet available)", trackerJira),
 			huh.NewOption("Linear (not yet available)", trackerLinear),
 		).
@@ -400,7 +401,7 @@ func availableTracker(tracker string) error {
 	case trackerLinear:
 		return notAvailable("Linear")
 	default:
-		_, err := domain.ParseTracker(tracker)
+		_, err := settings.ParseTracker(tracker)
 
 		return err
 	}
@@ -415,7 +416,7 @@ func repoField(repo *string) huh.Field {
 		Title("Which GitHub repository holds the issues?").
 		Placeholder("owner/name").
 		Value(repo).
-		Validate(func(value string) error { return domain.ValidateRepo(strings.TrimSpace(value)) })
+		Validate(func(value string) error { return settings.ValidateRepo(strings.TrimSpace(value)) })
 }
 
 func projectField(project *string) huh.Field {

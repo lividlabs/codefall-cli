@@ -2,11 +2,13 @@
 
 A Go command-line tool. One surface, one app, one module.
 
-**State: two components and two shared modules.** `internal/doctor/` (`codefall doctor`) is the first
-component and the reference for the rules below; `internal/initcmd/` (`codefall init`) is the second,
-and follows it. `internal/shared/ui/` holds the palette, the marks, the colour-profile writer, and
-the spinner runner; `internal/shared/process/` holds the command runner and the file system.
-`cmd/codefall/main.go` is the composition root and builds the injector.
+**State: two components and four shared modules.** `internal/doctor/` (`codefall doctor`) is the
+first component and the reference for the rules below; `internal/initcmd/` (`codefall init`) is the
+second, and follows it. `internal/shared/ui/` holds the palette, the marks, the colour-profile
+writer, and the spinner runner; `internal/shared/process/` holds the command runner and the file
+system. `internal/shared/settings/` holds the `.codefall/settings.json` format and
+`internal/shared/text/` the string helpers both components need — both **pure** (ADR-003), so the
+inner layers may import them. `cmd/codefall/main.go` is the composition root and builds the injector.
 
 ## Applicable ADRs
 
@@ -153,11 +155,14 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   Proven that way on 2026-08-27, once per deny entry. The `domain-layer` and `application-layer`
   rules were re-proven the same day against a Cobra import from
   `internal/doctor/internal/application/` and against an `internal/shared/ui` import from
-  `internal/initcmd/internal/application/` and `internal/doctor/internal/domain/`.
+  `internal/initcmd/internal/application/` and `internal/doctor/internal/domain/`. The
+  `pure-shared-modules` rule was proven the same way on 2026-08-27, against a
+  `charm.land/lipgloss/v2` import in `internal/shared/settings/`.
 - **`depguard` matches `_test.go` too.** Inner-layer tests are internal test packages (`package
-  domain`, `package application`), and a `domain` test cannot import `os` — which is why the schema
-  test that holds `schemas/settings.schema.json` equal to the domain constants lives in the facade
-  package.
+  domain`, `package application`), so a `domain` test cannot import `os`. The schema test that holds
+  `schemas/settings.schema.json` equal to the settings constants lives in `internal/shared/settings`,
+  beside the format it pins — a pure shared module is not an inner layer, so its tests may read the
+  file.
 - **`go.mod` requires `samber/do`, `samber/mo`, Cobra, Fang, Lip Gloss v2, Bubble Tea v2, Bubbles v2,
   `colorprofile`, `x/term`, and Huh v2** — `x/term` for the terminal detection Fang's own theme uses,
   Bubble Tea and Bubbles for the spinners, Huh for init's survey. Add each library with the code that

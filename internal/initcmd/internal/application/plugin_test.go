@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/settings"
 )
 
 // pluginRequest is a run that has nothing to do but install the plugin: the settings are already
 // there, so the first step skips and what the test watches is the second.
 func pluginRequest() Request {
-	return Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode}
+	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode}
 }
 
 // settled is a file system whose .codefall/settings.json is already written, with whatever

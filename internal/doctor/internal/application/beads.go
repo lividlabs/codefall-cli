@@ -7,6 +7,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/text"
 )
 
 // beads runs checks 5 and 6. A missing bd is a failure; a directory bd does not yet know about is
@@ -33,7 +34,7 @@ func (d *Diagnose) beads(ctx context.Context, dir string, results []domain.Resul
 	case result.ExitCode != 0:
 		return append(results, domain.BeadsInitialized.Warn(
 			fmt.Sprintf("This repository has no Beads database (bd info exited %d: %s)",
-				result.ExitCode, firstLine(result.Stderr)), initRemedy))
+				result.ExitCode, text.FirstLine(result.Stderr)), initRemedy))
 	}
 
 	return append(results, domain.BeadsInitialized.Pass())
@@ -47,7 +48,7 @@ func (d *Diagnose) toolVersion(ctx context.Context, dir, path, name string, args
 		return path
 	}
 
-	if line := firstLine(result.Stdout); line != "" {
+	if line := text.FirstLine(result.Stdout); line != "" {
 		return line
 	}
 

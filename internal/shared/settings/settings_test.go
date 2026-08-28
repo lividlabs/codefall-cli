@@ -1,14 +1,15 @@
-package domain
+package settings
 
 import (
 	"slices"
+	"strings"
 	"testing"
 )
 
 // complete returns the settings from the schema's example, which every case here mutates.
 func complete() Document {
 	return Document{
-		"$schema": SettingsSchemaID,
+		"$schema": SchemaID,
 		"version": 1.0,
 		"tracker": "github",
 		"github": map[string]any{
@@ -18,7 +19,7 @@ func complete() Document {
 	}
 }
 
-func TestValidateSettings(t *testing.T) {
+func TestValidate(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		doc  Document
@@ -197,8 +198,8 @@ func TestValidateSettings(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := ValidateSettings(tc.doc); !slices.Equal(got, tc.want) {
-				t.Errorf("ValidateSettings() = %q, want %q", got, tc.want)
+			if got := Validate(tc.doc); !slices.Equal(got, tc.want) {
+				t.Errorf("Validate() = %q, want %q", got, tc.want)
 			}
 		})
 	}
@@ -208,15 +209,15 @@ func TestValidateSettings(t *testing.T) {
 // github already prove this pairwise above. This test adds a third, synthetic tracker for its
 // length to show the rule keeps generalizing, which is also the proof that adding a row is all a
 // further tracker needs.
-func TestValidateSettingsRejectsAnotherKnownTrackersBlock(t *testing.T) {
+func TestValidateRejectsAnotherKnownTrackersBlock(t *testing.T) {
 	trackerFields["fake"] = []fieldSpec{{"token", true, isString}}
 	t.Cleanup(func() { delete(trackerFields, "fake") })
 
 	doc := with(complete(), "fake", map[string]any{"token": "x"})
 
 	want := []string{`fake: present but tracker is "github" — remove it`}
-	if got := ValidateSettings(doc); !slices.Equal(got, want) {
-		t.Errorf("ValidateSettings() = %q, want %q", got, want)
+	if got := Validate(doc); !slices.Equal(got, want) {
+		t.Errorf("Validate() = %q, want %q", got, want)
 	}
 }
 
@@ -224,11 +225,67 @@ func TestTrackers(t *testing.T) {
 	if got, want := Trackers(), []string{TrackerBeads, TrackerGitHub}; !slices.Equal(got, want) {
 		t.Errorf("Trackers() = %q, want %q", got, want)
 	}
+
+	// The caller gets a copy: mutating it must not change what the next caller sees. Order is not
+	// cosmetic — the schema test holds the schema's tracker enum equal to this list.
+	Trackers()[0] = "mutated"
+
+	if got := Trackers()[0]; got != TrackerBeads {
+		t.Errorf("Trackers()[0] after a caller mutated its copy = %q, want %q", got, TrackerBeads)
+	}
+}
+
+func TestParseTracker(t *testing.T) {
+	for _, tracker := range Trackers() {
+		if got, err := ParseTracker(tracker); err != nil || got != tracker {
+			t.Errorf("ParseTracker(%q) = %q, %v, want %q, nil", tracker, got, err, tracker)
+		}
+	}
+
+	_, err := ParseTracker("jira")
+	if err == nil {
+		t.Fatal(`ParseTracker("jira") = nil error, want an error`)
+	}
+
+	// The message lists what would have worked, because that is what the reader needs next.
+	for _, want := range append([]string{"jira"}, Trackers()...) {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("ParseTracker(%q) error = %q, want it to mention %q", "jira", err, want)
+		}
+	}
+}
+
+func TestValidateRepo(t *testing.T) {
+	for _, repo := range []string{"owner/name", "lividlabs/codefall-cli", "a_b.c-d/e.f_g-h"} {
+		if err := ValidateRepo(repo); err != nil {
+			t.Errorf("ValidateRepo(%q) = %v, want nil", repo, err)
+		}
+	}
+
+	for _, repo := range []string{"", "name", "owner/name/extra", "owner /name", "owner/na me"} {
+		if err := ValidateRepo(repo); err == nil {
+			t.Errorf("ValidateRepo(%q) = nil, want an error", repo)
+		}
+	}
+}
+
+func TestValidateProject(t *testing.T) {
+	for _, number := range []int{1, 3, 4096} {
+		if err := ValidateProject(number); err != nil {
+			t.Errorf("ValidateProject(%d) = %v, want nil", number, err)
+		}
+	}
+
+	for _, number := range []int{0, -1} {
+		if err := ValidateProject(number); err == nil {
+			t.Errorf("ValidateProject(%d) = nil, want an error", number)
+		}
+	}
 }
 
 func TestRequiredFields(t *testing.T) {
-	if got, want := RequiredSettingsFields(), []string{"version", "tracker"}; !slices.Equal(got, want) {
-		t.Errorf("RequiredSettingsFields() = %q, want %q", got, want)
+	if got, want := RequiredFields(), []string{"version", "tracker"}; !slices.Equal(got, want) {
+		t.Errorf("RequiredFields() = %q, want %q", got, want)
 	}
 
 	if got, want := RequiredTrackerFields(TrackerBeads), []string{}; !slices.Equal(got, want) {

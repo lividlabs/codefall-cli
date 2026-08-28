@@ -1,74 +1,19 @@
 // Package domain holds initcmd's entities and value objects: the settings a project is initialised
-// with, the trackers and harnesses codefall knows about, and the steps a run is made of. It performs
-// no IO and names no delivery, encoding, or infrastructure type (ADR-BASE-01).
+// with, the harnesses codefall knows about, and the steps a run is made of. It performs no IO and
+// names no delivery, encoding, or infrastructure type (ADR-BASE-01).
+//
+// What .codefall/settings.json may contain is not initcmd's — doctor reads the same file — so the
+// format lives in the pure shared module internal/shared/settings and the value objects here are
+// built from its rules (ADR-003).
 package domain
 
 import (
 	"fmt"
-	"regexp"
-	"slices"
-	"strings"
 
 	"github.com/samber/mo"
+
+	"github.com/lividlabs/codefall-cli/internal/shared/settings"
 )
-
-// The published constants of the settings format. The schema test holds schemas/settings.schema.json
-// equal to these, so what initcmd writes and what the schema promises cannot drift apart.
-const (
-	SettingsVersion  = 1
-	SettingsSchemaID = "https://raw.githubusercontent.com/lividlabs/codefall-cli/main/schemas/settings.schema.json"
-	RepoPattern      = `^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`
-)
-
-// The issue trackers codefall can be pointed at.
-const (
-	TrackerBeads  = "beads"
-	TrackerGitHub = "github"
-)
-
-// The coding harnesses codefall can set up. Claude Code is the only one today; the flag exists so
-// the later steps of init have something to branch on.
-const HarnessClaudeCode = "claude-code"
-
-var repoRegexp = regexp.MustCompile(RepoPattern)
-
-// The two lists are sorted once, here. Order is not cosmetic for trackers: the schema test holds the
-// schema's tracker enum equal to this list, and doctor's own list is sorted the same way.
-var (
-	trackers  = slices.Sorted(slices.Values([]string{TrackerBeads, TrackerGitHub}))
-	harnesses = slices.Sorted(slices.Values([]string{HarnessClaudeCode}))
-)
-
-// Trackers returns the known tracker names, sorted.
-func Trackers() []string {
-	return slices.Clone(trackers)
-}
-
-// Harnesses returns the supported harness names, sorted.
-func Harnesses() []string {
-	return slices.Clone(harnesses)
-}
-
-// ParseTracker returns the tracker name when it is one codefall knows, and an error listing the
-// known ones when it is not.
-func ParseTracker(name string) (string, error) {
-	if slices.Contains(trackers, name) {
-		return name, nil
-	}
-
-	return "", fmt.Errorf("unknown tracker %q (known trackers: %s)", name, strings.Join(trackers, ", "))
-}
-
-// ParseHarness returns the harness name when codefall can set it up, and an error naming the ones it
-// can when it cannot. A harness codefall does not support yet is not a typo, so the message says so
-// rather than calling the value unknown.
-func ParseHarness(name string) (string, error) {
-	if slices.Contains(harnesses, name) {
-		return name, nil
-	}
-
-	return "", fmt.Errorf("harness %q is not supported yet (supported: %s)", name, strings.Join(harnesses, ", "))
-}
 
 // GitHubSettings is the tracker block for GitHub Issues. The project number is absent when the
 // repository's issues are not organised into a GitHub Project.
@@ -87,20 +32,22 @@ type Settings struct {
 }
 
 // NewSettings builds settings from the values a survey or a set of flags collected, and is the only
-// way to obtain them: a Settings value that exists is one that may be written.
+// way to obtain them: a Settings value that exists is one that may be written. Which values are
+// acceptable is the format's to say; which combinations of them make sense for a run is initcmd's,
+// and that is what this constructor adds.
 func NewSettings(tracker string, repo mo.Option[string], project mo.Option[int]) (Settings, error) {
-	name, err := ParseTracker(tracker)
+	name, err := settings.ParseTracker(tracker)
 	if err != nil {
 		return Settings{}, err
 	}
 
-	if name != TrackerGitHub {
+	if name != settings.TrackerGitHub {
 		if repo.IsPresent() {
-			return Settings{}, fmt.Errorf("a repository is only used when the tracker is %q, not %q", TrackerGitHub, name)
+			return Settings{}, fmt.Errorf("a repository is only used when the tracker is %q, not %q", settings.TrackerGitHub, name)
 		}
 
 		if project.IsPresent() {
-			return Settings{}, fmt.Errorf("a project number is only used when the tracker is %q, not %q", TrackerGitHub, name)
+			return Settings{}, fmt.Errorf("a project number is only used when the tracker is %q, not %q", settings.TrackerGitHub, name)
 		}
 
 		return Settings{Tracker: name}, nil
@@ -117,27 +64,18 @@ func NewSettings(tracker string, repo mo.Option[string], project mo.Option[int])
 func newGitHubSettings(repo mo.Option[string], project mo.Option[int]) (GitHubSettings, error) {
 	name, ok := repo.Get()
 	if !ok {
-		return GitHubSettings{}, fmt.Errorf("tracker %q needs a repository", TrackerGitHub)
+		return GitHubSettings{}, fmt.Errorf("tracker %q needs a repository", settings.TrackerGitHub)
 	}
 
-	if err := ValidateRepo(name); err != nil {
+	if err := settings.ValidateRepo(name); err != nil {
 		return GitHubSettings{}, err
 	}
 
-	if number, ok := project.Get(); ok && number < 1 {
-		return GitHubSettings{}, fmt.Errorf("project number %d must be a positive integer", number)
+	if number, ok := project.Get(); ok {
+		if err := settings.ValidateProject(number); err != nil {
+			return GitHubSettings{}, err
+		}
 	}
 
 	return GitHubSettings{Repo: name, Project: project}, nil
-}
-
-// ValidateRepo reports whether a repository is written the way GitHub names one. It is exported
-// because a form validates the field as it is typed, before there are enough answers to build
-// settings from.
-func ValidateRepo(repo string) error {
-	if !repoRegexp.MatchString(repo) {
-		return fmt.Errorf("repository %q must be written as owner/name", repo)
-	}
-
-	return nil
 }

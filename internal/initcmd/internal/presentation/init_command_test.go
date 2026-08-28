@@ -12,6 +12,7 @@ import (
 
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/settings"
 	"github.com/lividlabs/codefall-cli/internal/shared/ui"
 )
 
@@ -116,7 +117,7 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 
 	want := application.Request{
 		Dir:           dir,
-		Tracker:       domain.TrackerGitHub,
+		Tracker:       settings.TrackerGitHub,
 		GitHubRepo:    mo.Some("lividlabs/codefall-cli"),
 		GitHubProject: mo.Some(3),
 		Harness:       domain.HarnessClaudeCode,
@@ -423,7 +424,7 @@ func TestValidateProject(t *testing.T) {
 
 // Huh v2 has no disabled option, so the two trackers that are only announced are refused here.
 func TestAvailableTracker(t *testing.T) {
-	for _, tracker := range domain.Trackers() {
+	for _, tracker := range settings.Trackers() {
 		if err := availableTracker(tracker); err != nil {
 			t.Errorf("availableTracker(%q) = %v, want nil", tracker, err)
 		}

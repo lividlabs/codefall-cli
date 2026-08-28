@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/text"
 )
 
 // beadsCommand is how Beads is invoked, and the arguments init gives it.
@@ -50,9 +51,9 @@ func (i *Initialize) beads(ctx context.Context, request Request) (domain.StepRes
 	}
 
 	if result.ExitCode != 0 {
-		detail := firstLine(result.Stderr)
+		detail := text.FirstLine(result.Stderr)
 		if detail == "" {
-			detail = firstLine(result.Stdout)
+			detail = text.FirstLine(result.Stdout)
 		}
 
 		return domain.StepResult{}, fmt.Errorf("%s exited %d: %s",
