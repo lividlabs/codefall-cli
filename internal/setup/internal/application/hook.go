@@ -1,11 +1,10 @@
 package application
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io/fs"
 	"path/filepath"
 
 	"github.com/lividlabs/codefall-cli/internal/setup/internal/domain"
@@ -41,8 +40,9 @@ func (i *Initialize) hook(_ context.Context, request Request) (domain.StepResult
 //
 // The file is read as a plain object rather than into a struct, so that every key it has — the
 // plugin declarations next to this one, and whatever else the project keeps there — survives being
-// written back out. What does not survive is key order: encoding/json sorts an object's keys, so a
-// hand-edited file comes back sorted. That is a diff once, and the alternative is a JSON editor.
+// written back out. Key order is the one thing that does not: encoding/json sorts an object's keys,
+// so a hand-edited file comes back sorted. That is a diff once, and the alternative is a JSON
+// editor.
 func (i *Initialize) claudeCodeHook(dir string) (domain.StepResult, error) {
 	document, err := i.readClaudeDocument(dir)
 	if err != nil {
@@ -54,7 +54,7 @@ func (i *Initialize) claudeCodeHook(dir string) (domain.StepResult, error) {
 		return domain.StepResult{}, err
 	}
 
-	entries, err := arrayAt(hooks, domain.BeadsHookEvent)
+	entries, err := arrayAt(hooks, hooksKey, domain.BeadsHookEvent)
 	if err != nil {
 		return domain.StepResult{}, err
 	}
@@ -75,16 +75,16 @@ func (i *Initialize) claudeCodeHook(dir string) (domain.StepResult, error) {
 	})
 	document[hooksKey] = hooks
 
-	data, err := json.MarshalIndent(document, "", "  ")
+	data, err := encodeClaudeDocument(document)
 	if err != nil {
-		return domain.StepResult{}, fmt.Errorf("encode %s: %w", claudeFullName, err)
+		return domain.StepResult{}, err
 	}
 
 	if err := i.files.MkdirAll(filepath.Join(dir, claudeDir)); err != nil {
 		return domain.StepResult{}, fmt.Errorf("create %s/: %w", claudeDir, err)
 	}
 
-	if err := i.files.WriteFile(claudePath(dir), append(data, '\n')); err != nil {
+	if err := i.files.WriteFile(claudePath(dir), data); err != nil {
 		return domain.StepResult{}, fmt.Errorf("write %s: %w", claudeFullName, err)
 	}
 
@@ -92,20 +92,40 @@ func (i *Initialize) claudeCodeHook(dir string) (domain.StepResult, error) {
 		domain.BeadsHookEvent, claudeFullName)), nil
 }
 
-// readClaudeDocument reads the harness's settings as the object they are. A file that is not there
-// is an empty object — this step creates it. A file that is not an object at all is an error,
-// because the step is about to write over it.
-func (i *Initialize) readClaudeDocument(dir string) (map[string]any, error) {
-	data, err := i.files.ReadFile(claudePath(dir))
+// encodeClaudeDocument renders the harness's settings back into the bytes that go in the file.
+//
+// The encoder is built by hand rather than through json.Marshal because Marshal escapes <, > and &
+// into \u sequences, which would silently rewrite a permission rule like "Bash(a && b)" in a file
+// codefall does not own. Encode writes the trailing newline itself.
+func encodeClaudeDocument(document map[string]any) ([]byte, error) {
+	var buffer bytes.Buffer
 
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-		return map[string]any{}, nil
-	case err != nil:
-		return nil, fmt.Errorf("read %s: %w", claudeFullName, err)
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+
+	if err := encoder.Encode(document); err != nil {
+		return nil, fmt.Errorf("encode %s: %w", claudeFullName, err)
+	}
+
+	return buffer.Bytes(), nil
+}
+
+// readClaudeDocument reads the harness's settings as the object they are. A file with nothing to say
+// is an empty object — this step creates what it needs. A file that is not an object at all is an
+// error, because the step is about to write over it.
+func (i *Initialize) readClaudeDocument(dir string) (map[string]any, error) {
+	body, err := i.readClaudeFile(dir)
+	if err != nil {
+		return nil, err
 	}
 
 	document := map[string]any{}
+
+	data, said := body.Get()
+	if !said {
+		return document, nil
+	}
 
 	if err := json.Unmarshal(data, &document); err != nil {
 		return nil, fmt.Errorf("decode %s: %w", claudeFullName, err)
@@ -132,8 +152,10 @@ func objectAt(document map[string]any, key string) (map[string]any, error) {
 	return object, nil
 }
 
-// arrayAt is objectAt for a list, and refuses a wrong-typed key for the same reason.
-func arrayAt(object map[string]any, key string) ([]any, error) {
+// arrayAt is objectAt for a list, and refuses a wrong-typed key for the same reason. The parent's
+// name is passed in so the complaint names the path a reader would go and look at, rather than
+// whichever key this function happens to know the name of.
+func arrayAt(object map[string]any, parent, key string) ([]any, error) {
 	value, present := object[key]
 	if !present || value == nil {
 		return nil, nil
@@ -141,7 +163,7 @@ func arrayAt(object map[string]any, key string) ([]any, error) {
 
 	array, ok := value.([]any)
 	if !ok {
-		return nil, fmt.Errorf("%s: %s.%s is not an array", claudeFullName, hooksKey, key)
+		return nil, fmt.Errorf("%s: %s.%s is not an array", claudeFullName, parent, key)
 	}
 
 	return array, nil

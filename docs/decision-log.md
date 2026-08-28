@@ -102,7 +102,12 @@ Decided at scaffold, 2026-08-16.
   now starts with a preflight that checks the tools it will reach for are on PATH, before the first
   step: a tool that turns up missing halfway through leaves the project half set up, which is the
   one state init exists to avoid. It reports every missing tool at once rather than the first, and
-  `bd` and git join `claude` there with the Beads step.
+  `bd` and git join `claude` there with the Beads step. Every tool init sets up is required on every
+  run, including a run where every step would skip, because a run that cannot act is not a run that
+  finished. The step's two halves are decided separately: the marketplace is declared whenever the
+  project does not already declare it, and the plugin installed whenever it is not already enabled,
+  because a plugin enabled with no project-scope marketplace beside it is exactly what a user-scope
+  install leaves behind — it works for whoever ran it and for nobody who clones the repository.
 - **Init's Beads steps, 2026-08-27.** `codefall init` finishes by initialising Beads and giving
   Claude Code the hook that primes a session with what Beads knows — the third and fourth steps, and
   the last of them. The invocation is `bd init --non-interactive --skip-agents`, which writes
@@ -120,18 +125,28 @@ Decided at scaffold, 2026-08-16.
   setup claude --check` accepts what init writes (`✓ Project hooks installed`) and complains only
   about the missing `CLAUDE.md` section, which is the intended difference. The hook step decodes
   `.claude/settings.json` into a plain object so that every key the file has survives being written
-  back; what does not survive is key order, because `encoding/json` sorts it. It runs after the
-  plugin step because both write that file, and the harness CLI's own merge goes first.
-  Two guards run in preflight, because bd init decides two things for itself that nobody asked.
-  It commits what it wrote with `git commit --no-verify` and no pathspec, so anything already staged
-  is swept into a commit that says it initialised Beads; `--stealth` is the only flag that stops the
-  commit and it also stops tracking `.beads/`, which is not the trade. So a run refuses to start
-  while `git diff --cached --quiet` reports a staged index, and only when bd init is going to run
-  at all, because otherwise the index is nobody's business but whoever staged it. And bd init run
-  outside a repository silently runs `git init` first, so a run also refuses a directory that `git
-  rev-parse --is-inside-work-tree` does not call a work tree. What init does not guard against is bd
-  sweeping the plugin step's own `.claude/settings.json` into that commit, which is what happens and
-  is harmless: the file is codefall's to write, and the hook step amends it immediately afterwards.
+  back; key order is the one thing that does not, because `encoding/json` sorts it. It is written
+  back through a `json.Encoder` with `SetEscapeHTML(false)`, because `json.Marshal` escapes `<`, `>`
+  and `&` and would silently rewrite a permission rule like `Bash(a && b)` in a file codefall does
+  not own. It runs after the plugin step because both write that file, and the harness CLI's own
+  merge goes first.
+  Three guards run in preflight, because bd init decides things for itself that nobody asked.
+  It commits what it wrote with `git commit --no-verify` and no pathspec, and before that it stages
+  `.gitignore`, `AGENTS.md`, `CLAUDE.md`, `.claude/settings.json`, `.codex`, and `.agents` by name
+  when they exist — so both anything already in the index and any uncommitted change to one of those
+  paths lands in a commit that says it initialised Beads, under bd's message rather than its
+  author's. `--stealth` is the only flag that stops the commit and it also stops tracking `.beads/`,
+  which is not the trade. So a run refuses to start while `git diff --cached --quiet` reports a
+  staged index, and refuses again when `git status --porcelain` over exactly those six paths reports
+  anything — staged, unstaged, or untracked — naming the paths git reported. Both run only when bd
+  init is going to run at all, because otherwise what the directory has waiting is nobody's business
+  but whoever left it there. And bd init run outside a repository silently runs `git init` first, so
+  a run also refuses a directory that `git rev-parse --is-inside-work-tree` does not answer `true`
+  in — the word, not the exit code, because inside a bare repository and inside `.git` itself git
+  prints `false` and exits 0. The path guard runs in preflight rather than later so that the plugin
+  step's own write to `.claude/settings.json` is not what it catches: that write is codefall's to
+  make and bd committing it is harmless, and the difference between it and somebody's uncommitted
+  edit to the same file is exactly when the question is asked.
   `bd info` is the question that decides whether there is anything to do, the same question doctor
   asks and for the same reason — `BEADS_DIR` relocates `.beads/`, so looking for the directory asks
   something else. Re-running `bd init` where it has already run is an error rather than a no-op, so

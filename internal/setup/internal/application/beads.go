@@ -20,7 +20,9 @@ var beadsInitArgs = []string{"init", "--non-interactive", "--skip-agents"}
 
 // What bd says when it committed what it wrote, and the message it committed under. bd commits
 // unconditionally and has no flag to stop it, so the report says so rather than letting a commit
-// nobody asked for turn up in the log unexplained.
+// nobody asked for turn up in the log unexplained. What went into it is left unnamed: bd stages
+// .beads/ and .gitignore, and also every one of the files preflight guards, so the list depends on
+// what the directory had.
 const (
 	beadsCommitted     = "Committed beads files to git"
 	beadsCommitMessage = "bd init: initialize beads issue tracking"
@@ -30,6 +32,9 @@ const (
 // against. Preflight has already established that bd is on PATH, that this is a git work tree, and
 // that nothing is staged — the three things bd init would otherwise decide for itself.
 func (i *Initialize) beads(ctx context.Context, request Request) (domain.StepResult, error) {
+	// Preflight asked bd this same question, to decide whether what the directory had waiting was
+	// any of its business. It is asked again rather than carried across, because a step takes no
+	// state from preflight: what preflight leaves behind is a run that was allowed to start.
 	initialized, err := i.beadsInitialized(ctx, request.Dir)
 	if err != nil {
 		return domain.StepResult{}, err
@@ -59,7 +64,7 @@ func (i *Initialize) beads(ctx context.Context, request Request) (domain.StepRes
 	// it said there is dropped.
 	if strings.Contains(result.Stdout, beadsCommitted) {
 		return domain.BeadsStep.Done(fmt.Sprintf(
-			"initialized Beads (bd init committed .beads/ and .gitignore as %q)", beadsCommitMessage)), nil
+			"initialized Beads (bd init committed what it wrote as %q)", beadsCommitMessage)), nil
 	}
 
 	return domain.BeadsStep.Done("initialized Beads"), nil

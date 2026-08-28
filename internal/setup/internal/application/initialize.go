@@ -15,8 +15,6 @@ import (
 // there and writes what init creates; the permissions those writes use are infrastructure's
 // decision, not the use case's.
 type FileSystem interface {
-	// DirExists reports whether path exists and is a directory.
-	DirExists(path string) (bool, error)
 	// ReadFile returns a file's bytes. A missing file satisfies errors.Is(err, fs.ErrNotExist).
 	ReadFile(path string) ([]byte, error)
 	// MkdirAll creates path and every parent it needs, and does nothing when it already exists.
@@ -47,7 +45,8 @@ type CommandResult struct {
 // Request is what presentation hands the use case: every answer a survey or a set of flags could
 // collect, already parsed. Absence is an Option, so "no project number" and "project number zero"
 // cannot be confused (ADR-GO-03). Tracker may be empty when settings already exist and Force is
-// false, because then nothing is built from it.
+// false, because then nothing is built from it — so a step that comes to depend on which tracker the
+// project uses must read it out of the settings file that is already there, not out of this field.
 type Request struct {
 	Dir           string
 	Tracker       string

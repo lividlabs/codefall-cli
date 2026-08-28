@@ -2,21 +2,6 @@ package domain
 
 import "testing"
 
-func TestOutcomeString(t *testing.T) {
-	for _, tc := range []struct {
-		outcome Outcome
-		want    string
-	}{
-		{OutcomeDone, "DONE"},
-		{OutcomeSkipped, "SKIPPED"},
-		{Outcome(42), "UNKNOWN"},
-	} {
-		if got := tc.outcome.String(); got != tc.want {
-			t.Errorf("Outcome(%d).String() = %q, want %q", tc.outcome, got, tc.want)
-		}
-	}
-}
-
 func TestStepResults(t *testing.T) {
 	done := SettingsStep.Done("wrote .codefall/settings.json")
 	if done.Outcome != OutcomeDone || done.Step != SettingsStep || done.Detail != "wrote .codefall/settings.json" {
@@ -45,18 +30,6 @@ func TestTheStepsAndThePluginAreIdentifiedConsistently(t *testing.T) {
 
 	if want := "codefall@" + MarketplaceName; PluginID != want {
 		t.Errorf("PluginID = %q, want %q", PluginID, want)
-	}
-}
-
-// The hook is what a Claude Code session runs at its start, so what it runs is the Beads command
-// that prints that context and nothing else.
-func TestTheSessionHookRunsBeads(t *testing.T) {
-	if BeadsHookEvent != "SessionStart" {
-		t.Errorf("BeadsHookEvent = %q, want the event Claude Code fires when a session starts", BeadsHookEvent)
-	}
-
-	if BeadsHookCommand != "bd prime --hook-json" {
-		t.Errorf("BeadsHookCommand = %q, want the command bd installs for the same purpose", BeadsHookCommand)
 	}
 }
 

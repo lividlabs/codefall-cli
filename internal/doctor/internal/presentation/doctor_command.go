@@ -4,6 +4,7 @@ package presentation
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -26,6 +27,10 @@ import (
 // colorprofile writer strips the styling on a non-terminal stdout and under NO_COLOR, leaving the
 // word itself.
 const heading = "DOCTOR SUMMARY"
+
+// errCancelled is what an interrupted run reports. It is returned as it is rather than wrapped, so
+// Fang renders that sentence and not a prefix in front of it.
+var errCancelled = errors.New("doctor cancelled")
 
 var headingStyle = sync.OnceValue(func() lipgloss.Style {
     c := lipgloss.LightDark(hasDarkBackground())
@@ -110,6 +115,10 @@ func NewDoctorCommand(diagnose DiagnoseUseCase) *cobra.Command {
 
 			report, err := runDiagnose(cmd.Context(), diagnose, dir)
 			if err != nil {
+				if errors.Is(err, errCancelled) {
+					return err
+				}
+
 				return fmt.Errorf("doctor: %w", err)
 			}
 
@@ -150,7 +159,7 @@ func runDiagnose(ctx context.Context, diagnose DiagnoseUseCase, dir string) (dom
 	// than spinning until the use case notices.
 	final, err := tea.NewProgram(newDiagnoseSpinner(ctx, diagnose, dir), tea.WithContext(ctx)).Run()
 	if err != nil {
-		return domain.Report{}, fmt.Errorf("spinner: %w", err)
+		return domain.Report{}, spinnerError(err)
 	}
 
 	model, ok := final.(diagnoseSpinner)
@@ -159,6 +168,17 @@ func runDiagnose(ctx context.Context, diagnose DiagnoseUseCase, dir string) (dom
 	}
 
 	return model.report, model.err
+}
+
+// spinnerError is what a terminal program's failure means to the command. Bubble Tea reports Ctrl-C
+// as a program that was interrupted, which is a person stopping the run rather than anything going
+// wrong, so it is said in those terms.
+func spinnerError(err error) error {
+	if errors.Is(err, tea.ErrInterrupted) {
+		return errCancelled
+	}
+
+	return fmt.Errorf("spinner: %w", err)
 }
 
 // diagnosedMsg carries the use case's outcome back into the program. It holds the error rather than
