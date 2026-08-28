@@ -20,7 +20,7 @@ func TestStepResults(t *testing.T) {
 func TestTheStepsAndThePluginAreIdentifiedConsistently(t *testing.T) {
 	seen := map[string]bool{}
 
-	for _, step := range []Step{SettingsStep, PluginStep, BeadsStep, HookStep} {
+	for _, step := range []Step{SettingsStep, PluginStep, BeadsStep, HookStep, AgentsStep} {
 		if seen[step.ID] {
 			t.Errorf("two steps have the id %q, want them distinct", step.ID)
 		}

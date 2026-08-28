@@ -151,6 +151,33 @@ Decided at scaffold, 2026-08-16.
   asks and for the same reason — `BEADS_DIR` relocates `.beads/`, so looking for the directory asks
   something else. Re-running `bd init` where it has already run is an error rather than a no-op, so
   asking first is what keeps init safe to run again.
+- **Init's Beads section, 2026-08-27.** codefall ships its own `AGENTS.md` section about Beads and
+  `codefall init` writes it, as the fifth step and the last. `--skip-agents` is what makes this
+  necessary: bd would append
+  [`beads-section-minimal.md`](https://github.com/gastownhall/beads/blob/6c124203e771433a3550c348771a5b5e27fd3c21/internal/templates/agents/defaults/beads-section-minimal.md)
+  to `AGENTS.md` and `CLAUDE.md`, and that text describes a setup codefall does not create. There is
+  no invocation that keeps bd's context and codefall's own words in the same file — `--agents-template`
+  applies only to an `AGENTS.md` that does not exist yet, and bd has no template hook for `CLAUDE.md`
+  at all — so codefall writes the section itself. It lives at
+  `internal/initcmd/internal/domain/beads_section.md`, embedded with `//go:embed` and exposed as
+  `domain.BeadsSection`: the words codefall says are a fact about codefall, and `embed` is the
+  standard library, which the domain layer's allow-list already permits. How the section is spliced
+  into somebody's file is the application layer's, along with every other encoding.
+  The section opens and closes with HTML comment markers, `<!-- BEGIN CODEFALL BEADS -->` and
+  `<!-- END CODEFALL BEADS -->`, which is what makes a second run replace it in place rather than
+  append a second copy — everything on either side of the pair survives byte for byte, so the
+  project's own words are never this step's to rewrite. A file with an opening marker and no closing
+  one stops the run: where codefall's words end and the project's resume is not something to guess
+  at. A file with no markers keeps what it says and gains the section at the end.
+  The step runs after `bd init` rather than before it, because bd stages `AGENTS.md` and `CLAUDE.md`
+  when they exist and commits what it staged under its own message. Editing them afterwards leaves
+  the change uncommitted, which is where it belongs: the section is the author's to commit.
+  `CLAUDE.md` is created only for the `claude-code` harness and only when it is missing, holding one
+  line that points at `AGENTS.md`. That is the file convention the codefall plugin's `scaffold` skill
+  states — `AGENTS.md` holds the rules, and a harness that reads `CLAUDE.md` is pointed at them —
+  and it is what this repository's own `CLAUDE.md` says. A `CLAUDE.md` that already exists is left
+  alone whatever it holds, because writing a pointer over somebody's rules throws them away rather
+  than pointing at them.
 
 ## Open
 

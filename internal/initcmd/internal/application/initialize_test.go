@@ -185,8 +185,8 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 	}
 
 	results := report.Results()
-	if len(results) != 4 {
-		t.Fatalf("Results() = %+v, want a result for each of the four steps", results)
+	if len(results) != 5 {
+		t.Fatalf("Results() = %+v, want a result for each of the five steps", results)
 	}
 
 	if results[0].Outcome != domain.OutcomeDone {
@@ -205,7 +205,9 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 
 	// The observer sees every step start and finish, in order, and what it sees on finishing is the
 	// result the report carries.
-	steps := []domain.Step{domain.SettingsStep, domain.PluginStep, domain.BeadsStep, domain.HookStep}
+	steps := []domain.Step{
+		domain.SettingsStep, domain.PluginStep, domain.BeadsStep, domain.HookStep, domain.AgentsStep,
+	}
 	if !slices.Equal(observer.started, steps) {
 		t.Errorf("started = %+v, want %+v", observer.started, steps)
 	}
@@ -313,7 +315,7 @@ func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
 	}
 
 	results := report.Results()
-	if len(results) != 4 || results[0].Outcome != domain.OutcomeSkipped {
+	if len(results) != 5 || results[0].Outcome != domain.OutcomeSkipped {
 		t.Fatalf("Results() = %+v, want the settings step to have skipped", results)
 	}
 

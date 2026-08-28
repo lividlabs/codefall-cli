@@ -67,8 +67,8 @@ type Observer interface {
 }
 
 // Initialize sets a project up for codefall: it writes .codefall/settings.json, installs the harness
-// plugin, initialises Beads, and gives the harness the session hook that primes a session with what
-// Beads knows.
+// plugin, initialises Beads, gives the harness the session hook that primes a session with what
+// Beads knows, and writes the section of AGENTS.md that says how the project uses it.
 type Initialize struct {
 	files  FileSystem
 	runner CommandRunner
@@ -107,6 +107,7 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 		{Step: domain.PluginStep, run: i.plugin},
 		{Step: domain.BeadsStep, run: i.beads},
 		{Step: domain.HookStep, run: i.hook},
+		{Step: domain.AgentsStep, run: i.agents},
 	}
 
 	results := make([]domain.StepResult, 0, len(steps))
