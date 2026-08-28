@@ -27,7 +27,7 @@ type FileSystem interface {
 
 // CommandRunner locates and runs the external tools codefall depends on (one gateway role). It is
 // the same role doctor declares, because it is the same job: setup asks gh what repository this
-// directory belongs to, and the later steps run the harness and Beads.
+// directory belongs to, asks git about the directory, and runs the harness and Beads.
 type CommandRunner interface {
 	// LookPath returns where a tool lives, or None when it is not on PATH. There is no useful "why"
 	// behind a missing binary, so this is an Option and not an error (ADR-GO-03).
@@ -67,8 +67,9 @@ type Observer interface {
 	StepFinished(result domain.StepResult)
 }
 
-// Initialize sets a project up for codefall: it writes .codefall/settings.json and installs the
-// harness plugin, and the step that initialises Beads is appended to the same list.
+// Initialize sets a project up for codefall: it writes .codefall/settings.json, installs the harness
+// plugin, initialises Beads, and gives the harness the session hook that primes a session with what
+// Beads knows.
 type Initialize struct {
 	files  FileSystem
 	runner CommandRunner
@@ -98,13 +99,15 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 		observer = silentObserver{}
 	}
 
-	if err := i.preflight(request); err != nil {
+	if err := i.preflight(ctx, request); err != nil {
 		return domain.Report{}, err
 	}
 
 	steps := []step{
 		{Step: domain.SettingsStep, run: i.settings},
 		{Step: domain.PluginStep, run: i.plugin},
+		{Step: domain.BeadsStep, run: i.beads},
+		{Step: domain.HookStep, run: i.hook},
 	}
 
 	results := make([]domain.StepResult, 0, len(steps))

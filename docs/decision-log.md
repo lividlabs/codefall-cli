@@ -103,6 +103,39 @@ Decided at scaffold, 2026-08-16.
   step: a tool that turns up missing halfway through leaves the project half set up, which is the
   one state init exists to avoid. It reports every missing tool at once rather than the first, and
   `bd` and git join `claude` there with the Beads step.
+- **Init's Beads steps, 2026-08-27.** `codefall init` finishes by initialising Beads and giving
+  Claude Code the hook that primes a session with what Beads knows — the third and fourth steps, and
+  the last of them. The invocation is `bd init --non-interactive --skip-agents`, which writes
+  `.beads/` and appends a Dolt block to `.gitignore` and nothing else. `--skip-agents` is what keeps
+  it to that: without it bd appends its own section to `AGENTS.md` and `CLAUDE.md` and writes
+  `.claude/settings.json`, `.codex/`, and `.agents/`, and codefall owns the first two. bd has no
+  template hook for `CLAUDE.md` at all — `--agents-template` applies only when `AGENTS.md` does not
+  exist yet — so there is no invocation that keeps bd's context and codefall's own words in the same
+  file. The text bd would have appended is
+  [`beads-section-minimal.md`](https://github.com/gastownhall/beads/blob/6c124203e771433a3550c348771a5b5e27fd3c21/internal/templates/agents/defaults/beads-section-minimal.md);
+  whoever wants codefall's own `AGENTS.md` to say the same things starts there.
+  The session hook is how a Claude Code session gets that context instead: a `SessionStart` entry
+  running `bd prime --hook-json`, the hook bd installs for the same purpose, written by init
+  rather than by `bd setup claude` — that command cannot be told to leave `CLAUDE.md` alone. `bd
+  setup claude --check` accepts what init writes (`✓ Project hooks installed`) and complains only
+  about the missing `CLAUDE.md` section, which is the intended difference. The hook step decodes
+  `.claude/settings.json` into a plain object so that every key the file has survives being written
+  back; what does not survive is key order, because `encoding/json` sorts it. It runs after the
+  plugin step because both write that file, and the harness CLI's own merge goes first.
+  Two guards run in preflight, because bd init decides two things for itself that nobody asked.
+  It commits what it wrote with `git commit --no-verify` and no pathspec, so anything already staged
+  is swept into a commit that says it initialised Beads; `--stealth` is the only flag that stops the
+  commit and it also stops tracking `.beads/`, which is not the trade. So a run refuses to start
+  while `git diff --cached --quiet` reports a staged index, and only when bd init is going to run
+  at all, because otherwise the index is nobody's business but whoever staged it. And bd init run
+  outside a repository silently runs `git init` first, so a run also refuses a directory that `git
+  rev-parse --is-inside-work-tree` does not call a work tree. What init does not guard against is bd
+  sweeping the plugin step's own `.claude/settings.json` into that commit, which is what happens and
+  is harmless: the file is codefall's to write, and the hook step amends it immediately afterwards.
+  `bd info` is the question that decides whether there is anything to do, the same question doctor
+  asks and for the same reason — `BEADS_DIR` relocates `.beads/`, so looking for the directory asks
+  something else. Re-running `bd init` where it has already run is an error rather than a no-op, so
+  asking first is what keeps init safe to run again.
 
 ## Open
 

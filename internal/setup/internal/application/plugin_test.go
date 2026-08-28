@@ -28,11 +28,19 @@ func settled(claudeSettings string) *fakeFileSystem {
 	return files
 }
 
-// commands is what the runner was asked to do, in order.
+// probes are the questions a run asks about the directory rather than work it does in it: preflight
+// asks all three, and the beads step asks `bd info` again to decide whether it has anything to do.
+var probes = []string{gitWorkTree, gitStaged, beadsInfo}
+
+// commands is the work the runner was asked to do, in order, with the probes left out — a test about
+// one step reads better without the questions every run asks.
 func commands(runner *fakeCommandRunner) []string {
 	got := make([]string, 0, len(runner.calls))
+
 	for _, call := range runner.calls {
-		got = append(got, call.command)
+		if !slices.Contains(probes, call.command) {
+			got = append(got, call.command)
+		}
 	}
 
 	return got
@@ -40,7 +48,7 @@ func commands(runner *fakeCommandRunner) []string {
 
 // A plugin the project already enables is left alone: the file says so, and nothing is run.
 func TestPluginStepSkipsAPluginThatIsAlreadyEnabled(t *testing.T) {
-	runner := claudeInstalled()
+	runner := toolsInstalled()
 
 	report, err := NewInitialize(
 		settled(`{"enabledPlugins": {"codefall@codefall": true}}`), runner,
@@ -97,7 +105,7 @@ func TestPluginStepInstallsThePlugin(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			files := settled(tc.settings)
-			runner := claudeInstalled()
+			runner := toolsInstalled()
 
 			report, err := NewInitialize(files, runner).Run(t.Context(), pluginRequest(), nil)
 			if err != nil {
@@ -124,10 +132,10 @@ func TestPluginStepInstallsThePlugin(t *testing.T) {
 				}
 			}
 
-			// The CLI writes the file; init never does, so that whatever else is in it survives.
-			if got, ok := files.files[claudeFull]; ok && string(got) != tc.settings {
-				t.Errorf(".claude/settings.json = %q, want it left to the CLI", got)
-			}
+			// The CLI writes the plugin's half of the file; this step never does. The hook step
+			// writes the same file afterwards, and what it leaves behind still says everything the
+			// file said before the run.
+			assertKeysSurvive(t, files.files[claudeFull], tc.settings)
 		})
 	}
 }
@@ -155,7 +163,7 @@ func TestPluginStepStopsTheRunWhenTheHarnessRefuses(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			runner := claudeInstalled()
+			runner := toolsInstalled()
 			runner.runs[tc.command] = tc.result
 
 			observer := &recordingObserver{}
@@ -188,7 +196,7 @@ func TestPluginStepStopsTheRunWhenTheHarnessRefuses(t *testing.T) {
 
 // A CLI that could not be started at all is a different failure from one that refused, and says so.
 func TestPluginStepStopsTheRunWhenTheHarnessCannotBeStarted(t *testing.T) {
-	runner := claudeInstalled()
+	runner := toolsInstalled()
 	runner.errs[marketplaceAdd] = errors.New("broken pipe")
 
 	_, err := NewInitialize(settled(""), runner).Run(t.Context(), pluginRequest(), nil)
@@ -227,7 +235,7 @@ func TestPluginStepReportsSettingsItCannotRead(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			runner := claudeInstalled()
+			runner := toolsInstalled()
 
 			_, err := NewInitialize(tc.files(), runner).Run(t.Context(), pluginRequest(), nil)
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
@@ -248,38 +256,8 @@ func TestPluginStepRefusesAHarnessItDoesNotKnow(t *testing.T) {
 	request := pluginRequest()
 	request.Harness = "aider"
 
-	_, err := NewInitialize(settled(""), claudeInstalled()).Run(t.Context(), request, nil)
+	_, err := NewInitialize(settled(""), toolsInstalled()).Run(t.Context(), request, nil)
 	if err == nil || !strings.Contains(err.Error(), `harness "aider" has no plugin to install`) {
 		t.Errorf("Run error = %v, want it to say the harness has no plugin", err)
 	}
 }
-
-// --- preflight ---------------------------------------------------------------------------------
-
-// A tool that is missing is found before anything has been done, so a run that cannot finish has
-// not started either: no step began and no file was written.
-func TestRunChecksItsToolsBeforeTheFirstStep(t *testing.T) {
-	files := newFakeFileSystem()
-	observer := &recordingObserver{}
-
-	_, err := NewInitialize(files, newFakeCommandRunner()).Run(
-		t.Context(),
-		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
-		observer,
-	)
-
-	want := "claude is not on PATH (install Claude Code: https://docs.anthropic.com/en/docs/claude-code/setup)"
-	if err == nil || err.Error() != want {
-		t.Errorf("Run error = %v, want %q", err, want)
-	}
-
-	if len(observer.started) != 0 || len(observer.finished) != 0 {
-		t.Errorf("observer saw %d started and %d finished, want none of either",
-			len(observer.started), len(observer.finished))
-	}
-
-	if len(files.files) != 0 || len(files.made) != 0 {
-		t.Errorf("wrote %v and created %v, want nothing touched", files.files, files.made)
-	}
-}
-
