@@ -18,7 +18,8 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   [ADR-GO-02 Boundary enforcement](docs/adrs/ADR-GO-02-boundary-enforcement.md) ·
   [ADR-GO-03 Optional values](docs/adrs/ADR-GO-03-optional-values.md)
 - This project's own decisions: [ADR-001 Facade contracts](docs/adrs/ADR-001-facade-contracts.md) ·
-  [ADR-002 CLI libraries](docs/adrs/ADR-002-cli-libraries.md). New ones use
+  [ADR-002 CLI libraries](docs/adrs/ADR-002-cli-libraries.md) ·
+  [ADR-003 Pure shared modules](docs/adrs/ADR-003-pure-shared-modules.md). New ones use
   [`docs/adrs/_TEMPLATE.md`](docs/adrs/_TEMPLATE.md); decisions still moving live in
   [`docs/decision-log.md`](docs/decision-log.md).
 
@@ -31,19 +32,20 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   `domain` type; reference another component's entity by id (ADR-001).
 - Clean layers nest inside the component's own `internal/`: `domain/` `application/`
   `infrastructure/` `presentation/`.
-- Shared technical modules under `internal/shared/<module>/`, each its own facade. They are imported
-  from a component's `presentation/` and `infrastructure/`, from its facade file, and from `main` —
-  never from `domain/` or `application/`, whose strict allow-lists deny them. A shared module never
-  imports a component.
+- Shared technical modules under `internal/shared/<module>/`, each its own facade. A shared module
+  never imports a component. A module is imported from a component's `presentation/` and
+  `infrastructure/`, from its facade file, and from `main`; `domain/` and `application/` may import
+  it only if it is a **pure shared module** — one whose own imports are the standard library and
+  `samber/mo` and nothing else, named in `.golangci.yml` (ADR-003). `ui` and `process` are not pure.
 - One composition root per app at `cmd/<app>/main.go`.
 
 ## Layer rules
 
 - Dependencies point inward only. Interfaces live in `application/` with the use cases that need
   them; `domain/` = entities + value objects + errors.
-- `domain/` imports the standard library and `samber/mo` (ADR-GO-03) and nothing else.
-  `application/` adds only its own component's `domain/`. No `net/http`, `database/sql`, drivers, or
-  CLI framework in either.
+- `domain/` imports the standard library, `samber/mo` (ADR-GO-03), and pure shared modules (ADR-003)
+  and nothing else. `application/` adds only its own component's `domain/` and pure shared modules.
+  No `net/http`, `database/sql`, drivers, or CLI framework in either.
 - Handlers and commands are thin; use cases never see delivery types.
 
 ## DI
@@ -139,6 +141,11 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   `depguard`'s `allow` is literal prefix matching with no globs, so a new component's `application/`
   package silently loses access to its own `domain/` until its import path is named there. The
   `shared-modules` rule needs a deny entry per component for the same reason.
+- **A pure shared module needs three `.golangci.yml` entries** — a `domain-layer` allow entry, an
+  `application-layer` allow entry, and a `pure-shared-modules` `files` entry (ADR-003). The first two
+  let the inner layers import it; the third holds it to the standard library and `samber/mo`, and is
+  the only reason the first two are safe. The purity rule matches nothing until the module exists, so
+  it reports `0 issues` until then — prove it against a deliberate violation when the module lands.
 - **Proving the `shared-modules` rule needs a throwaway package.** A real shared module can import a
   component only in a build that already has an import cycle, and a cycle fails `go build` — which
   is the compiler, not the configuration. Add `internal/shared/proof/` importing a component's

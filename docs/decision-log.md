@@ -61,7 +61,7 @@ Decided at scaffold, 2026-08-16.
   Now imported: Cobra, Fang, `samber/do`, `samber/mo`, `charm.land/lipgloss/v2`, and
   `github.com/charmbracelet/colorprofile`. Huh still waits for the first prompt.
   Bubble Tea and Bubbles v2 joined with doctor's spinner, in `presentation/` only — an ADR-002
-  consequence rather than a new decision, and not the TUI question ADR-003 would settle.
+  consequence rather than a new decision, and not the TUI question a later ADR would settle.
   `schemas/settings.schema.json` is the published definition of `.codefall/settings.json`; the Go
   validator is hand-written in `domain/` so no schema library ships in the binary, and a test holds
   the two equal. One correction to ADR-002: Fang v1.0.0 does import `charm.land/lipgloss/v2`, so its
@@ -203,6 +203,17 @@ Decided at scaffold, 2026-08-16.
   ADR-GO-02 asks for. `domain/` and `application/` were re-proven against an `internal/shared/ui`
   import the same way.
 
+- **Pure shared modules, 2026-08-27.** `domain/` and `application/` may now import a shared module
+  that is itself pure — one under `internal/shared/` importing only the standard library and
+  `samber/mo`, the same imports `domain/` already has — which is what lets the settings format and
+  the small helpers the two components had copied become one definition. The blanket denial that
+  produced those copies was aimed at `ui` and `process`, which import Charm and `os/exec`, and it
+  could not tell them apart from a module that adds nothing to the inner rings' dependency surface;
+  each pure module is now named three times in `.golangci.yml` — the two allow-lists plus a
+  `pure-shared-modules` rule that keeps it pure — so the property the permission rests on is checked
+  rather than claimed. Recorded as [`ADR-003`](adrs/ADR-003-pure-shared-modules.md), a new ADR rather
+  than an amendment to ADR-GO-02, which it refines and does not supersede.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
@@ -213,7 +224,7 @@ Decided at scaffold, 2026-08-16.
   the command tree; `main` or an `internal/tui/` component for a TUI — unsettled). A facade
   re-exports a view type by alias when the shell must name it. Alternatives seen and not taken: one
   shared module holding all presentation (breaks rule 4); a shell rendering generic widgets from
-  contracts alone (widens every facade). Graduates to `ADR-003` with the first component that has a
+  contracts alone (widens every facade). Graduates to a later ADR with the first component that has a
   view, or a committed TUI, whichever comes first.
 
 ## Parking lot
