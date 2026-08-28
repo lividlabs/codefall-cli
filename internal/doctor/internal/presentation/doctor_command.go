@@ -33,12 +33,12 @@ const heading = "DOCTOR SUMMARY"
 var errCancelled = errors.New("doctor cancelled")
 
 var headingStyle = sync.OnceValue(func() lipgloss.Style {
-    c := lipgloss.LightDark(hasDarkBackground())
-    return lipgloss.NewStyle().
-        Bold(true).
-        Foreground(c(lipgloss.Color("#C8DADA"), lipgloss.Color("#C8DADA"))).
-        Background(c(lipgloss.Color("#143337"), lipgloss.Color("#3A7680"))).
-        Padding(0, 1)
+	c := lipgloss.LightDark(hasDarkBackground())
+	return lipgloss.NewStyle().
+		Bold(true).
+		Foreground(c(lipgloss.Color("#C8DADA"), lipgloss.Color("#C8DADA"))).
+		Background(c(lipgloss.Color("#143337"), lipgloss.Color("#3A7680"))).
+		Padding(0, 1)
 })
 
 // DiagnoseUseCase is what the command needs from the application layer, declared by its consumer.
@@ -55,12 +55,12 @@ type DiagnoseUseCase interface {
 //
 // The scheme is built once, on first use, because deciding it means asking the terminal a question.
 var statusStyles = sync.OnceValue(func() map[domain.Status]lipgloss.Style {
-    c := lipgloss.LightDark(hasDarkBackground())
-    return map[domain.Status]lipgloss.Style{
-        domain.StatusPass: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#2F6B6B"), lipgloss.Color("#6AB3B3"))),
-        domain.StatusWarn: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#7E6217"), lipgloss.Color("#D9B44A"))),
-        domain.StatusFail: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#9E3A3A"), lipgloss.Color("#E08878"))),
-    }
+	c := lipgloss.LightDark(hasDarkBackground())
+	return map[domain.Status]lipgloss.Style{
+		domain.StatusPass: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#2F6B6B"), lipgloss.Color("#6AB3B3"))),
+		domain.StatusWarn: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#7E6217"), lipgloss.Color("#D9B44A"))),
+		domain.StatusFail: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#9E3A3A"), lipgloss.Color("#E08878"))),
+	}
 })
 
 // hasDarkBackground asks the terminal for its background colour, the way Fang does before building

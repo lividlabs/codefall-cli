@@ -228,8 +228,8 @@ func TestDiagnoseRun(t *testing.T) {
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
 				f.files[settingsPath] = []byte("{\n  \"version\": 1,,\n}")
 			},
-			want:       outcomes(map[string]domain.Status{domain.SettingsJSON.ID: domain.StatusFail}, afterSettingsJSON...),
-			target:     domain.SettingsJSON.ID,
+			want:   outcomes(map[string]domain.Status{domain.SettingsJSON.ID: domain.StatusFail}, afterSettingsJSON...),
+			target: domain.SettingsJSON.ID,
 			wantDetail: "settings.json is not valid JSON at byte 18: " +
 				"invalid character ',' looking for beginning of object key string",
 			wantRemedy: mo.None[string](),
