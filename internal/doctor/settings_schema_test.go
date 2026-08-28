@@ -66,6 +66,12 @@ func TestSchemaMatchesTheDomainFields(t *testing.T) {
 		t.Errorf("properties.tracker.enum = %q, want %q", got, want)
 	}
 
+	beadsBlock := object(t, properties, domain.TrackerBeads)
+
+	if got, want := requiredList(t, beadsBlock, "required"), domain.RequiredTrackerFields(domain.TrackerBeads); !slices.Equal(got, want) {
+		t.Errorf("properties.%s.required = %q, want %q", domain.TrackerBeads, got, want)
+	}
+
 	block := object(t, properties, domain.TrackerGitHub)
 
 	if got, want := list(t, block, "required"), domain.RequiredTrackerFields(domain.TrackerGitHub); !slices.Equal(got, want) {
@@ -183,4 +189,18 @@ func list(t *testing.T, parent map[string]any, key string) []string {
 	}
 
 	return items
+}
+
+// requiredList behaves like list, but a block that omits "required" entirely — rather than writing
+// an empty array — is treated as requiring nothing. The beads block has no fields today, so it omits
+// the key; this keeps that block's required-fields assertion pinned to the domain without forcing an
+// empty "required": [] into the schema for a tracker that carries no fields.
+func requiredList(t *testing.T, parent map[string]any, key string) []string {
+	t.Helper()
+
+	if _, present := parent[key]; !present {
+		return []string{}
+	}
+
+	return list(t, parent, key)
 }

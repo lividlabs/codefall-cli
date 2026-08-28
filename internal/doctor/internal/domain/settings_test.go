@@ -97,7 +97,33 @@ func TestValidateSettings(t *testing.T) {
 		{
 			name: "unknown tracker suppresses the block problems",
 			doc:  without(with(complete(), "tracker", "gitlab"), "github"),
-			want: []string{`tracker: unknown value "gitlab" (expected "github")`},
+			want: []string{`tracker: unknown value "gitlab" (expected "beads", "github")`},
+		},
+		{
+			name: "beads tracker with an empty beads block is complete",
+			doc: Document{
+				"version": 1.0,
+				"tracker": "beads",
+				"beads":   map[string]any{},
+			},
+		},
+		{
+			name: "beads block missing",
+			doc: Document{
+				"version": 1.0,
+				"tracker": "beads",
+			},
+			want: []string{`beads: missing (required when tracker is "beads")`},
+		},
+		{
+			name: "github block present while tracker is beads",
+			doc: Document{
+				"version": 1.0,
+				"tracker": "beads",
+				"beads":   map[string]any{},
+				"github":  map[string]any{"repo": "a/b"},
+			},
+			want: []string{`github: present but tracker is "beads" — remove it`},
 		},
 		{
 			name: "block missing",
@@ -178,9 +204,10 @@ func TestValidateSettings(t *testing.T) {
 	}
 }
 
-// Once a second tracker is known, a block for the one that is not selected is a problem. Nothing
-// trips this rule with only github in the table, so the table gains a tracker for the length of this
-// test — which is also the proof that adding a row is all a second tracker needs.
+// A block for a tracker that is not selected is a problem once that tracker is known — beads and
+// github already prove this pairwise above. This test adds a third, synthetic tracker for its
+// length to show the rule keeps generalizing, which is also the proof that adding a row is all a
+// further tracker needs.
 func TestValidateSettingsRejectsAnotherKnownTrackersBlock(t *testing.T) {
 	trackerFields["fake"] = []fieldSpec{{"token", true, isString}}
 	t.Cleanup(func() { delete(trackerFields, "fake") })
@@ -194,7 +221,7 @@ func TestValidateSettingsRejectsAnotherKnownTrackersBlock(t *testing.T) {
 }
 
 func TestTrackers(t *testing.T) {
-	if got, want := Trackers(), []string{TrackerGitHub}; !slices.Equal(got, want) {
+	if got, want := Trackers(), []string{TrackerBeads, TrackerGitHub}; !slices.Equal(got, want) {
 		t.Errorf("Trackers() = %q, want %q", got, want)
 	}
 }
@@ -202,6 +229,10 @@ func TestTrackers(t *testing.T) {
 func TestRequiredFields(t *testing.T) {
 	if got, want := RequiredSettingsFields(), []string{"version", "tracker"}; !slices.Equal(got, want) {
 		t.Errorf("RequiredSettingsFields() = %q, want %q", got, want)
+	}
+
+	if got, want := RequiredTrackerFields(TrackerBeads), []string{}; !slices.Equal(got, want) {
+		t.Errorf("RequiredTrackerFields(%q) = %q, want %q", TrackerBeads, got, want)
 	}
 
 	if got, want := RequiredTrackerFields(TrackerGitHub), []string{"repo"}; !slices.Equal(got, want) {

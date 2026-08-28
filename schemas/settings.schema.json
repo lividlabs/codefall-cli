@@ -8,7 +8,8 @@
   "properties": {
     "$schema": { "type": "string" },
     "version": { "type": "integer", "const": 1 },
-    "tracker": { "type": "string", "enum": ["github"] },
+    "tracker": { "type": "string", "enum": ["beads", "github"] },
+    "beads": { "type": "object", "properties": {}, "additionalProperties": true },
     "github": {
       "type": "object",
       "required": ["repo"],
@@ -20,7 +21,8 @@
     }
   },
   "oneOf": [
-    { "properties": { "tracker": { "const": "github" } }, "required": ["tracker", "github"] }
+    { "properties": { "tracker": { "const": "beads" }, "github": false }, "required": ["tracker", "beads"] },
+    { "properties": { "tracker": { "const": "github" }, "beads": false }, "required": ["tracker", "github"] }
   ],
   "additionalProperties": true
 }
