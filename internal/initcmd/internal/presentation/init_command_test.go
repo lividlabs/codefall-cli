@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	tea "charm.land/bubbletea/v2"
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/ui"
 )
 
 type fakeInitialize struct {
@@ -401,7 +401,7 @@ func TestStepLine(t *testing.T) {
 func TestTheClosingLineIsFaint(t *testing.T) {
 	const faintAttr = "\x1b[2"
 
-	line := faintStyle().Render(nextStep)
+	line := ui.Style(ui.ToneFaint).Render(nextStep)
 	if !strings.Contains(line, faintAttr) || !strings.Contains(line, nextStep) {
 		t.Errorf("the closing line = %q, want %q dimmed", line, nextStep)
 	}
@@ -441,151 +441,34 @@ func TestAvailableTracker(t *testing.T) {
 	}
 }
 
-// The spinner needs a terminal, so what is testable here is the model around it: that the use case
-// runs as its one command, that each step's news reaches the screen, and that the last frame is
-// empty so the closing line starts on a clean line.
-func TestInitSpinnerFollowsTheRunAndQuitsWithItsAnswer(t *testing.T) {
-	initialize := newFakeInitialize()
-	initialize.err = errors.New("settings: no space left on device")
+// The spinner itself belongs to the shared UI module and is tested there. What is left here is the
+// half init owns: that a step starting renames the label, and a step finishing becomes a line.
+func TestProgressObserverReportsEachStep(t *testing.T) {
+	progress := &recordingProgress{}
+	observer := progressObserver{progress: progress}
 
-	model := newInitSpinner(context.Background(), initialize, application.Request{Dir: "/somewhere"},
-		&writingObserver{w: new(bytes.Buffer)})
-
-	if !strings.Contains(model.View().Content, openingLabel) {
-		t.Errorf("View() = %q, want it to show %q", model.View().Content, openingLabel)
-	}
-
-	msg, ok := model.run().(initializedMsg)
-	if !ok {
-		t.Fatalf("the spinner's command returned %T, want an initializedMsg", model.run())
-	}
-
-	if initialize.got.Dir != "/somewhere" {
-		t.Errorf("ran in %q, want %q", initialize.got.Dir, "/somewhere")
-	}
-
-	// A step that starts renames the label; a step that finishes becomes a line the model keeps, so
-	// the caller can write it again once the program has cleared its own frames.
-	started, _ := model.Update(stepStartedMsg{step: domain.SettingsStep})
-
-	running, ok := started.(initSpinner)
-	if !ok {
-		t.Fatalf("Update returned %T, want an initSpinner", started)
-	}
-
-	if want := domain.SettingsStep.Title + "…"; running.label != want {
-		t.Errorf("label = %q, want %q", running.label, want)
-	}
+	observer.StepStarted(domain.SettingsStep)
 
 	result := domain.SettingsStep.Done("wrote .codefall/settings.json (tracker: beads)")
+	observer.StepFinished(result)
 
-	reported, _ := running.Update(stepFinishedMsg{result: result})
-
-	running, ok = reported.(initSpinner)
-	if !ok {
-		t.Fatalf("Update returned %T, want an initSpinner", reported)
+	if want := domain.SettingsStep.Title + "…"; len(progress.labels) != 1 || progress.labels[0] != want {
+		t.Errorf("labels = %q, want %q", progress.labels, []string{want})
 	}
 
-	if want := []string{stepLine(result)}; len(running.lines) != 1 || running.lines[0] != want[0] {
-		t.Errorf("lines = %q, want %q", running.lines, want)
-	}
-
-	if !strings.Contains(stripANSI(running.View().Content), stripANSI(stepLine(result))) {
-		t.Errorf("View() = %q, want the finished step in it", running.View().Content)
-	}
-
-	// The error travels in the message rather than failing the program: the command decides what an
-	// error means, not the spinner.
-	if !errors.Is(msg.err, initialize.err) {
-		t.Errorf("message error = %v, want it to wrap %v", msg.err, initialize.err)
-	}
-
-	updated, cmd := running.Update(msg)
-
-	finished, ok := updated.(initSpinner)
-	if !ok {
-		t.Fatalf("Update returned %T, want an initSpinner", updated)
-	}
-
-	if cmd == nil {
-		t.Fatal("Update returned no command, want tea.Quit")
-	}
-
-	if _, quitting := cmd().(tea.QuitMsg); !quitting {
-		t.Errorf("Update's command produced %T, want tea.QuitMsg", cmd())
-	}
-
-	if !errors.Is(finished.err, initialize.err) {
-		t.Errorf("the model kept error %v, want the use case's own", finished.err)
-	}
-
-	if content := finished.View().Content; content != "" {
-		t.Errorf("the last frame = %q, want nothing left on screen", content)
+	if want := stepLine(result); len(progress.lines) != 1 || progress.lines[0] != want {
+		t.Errorf("lines = %q, want %q", progress.lines, []string{want})
 	}
 }
 
-// A tick is the other message the model sees, and it must keep the program running.
-func TestInitSpinnerKeepsSpinningOnATick(t *testing.T) {
-	model := newInitSpinner(context.Background(), newFakeInitialize(), application.Request{},
-		&writingObserver{w: new(bytes.Buffer)})
-
-	updated, cmd := model.Update(model.spinner.Tick())
-	if cmd == nil {
-		t.Fatal("Update on a tick returned no command, want the next frame")
-	}
-
-	if _, quitting := cmd().(tea.QuitMsg); quitting {
-		t.Error("Update on a tick quit the program, want it still spinning")
-	}
-
-	if spinning, ok := updated.(initSpinner); !ok || spinning.done {
-		t.Errorf("Update on a tick = %#v, want a spinner that is not done", updated)
-	}
+type recordingProgress struct {
+	labels []string
+	lines  []string
 }
 
-// Ctrl-C during the spinner and Ctrl-C during a question are one event to the person who pressed it,
-// so they get one sentence — and it is returned as it is, for Fang to render without a prefix.
-func TestSpinnerErrorSaysCancelledWhenTheProgramWasInterrupted(t *testing.T) {
-	if got := spinnerError(tea.ErrInterrupted); !errors.Is(got, errCancelled) {
-		t.Errorf("spinnerError(tea.ErrInterrupted) = %v, want %v", got, errCancelled)
-	}
+func (p *recordingProgress) Label(label string) { p.labels = append(p.labels, label) }
 
-	failure := errors.New("no terminal")
-	if got := spinnerError(failure); !errors.Is(got, failure) ||
-		!strings.HasPrefix(got.Error(), "spinner: ") {
-		t.Errorf("spinnerError(%v) = %v, want it wrapped as a spinner failure", failure, got)
-	}
-}
-
-// A write that fails is the run's error, not a line quietly dropped.
-func TestWritingObserverKeepsTheFirstWriteFailure(t *testing.T) {
-	failure := errors.New("broken pipe")
-	observer := &writingObserver{w: failingWriter{err: failure}}
-
-	observer.StepFinished(domain.SettingsStep.Done("wrote it"))
-	observer.StepFinished(domain.SettingsStep.Done("wrote it again"))
-
-	if !errors.Is(observer.err, failure) {
-		t.Errorf("err = %v, want it to wrap %v", observer.err, failure)
-	}
-}
-
-type failingWriter struct{ err error }
-
-func (w failingWriter) Write([]byte) (int, error) { return 0, w.err }
-
-// Under `go test` stdout is not a terminal, which is what puts every test above on the plain path:
-// no spinner, and nobody to ask about the background. Dark is the answer to the second, which is
-// what lipgloss falls back to as well.
-func TestWithoutATerminalNothingSpinsAndTheBackgroundIsDark(t *testing.T) {
-	if stdoutIsTerminal() {
-		t.Error("stdoutIsTerminal() = true, want false under go test")
-	}
-
-	if !hasDarkBackground() {
-		t.Error("hasDarkBackground() = false, want true when stdout is not a terminal")
-	}
-}
+func (p *recordingProgress) Line(line string) { p.lines = append(p.lines, line) }
 
 // stripANSI removes the escape sequences lipgloss renders, which the colorprofile writer would
 // normally downsample away on its way to a non-terminal.
