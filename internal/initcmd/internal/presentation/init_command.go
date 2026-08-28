@@ -85,11 +85,11 @@ func (f *initFlags) register(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.tracker, "tracker", "",
 		"issue tracker to use ("+strings.Join(settings.Trackers(), ", ")+")")
 	cmd.Flags().StringVar(&f.githubRepo, "github-repo", "",
-		"GitHub repository as owner/name (required when the tracker is "+settings.TrackerGitHub+")")
+		"repository as owner/name on GitHub (required when the tracker is "+settings.TrackerGitHub+")")
 	cmd.Flags().IntVar(&f.githubProject, "github-project", 0,
-		"GitHub Project number (optional)")
+		"number of the GitHub Project to use (optional)")
 	cmd.Flags().StringVar(&f.harness, "harness", domain.HarnessClaudeCode,
-		"coding harness to set up ("+strings.Join(domain.Harnesses(), ", ")+")")
+		"coding harness to set up; claude-code is the only one supported today")
 	cmd.Flags().BoolVar(&f.force, "force", false,
 		"rewrite .codefall/settings.json if it is already there")
 }
