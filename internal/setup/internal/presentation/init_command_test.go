@@ -182,17 +182,17 @@ func TestInitCommandRejects(t *testing.T) {
 		{
 			name: "a project number below one",
 			args: []string{"--tracker", "github", "--github-repo", "owner/name", "--github-project", "0"},
-			want: "--github-project 0 must be a positive integer",
+			want: "the --github-project flag must be a positive integer, not 0",
 		},
 		{
 			name: "a repository on a tracker that has no use for one",
 			args: []string{"--tracker", "beads", "--github-repo", "owner/name"},
-			want: "--github-repo is only used with --tracker github",
+			want: "the --github-repo flag is only used with --tracker github",
 		},
 		{
 			name: "a project number on a tracker that has no use for one",
 			args: []string{"--tracker", "beads", "--github-project", "3"},
-			want: "--github-project is only used with --tracker github",
+			want: "the --github-project flag is only used with --tracker github",
 		},
 		{
 			name: "an argument",

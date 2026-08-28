@@ -155,8 +155,10 @@ func buildRequest(
 	// only the flag's own record of being set can tell them apart.
 	if cmd.Flags().Changed("github-project") {
 		if flags.githubProject < 1 {
+			// The flag name is never the message's first word: Fang title-cases it before
+			// rendering, which would turn --github-project into --Github-Project.
 			return application.Request{}, fmt.Errorf(
-				"--github-project %d must be a positive integer", flags.githubProject)
+				"the --github-project flag must be a positive integer, not %d", flags.githubProject)
 		}
 
 		request.GitHubProject = mo.Some(flags.githubProject)
@@ -189,6 +191,9 @@ func buildRequest(
 // person typed. The domain refuses the same combination as an invariant, but it does so two layers
 // away and in terms of settings, in a sentence that names neither flag; this is the sentence that
 // does.
+//
+// "the" opens the sentence rather than the flag name: Fang title-cases the first word of every
+// error it renders, which would turn --github-repo into --Github-Repo.
 func rejectGitHubFlags(cmd *cobra.Command, tracker string) error {
 	if tracker == "" || tracker == domain.TrackerGitHub {
 		return nil
@@ -196,7 +201,7 @@ func rejectGitHubFlags(cmd *cobra.Command, tracker string) error {
 
 	for _, name := range []string{"github-repo", "github-project"} {
 		if cmd.Flags().Changed(name) {
-			return fmt.Errorf("--%s is only used with --tracker %s", name, domain.TrackerGitHub)
+			return fmt.Errorf("the --%s flag is only used with --tracker %s", name, domain.TrackerGitHub)
 		}
 	}
 
