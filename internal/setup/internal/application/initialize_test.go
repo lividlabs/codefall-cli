@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io/fs"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -16,15 +17,20 @@ import (
 const workingDir = "/work"
 
 var (
-	codefallDir  = filepath.Join(workingDir, ".codefall")
-	settingsFull = filepath.Join(codefallDir, "settings.json")
-	claudeFull   = filepath.Join(workingDir, ".claude", "settings.json")
+	codefallDir       = filepath.Join(workingDir, ".codefall")
+	settingsFull      = filepath.Join(codefallDir, "settings.json")
+	claudeSettingsDir = filepath.Join(workingDir, ".claude")
+	claudeFull        = filepath.Join(claudeSettingsDir, "settings.json")
 )
 
-// The two commands the plugin step runs, keyed the way the fake runner keys them.
+// The commands a run gives its tools, keyed the way the fake runner keys them.
 const (
 	marketplaceAdd = "claude plugin marketplace add lividlabs/codefall-plugin --scope project"
 	pluginInstall  = "claude plugin install codefall@codefall --scope project -y"
+	beadsInit      = "bd init --non-interactive --skip-agents"
+	beadsInfo      = "bd info"
+	gitWorkTree    = "git rev-parse --is-inside-work-tree"
+	gitStaged      = "git diff --cached --quiet"
 )
 
 // --- fakes -------------------------------------------------------------------------------------
@@ -127,11 +133,24 @@ func (r *fakeCommandRunner) Run(
 	return r.runs[command], nil
 }
 
-// claudeInstalled is the runner a run with the claude-code harness needs: the harness CLI is on
-// PATH, and every command it is given succeeds, because the zero CommandResult exited 0.
-func claudeInstalled() *fakeCommandRunner {
+// toolsInstalled is the runner a run with the claude-code harness needs: every tool it reaches for
+// is on PATH, and every command it is given succeeds, because the zero CommandResult exited 0. That
+// makes this a repository that is a git work tree, has nothing staged, and already has Beads — so a
+// test that wants bd init to run says so by failing `bd info`.
+func toolsInstalled() *fakeCommandRunner {
 	runner := newFakeCommandRunner()
 	runner.paths["claude"] = "/opt/homebrew/bin/claude"
+	runner.paths["bd"] = "/opt/homebrew/bin/bd"
+	runner.paths["git"] = "/usr/bin/git"
+
+	return runner
+}
+
+// uninitialized is toolsInstalled in a repository Beads has never been run in, which is what makes
+// the beads step do its work.
+func uninitialized() *fakeCommandRunner {
+	runner := toolsInstalled()
+	runner.runs[beadsInfo] = CommandResult{ExitCode: 1, Stderr: "Error: no beads database found\n"}
 
 	return runner
 }
@@ -157,7 +176,7 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 	files := newFakeFileSystem()
 	observer := &recordingObserver{}
 
-	report, err := NewInitialize(files, claudeInstalled()).Run(
+	report, err := NewInitialize(files, toolsInstalled()).Run(
 		t.Context(),
 		Request{
 			Dir:           workingDir,
@@ -173,8 +192,8 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 	}
 
 	results := report.Results()
-	if len(results) != 2 {
-		t.Fatalf("Results() = %+v, want the settings and the plugin result", results)
+	if len(results) != 4 {
+		t.Fatalf("Results() = %+v, want a result for each of the four steps", results)
 	}
 
 	if results[0].Outcome != domain.OutcomeDone {
@@ -186,19 +205,19 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 		t.Errorf("detail = %q, want %q", results[0].Detail, want)
 	}
 
-	if len(files.made) != 1 || files.made[0] != codefallDir {
-		t.Errorf("created %q, want %q", files.made, []string{codefallDir})
+	// The settings step makes .codefall/, the hook step makes .claude/, and nothing else does.
+	if !slices.Equal(files.made, []string{codefallDir, claudeSettingsDir}) {
+		t.Errorf("created %q, want %q", files.made, []string{codefallDir, claudeSettingsDir})
 	}
 
 	// The observer sees every step start and finish, in order, and what it sees on finishing is the
 	// result the report carries.
-	if len(observer.started) != 2 ||
-		observer.started[0] != domain.SettingsStep ||
-		observer.started[1] != domain.PluginStep {
-		t.Errorf("started = %+v, want the settings step then the plugin step", observer.started)
+	steps := []domain.Step{domain.SettingsStep, domain.PluginStep, domain.BeadsStep, domain.HookStep}
+	if !slices.Equal(observer.started, steps) {
+		t.Errorf("started = %+v, want %+v", observer.started, steps)
 	}
 
-	if len(observer.finished) != 2 || observer.finished[0] != results[0] || observer.finished[1] != results[1] {
+	if !slices.Equal(observer.finished, results) {
 		t.Errorf("finished = %+v, want %+v", observer.finished, results)
 	}
 }
@@ -206,7 +225,7 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 func TestRunEncodesGitHubSettings(t *testing.T) {
 	files := newFakeFileSystem()
 
-	if _, err := NewInitialize(files, claudeInstalled()).Run(
+	if _, err := NewInitialize(files, toolsInstalled()).Run(
 		t.Context(),
 		Request{
 			Dir:           workingDir,
@@ -271,7 +290,7 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			files := newFakeFileSystem()
 
-			if _, err := NewInitialize(files, claudeInstalled()).Run(t.Context(), tc.request, nil); err != nil {
+			if _, err := NewInitialize(files, toolsInstalled()).Run(t.Context(), tc.request, nil); err != nil {
 				t.Fatalf("Run: %v", err)
 			}
 
@@ -291,7 +310,7 @@ func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
 	files := newFakeFileSystem()
 	files.files[settingsFull] = []byte("{}\n")
 
-	report, err := NewInitialize(files, claudeInstalled()).Run(
+	report, err := NewInitialize(files, toolsInstalled()).Run(
 		t.Context(),
 		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,
@@ -301,7 +320,7 @@ func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
 	}
 
 	results := report.Results()
-	if len(results) != 2 || results[0].Outcome != domain.OutcomeSkipped {
+	if len(results) != 4 || results[0].Outcome != domain.OutcomeSkipped {
 		t.Fatalf("Results() = %+v, want the settings step to have skipped", results)
 	}
 
@@ -319,7 +338,7 @@ func TestRunRewritesSettingsWithForce(t *testing.T) {
 	files := newFakeFileSystem()
 	files.files[settingsFull] = []byte("{}\n")
 
-	report, err := NewInitialize(files, claudeInstalled()).Run(
+	report, err := NewInitialize(files, toolsInstalled()).Run(
 		t.Context(),
 		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode, Force: true},
 		nil,
@@ -376,7 +395,7 @@ func TestRunStopsOnAStepThatFails(t *testing.T) {
 				request.GitHubRepo = mo.Some("owner/name")
 			}
 
-			report, err := NewInitialize(files, claudeInstalled()).Run(t.Context(), request, observer)
+			report, err := NewInitialize(files, toolsInstalled()).Run(t.Context(), request, observer)
 			if err == nil {
 				t.Fatalf("Run = %+v, want an error", report)
 			}
@@ -405,7 +424,7 @@ func TestRunReportsAnUnreadableSettingsFile(t *testing.T) {
 	files := newFakeFileSystem()
 	files.errs[settingsFull] = errors.New("permission denied")
 
-	if _, err := NewInitialize(files, claudeInstalled()).Run(
+	if _, err := NewInitialize(files, toolsInstalled()).Run(
 		t.Context(),
 		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,
@@ -418,7 +437,7 @@ func TestRunStopsOnACancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	_, err := NewInitialize(newFakeFileSystem(), claudeInstalled()).Run(
+	_, err := NewInitialize(newFakeFileSystem(), toolsInstalled()).Run(
 		ctx,
 		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,

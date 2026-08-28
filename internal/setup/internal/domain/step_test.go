@@ -33,12 +33,30 @@ func TestStepResults(t *testing.T) {
 // plugin's identifier is its own name joined to the marketplace it comes from; the two are separate
 // constants because the harness CLI is given them separately.
 func TestTheStepsAndThePluginAreIdentifiedConsistently(t *testing.T) {
-	if SettingsStep.ID == PluginStep.ID {
-		t.Errorf("both steps have the id %q, want them distinct", PluginStep.ID)
+	seen := map[string]bool{}
+
+	for _, step := range []Step{SettingsStep, PluginStep, BeadsStep, HookStep} {
+		if seen[step.ID] {
+			t.Errorf("two steps have the id %q, want them distinct", step.ID)
+		}
+
+		seen[step.ID] = true
 	}
 
 	if want := "codefall@" + MarketplaceName; PluginID != want {
 		t.Errorf("PluginID = %q, want %q", PluginID, want)
+	}
+}
+
+// The hook is what a Claude Code session runs at its start, so what it runs is the Beads command
+// that prints that context and nothing else.
+func TestTheSessionHookRunsBeads(t *testing.T) {
+	if BeadsHookEvent != "SessionStart" {
+		t.Errorf("BeadsHookEvent = %q, want the event Claude Code fires when a session starts", BeadsHookEvent)
+	}
+
+	if BeadsHookCommand != "bd prime --hook-json" {
+		t.Errorf("BeadsHookCommand = %q, want the command bd installs for the same purpose", BeadsHookCommand)
 	}
 }
 
