@@ -13,6 +13,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/settings"
 )
 
 const workingDir = "/work"
@@ -20,12 +21,12 @@ const workingDir = "/work"
 var (
 	codefallDir  = filepath.Join(workingDir, ".codefall")
 	settingsPath = filepath.Join(codefallDir, "settings.json")
-	schemaRemedy = "create .codefall/settings.json; schema: " + domain.SettingsSchemaID
-	fixRemedy    = "fix the fields above; schema: " + domain.SettingsSchemaID
+	schemaRemedy = "create .codefall/settings.json; schema: " + settings.SchemaID
+	fixRemedy    = "fix the fields above; schema: " + settings.SchemaID
 )
 
 const validSettings = `{
-  "$schema": "` + domain.SettingsSchemaID + `",
+  "$schema": "` + settings.SchemaID + `",
   "version": 1,
   "tracker": "github",
   "github": { "repo": "lividlabs/codefall-cli", "project": 3 }
@@ -228,8 +229,8 @@ func TestDiagnoseRun(t *testing.T) {
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
 				f.files[settingsPath] = []byte("{\n  \"version\": 1,,\n}")
 			},
-			want:       outcomes(map[string]domain.Status{domain.SettingsJSON.ID: domain.StatusFail}, afterSettingsJSON...),
-			target:     domain.SettingsJSON.ID,
+			want:   outcomes(map[string]domain.Status{domain.SettingsJSON.ID: domain.StatusFail}, afterSettingsJSON...),
+			target: domain.SettingsJSON.ID,
 			wantDetail: "settings.json is not valid JSON at byte 18: " +
 				"invalid character ',' looking for beginning of object key string",
 			wantRemedy: mo.None[string](),
@@ -478,18 +479,5 @@ func TestDiagnoseReturnsAnErrorForACancelledContext(t *testing.T) {
 	_, err := NewDiagnose(files, runner).Run(ctx, workingDir)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("Run error = %v, want context.Canceled", err)
-	}
-}
-
-func TestFirstLine(t *testing.T) {
-	for _, tc := range []struct{ in, want string }{
-		{"", ""},
-		{"one", "one"},
-		{"  one  \n two \n", "one"},
-		{"\nsecond", ""},
-	} {
-		if got := firstLine(tc.in); got != tc.want {
-			t.Errorf("firstLine(%q) = %q, want %q", tc.in, got, tc.want)
-		}
 	}
 }

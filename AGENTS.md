@@ -2,9 +2,13 @@
 
 A Go command-line tool. One surface, one app, one module.
 
-**State: two components.** `internal/doctor/` (`codefall doctor`) is the first and the reference for
-the rules below; `internal/setup/` (`codefall init`) is the second, and follows it.
-`cmd/codefall/main.go` is the composition root and builds the injector.
+**State: two components and four shared modules.** `internal/doctor/` (`codefall doctor`) is the
+first component and the reference for the rules below; `internal/initcmd/` (`codefall init`) is the
+second, and follows it. `internal/shared/ui/` holds the palette, the marks, the colour-profile
+writer, and the spinner runner; `internal/shared/process/` holds the command runner and the file
+system. `internal/shared/settings/` holds the `.codefall/settings.json` format and
+`internal/shared/text/` the string helpers both components need — both **pure** (ADR-003), so the
+inner layers may import them. `cmd/codefall/main.go` is the composition root and builds the injector.
 
 ## Applicable ADRs
 
@@ -16,7 +20,8 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   [ADR-GO-02 Boundary enforcement](docs/adrs/ADR-GO-02-boundary-enforcement.md) ·
   [ADR-GO-03 Optional values](docs/adrs/ADR-GO-03-optional-values.md)
 - This project's own decisions: [ADR-001 Facade contracts](docs/adrs/ADR-001-facade-contracts.md) ·
-  [ADR-002 CLI libraries](docs/adrs/ADR-002-cli-libraries.md). New ones use
+  [ADR-002 CLI libraries](docs/adrs/ADR-002-cli-libraries.md) ·
+  [ADR-003 Pure shared modules](docs/adrs/ADR-003-pure-shared-modules.md). New ones use
   [`docs/adrs/_TEMPLATE.md`](docs/adrs/_TEMPLATE.md); decisions still moving live in
   [`docs/decision-log.md`](docs/decision-log.md).
 
@@ -29,16 +34,20 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   `domain` type; reference another component's entity by id (ADR-001).
 - Clean layers nest inside the component's own `internal/`: `domain/` `application/`
   `infrastructure/` `presentation/`.
-- Shared technical modules under `internal/shared/<module>/`, each its own facade.
+- Shared technical modules under `internal/shared/<module>/`, each its own facade. A shared module
+  never imports a component. A module is imported from a component's `presentation/` and
+  `infrastructure/`, from its facade file, and from `main`; `domain/` and `application/` may import
+  it only if it is a **pure shared module** — one whose own imports are the standard library and
+  `samber/mo` and nothing else, named in `.golangci.yml` (ADR-003). `ui` and `process` are not pure.
 - One composition root per app at `cmd/<app>/main.go`.
 
 ## Layer rules
 
 - Dependencies point inward only. Interfaces live in `application/` with the use cases that need
   them; `domain/` = entities + value objects + errors.
-- `domain/` imports the standard library and `samber/mo` (ADR-GO-03) and nothing else.
-  `application/` adds only its own component's `domain/`. No `net/http`, `database/sql`, drivers, or
-  CLI framework in either.
+- `domain/` imports the standard library, `samber/mo` (ADR-GO-03), and pure shared modules (ADR-003)
+  and nothing else. `application/` adds only its own component's `domain/` and pure shared modules.
+  No `net/http`, `database/sql`, drivers, or CLI framework in either.
 - Handlers and commands are thin; use cases never see delivery types.
 
 ## DI
@@ -89,8 +98,9 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   `Commands(do.Injector) []*cobra.Command` when that happens.
 - Styling is Lip Gloss v2 (`charm.land/lipgloss/v2`), used where it helps. Plain text is the
   default; parsed output (anything piped or `--json`-style) is never styled; human output goes
-  through a `colorprofile`-aware writer (`lipgloss.Fprint*` or `colorprofile.NewWriter`), never a
-  rendered style written straight to `os.Stdout`.
+  through the colour-profile writer `internal/shared/ui` builds (`ui.NewWriter`), never a rendered
+  style written straight to `os.Stdout`. Colours are `ui.Tone` values, not hex literals in a
+  component: a component maps its own statuses onto a tone and takes the style from `ui.Style`.
 - Prompts are Huh v2 (`charm.land/huh/v2`), in `presentation/` only, collecting values into a
   contract for a use case. A command that prompts by default also runs without prompting: every
   prompted value is also a flag, and if `stdin` is not a terminal and a value is missing, fail
@@ -98,14 +108,17 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   `ACCESSIBLE` environment variable.
 - Charm's v2 generation only. Nothing that imports the v1 paths
   (`github.com/charmbracelet/{lipgloss,bubbletea,bubbles,huh}`) is added. A TUI, if ever needed, is
-  Bubble Tea (`charm.land/bubbletea/v2`), already in the graph through doctor's spinner — no new ADR
-  for the library. Bubble Tea appears in `presentation/` only.
+  Bubble Tea (`charm.land/bubbletea/v2`), already in the graph through the shared spinner — no new
+  ADR for the library. Bubble Tea appears in `internal/shared/ui/` only; a slow job runs under
+  `ui.RunWithSpinner`, which handles the no-terminal case too, rather than under a model of its own.
 
 ## Enforcement
 
 - `internal/` facades are enforced by the compiler — a reach-around fails `go build`.
 - Layer direction is enforced by `depguard` strict allow-lists in `.golangci.yml`, which is generated
   for this project rather than copied from a template.
+- `gofmt` is enforced by golangci-lint's formatter stage: `golangci-lint run` fails on a file gofmt
+  would rewrite.
 - Run `go build ./...`, `go vet ./...`, `golangci-lint run`, `go test ./...` — or `make check`.
 - **Verifying the rules takes two checks, because there are two mechanisms.** A cross-component
   reach-around must fail `go build`. An outward layer import must fail `golangci-lint run` *while
@@ -130,14 +143,28 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   `depguard`'s `allow` is literal prefix matching with no globs, so a new component's `application/`
   package silently loses access to its own `domain/` until its import path is named there. The
   `shared-modules` rule needs a deny entry per component for the same reason.
-- **The `shared-modules` rule matches no files** until `internal/shared/` exists, and so reports `0
-  issues` — indistinguishable from a broken config. Prove it against a deliberate violation when
-  that directory arrives. The `domain-layer` and `application-layer` rules were re-proven on
-  2026-08-27 against a Cobra import from `internal/doctor/internal/application/`.
+- **A pure shared module needs four `.golangci.yml` entries** — a `domain-layer` allow entry, an
+  `application-layer` allow entry, a `pure-shared-modules` `files` entry, and a `pure-shared-modules`
+  `allow` entry naming the module itself (ADR-003). The first two let the inner layers import it; the
+  third holds it to the standard library and `samber/mo`, and is the only reason the first two are
+  safe; the fourth is what lets one pure module import another while the rule still denies everything
+  impure. The purity rule matches nothing until the module exists, so it reports `0 issues` until
+  then — prove it against a deliberate violation when the module lands.
+- **Proving the `shared-modules` rule needs a throwaway package.** A real shared module can import a
+  component only in a build that already has an import cycle, and a cycle fails `go build` — which
+  is the compiler, not the configuration. Add `internal/shared/proof/` importing a component's
+  facade, confirm `go build ./...` passes and `golangci-lint run` fails on the rule, and delete it.
+  Proven that way on 2026-08-27, once per deny entry. The `domain-layer` and `application-layer`
+  rules were re-proven the same day against a Cobra import from
+  `internal/doctor/internal/application/` and against an `internal/shared/ui` import from
+  `internal/initcmd/internal/application/` and `internal/doctor/internal/domain/`. The
+  `pure-shared-modules` rule was proven the same way on 2026-08-27, against a
+  `charm.land/lipgloss/v2` import in `internal/shared/settings/`.
 - **`depguard` matches `_test.go` too.** Inner-layer tests are internal test packages (`package
-  domain`, `package application`), and a `domain` test cannot import `os` — which is why the schema
-  test that holds `schemas/settings.schema.json` equal to the domain constants lives in the facade
-  package.
+  domain`, `package application`), so a `domain` test cannot import `os`. The schema test that holds
+  `schemas/settings.schema.json` equal to the settings constants lives in `internal/shared/settings`,
+  beside the format it pins — a pure shared module is not an inner layer, so its tests may read the
+  file.
 - **`go.mod` requires `samber/do`, `samber/mo`, Cobra, Fang, Lip Gloss v2, Bubble Tea v2, Bubbles v2,
   `colorprofile`, `x/term`, and Huh v2** — `x/term` for the terminal detection Fang's own theme uses,
   Bubble Tea and Bubbles for the spinners, Huh for init's survey. Add each library with the code that

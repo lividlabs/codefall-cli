@@ -1,0 +1,538 @@
+package application
+
+import (
+	"context"
+	"errors"
+	"io/fs"
+	"path/filepath"
+	"slices"
+	"strings"
+	"testing"
+
+	"github.com/samber/mo"
+
+	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/settings"
+)
+
+const workingDir = "/work"
+
+var (
+	codefallDir       = filepath.Join(workingDir, ".codefall")
+	settingsFull      = filepath.Join(codefallDir, "settings.json")
+	claudeSettingsDir = filepath.Join(workingDir, ".claude")
+	claudeFull        = filepath.Join(claudeSettingsDir, "settings.json")
+)
+
+// The commands a run gives its tools, keyed the way the fake runner keys them.
+const (
+	marketplaceAdd = "claude plugin marketplace add lividlabs/codefall-plugin --scope project"
+	pluginInstall  = "claude plugin install codefall@codefall --scope project -y"
+	beadsInit      = "bd init --non-interactive --skip-agents"
+	beadsInfo      = "bd info"
+	gitWorkTree    = "git rev-parse --is-inside-work-tree"
+	gitStaged      = "git diff --cached --quiet"
+	gitStatus      = "git status --porcelain -- " +
+		".gitignore AGENTS.md CLAUDE.md .claude/settings.json .codex .agents"
+)
+
+// --- fakes -------------------------------------------------------------------------------------
+
+type fakeFileSystem struct {
+	files map[string][]byte
+	errs  map[string]error
+	made  []string
+}
+
+func newFakeFileSystem() *fakeFileSystem {
+	return &fakeFileSystem{
+		files: map[string][]byte{},
+		errs:  map[string]error{},
+	}
+}
+
+func (f *fakeFileSystem) ReadFile(path string) ([]byte, error) {
+	if err, ok := f.errs[path]; ok {
+		return nil, err
+	}
+
+	data, ok := f.files[path]
+	if !ok {
+		return nil, &fs.PathError{Op: "open", Path: path, Err: fs.ErrNotExist}
+	}
+
+	return data, nil
+}
+
+func (f *fakeFileSystem) MkdirAll(path string) error {
+	if err, ok := f.errs["mkdir "+path]; ok {
+		return err
+	}
+
+	f.made = append(f.made, path)
+
+	return nil
+}
+
+func (f *fakeFileSystem) WriteFile(path string, data []byte) error {
+	if err, ok := f.errs["write "+path]; ok {
+		return err
+	}
+
+	f.files[path] = data
+
+	return nil
+}
+
+type runCall struct {
+	dir     string
+	command string
+}
+
+type fakeCommandRunner struct {
+	paths map[string]string
+	runs  map[string]CommandResult
+	errs  map[string]error
+	calls []runCall
+}
+
+func newFakeCommandRunner() *fakeCommandRunner {
+	return &fakeCommandRunner{
+		paths: map[string]string{},
+		runs:  map[string]CommandResult{},
+		errs:  map[string]error{},
+	}
+}
+
+func (r *fakeCommandRunner) LookPath(name string) mo.Option[string] {
+	if path, ok := r.paths[name]; ok {
+		return mo.Some(path)
+	}
+
+	return mo.None[string]()
+}
+
+func (r *fakeCommandRunner) Run(
+	_ context.Context, dir, name string, args ...string,
+) (CommandResult, error) {
+	command := strings.TrimSpace(name + " " + strings.Join(args, " "))
+	r.calls = append(r.calls, runCall{dir: dir, command: command})
+
+	if err, ok := r.errs[command]; ok {
+		return CommandResult{}, err
+	}
+
+	return r.runs[command], nil
+}
+
+// toolsInstalled is the runner a run with the claude-code harness needs: every tool it reaches for
+// is on PATH, and every command it is given succeeds, because the zero CommandResult exited 0. That
+// makes this a repository that is a git work tree, has nothing staged, and already has Beads — so a
+// test that wants bd init to run says so by failing `bd info`.
+func toolsInstalled() *fakeCommandRunner {
+	runner := newFakeCommandRunner()
+	runner.paths["claude"] = "/opt/homebrew/bin/claude"
+	runner.paths["bd"] = "/opt/homebrew/bin/bd"
+	runner.paths["git"] = "/usr/bin/git"
+	// git answers the work-tree question with a word, not an exit code.
+	runner.runs[gitWorkTree] = CommandResult{Stdout: "true\n"}
+
+	return runner
+}
+
+// uninitialized is toolsInstalled in a repository Beads has never been run in, which is what makes
+// the beads step do its work.
+func uninitialized() *fakeCommandRunner {
+	runner := toolsInstalled()
+	runner.runs[beadsInfo] = CommandResult{ExitCode: 1, Stderr: "Error: no beads database found\n"}
+
+	return runner
+}
+
+// recordingObserver is what a spinner does in production, without the terminal: it remembers what it
+// was told and in which order.
+type recordingObserver struct {
+	started  []domain.Step
+	finished []domain.StepResult
+}
+
+func (o *recordingObserver) StepStarted(step domain.Step) {
+	o.started = append(o.started, step)
+}
+
+func (o *recordingObserver) StepFinished(result domain.StepResult) {
+	o.finished = append(o.finished, result)
+}
+
+// --- the run -----------------------------------------------------------------------------------
+
+func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
+	files := newFakeFileSystem()
+	observer := &recordingObserver{}
+
+	report, err := NewInitialize(files, toolsInstalled()).Run(
+		t.Context(),
+		Request{
+			Dir:           workingDir,
+			Tracker:       settings.TrackerGitHub,
+			GitHubRepo:    mo.Some("lividlabs/codefall-cli"),
+			GitHubProject: mo.Some(3),
+			Harness:       domain.HarnessClaudeCode,
+		},
+		observer,
+	)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	results := report.Results()
+	if len(results) != 5 {
+		t.Fatalf("Results() = %+v, want a result for each of the five steps", results)
+	}
+
+	if results[0].Outcome != domain.OutcomeDone {
+		t.Errorf("outcome = %v, want DONE", results[0].Outcome)
+	}
+
+	want := "wrote .codefall/settings.json (tracker: github, repo: lividlabs/codefall-cli, project: 3)"
+	if results[0].Detail != want {
+		t.Errorf("detail = %q, want %q", results[0].Detail, want)
+	}
+
+	// The settings step makes .codefall/, the hook step makes .claude/, and nothing else does.
+	if !slices.Equal(files.made, []string{codefallDir, claudeSettingsDir}) {
+		t.Errorf("created %q, want %q", files.made, []string{codefallDir, claudeSettingsDir})
+	}
+
+	// The observer sees every step start and finish, in order, and what it sees on finishing is the
+	// result the report carries.
+	steps := []domain.Step{
+		domain.SettingsStep, domain.PluginStep, domain.BeadsStep, domain.HookStep, domain.AgentsStep,
+	}
+	if !slices.Equal(observer.started, steps) {
+		t.Errorf("started = %+v, want %+v", observer.started, steps)
+	}
+
+	if !slices.Equal(observer.finished, results) {
+		t.Errorf("finished = %+v, want %+v", observer.finished, results)
+	}
+}
+
+func TestRunEncodesGitHubSettings(t *testing.T) {
+	files := newFakeFileSystem()
+
+	if _, err := NewInitialize(files, toolsInstalled()).Run(
+		t.Context(),
+		Request{
+			Dir:           workingDir,
+			Tracker:       settings.TrackerGitHub,
+			GitHubRepo:    mo.Some("owner/name"),
+			GitHubProject: mo.Some(3),
+			Harness:       domain.HarnessClaudeCode,
+		},
+		nil,
+	); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	want := `{
+  "$schema": "` + settings.SchemaID + `",
+  "version": 1,
+  "tracker": "github",
+  "github": {
+    "repo": "owner/name",
+    "project": 3
+  }
+}
+`
+
+	if got := string(files.files[settingsFull]); got != want {
+		t.Errorf("settings.json =\n%s\nwant\n%s", got, want)
+	}
+}
+
+// An absent project is omitted rather than written as null, and the empty beads block is written
+// rather than omitted — the schema requires the block that the tracker selects.
+func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		request Request
+		want    string
+	}{
+		{
+			name: "github without a project",
+			request: Request{
+				Dir:        workingDir,
+				Tracker:    settings.TrackerGitHub,
+				GitHubRepo: mo.Some("owner/name"),
+				Harness:    domain.HarnessClaudeCode,
+			},
+			want: `  "tracker": "github",
+  "github": {
+    "repo": "owner/name"
+  }
+}
+`,
+		},
+		{
+			name:    "beads",
+			request: Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
+			want: `  "tracker": "beads",
+  "beads": {}
+}
+`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			files := newFakeFileSystem()
+
+			if _, err := NewInitialize(files, toolsInstalled()).Run(t.Context(), tc.request, nil); err != nil {
+				t.Fatalf("Run: %v", err)
+			}
+
+			got := string(files.files[settingsFull])
+			if !strings.HasSuffix(got, tc.want) {
+				t.Errorf("settings.json =\n%s\nwant it to end with\n%s", got, tc.want)
+			}
+
+			if strings.Contains(got, "null") {
+				t.Errorf("settings.json =\n%s\nwant no null in it", got)
+			}
+		})
+	}
+}
+
+func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
+	files := newFakeFileSystem()
+	files.files[settingsFull] = []byte("{}\n")
+
+	report, err := NewInitialize(files, toolsInstalled()).Run(
+		t.Context(),
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	results := report.Results()
+	if len(results) != 5 || results[0].Outcome != domain.OutcomeSkipped {
+		t.Fatalf("Results() = %+v, want the settings step to have skipped", results)
+	}
+
+	want := ".codefall/settings.json already exists (use --force to rewrite it)"
+	if results[0].Detail != want {
+		t.Errorf("detail = %q, want %q", results[0].Detail, want)
+	}
+
+	if got := string(files.files[settingsFull]); got != "{}\n" {
+		t.Errorf("settings.json = %q, want it untouched", got)
+	}
+}
+
+func TestRunRewritesSettingsWithForce(t *testing.T) {
+	files := newFakeFileSystem()
+	files.files[settingsFull] = []byte("{}\n")
+
+	report, err := NewInitialize(files, toolsInstalled()).Run(
+		t.Context(),
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode, Force: true},
+		nil,
+	)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if got := report.Results()[0].Outcome; got != domain.OutcomeDone {
+		t.Errorf("outcome = %v, want DONE", got)
+	}
+
+	if got := string(files.files[settingsFull]); !strings.Contains(got, `"tracker": "beads"`) {
+		t.Errorf("settings.json = %q, want it rewritten", got)
+	}
+}
+
+// A step that cannot finish ends the run, and the error names the step so the reader knows how far
+// init got. The observer is told the step started and never told it finished.
+func TestRunStopsOnAStepThatFails(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		setup func(*fakeFileSystem)
+		want  string
+	}{
+		{
+			name:  "the settings could not be built",
+			setup: func(*fakeFileSystem) {},
+			want:  "needs a repository",
+		},
+		{
+			name: "the directory could not be made",
+			setup: func(f *fakeFileSystem) {
+				f.errs["mkdir "+codefallDir] = errors.New("read-only file system")
+			},
+			want: "create .codefall/",
+		},
+		{
+			name: "the file could not be written",
+			setup: func(f *fakeFileSystem) {
+				f.errs["write "+settingsFull] = errors.New("no space left on device")
+			},
+			want: "write .codefall/settings.json",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			files := newFakeFileSystem()
+			tc.setup(files)
+
+			observer := &recordingObserver{}
+
+			request := Request{Dir: workingDir, Tracker: settings.TrackerGitHub, Harness: domain.HarnessClaudeCode}
+			if tc.name != "the settings could not be built" {
+				request.GitHubRepo = mo.Some("owner/name")
+			}
+
+			report, err := NewInitialize(files, toolsInstalled()).Run(t.Context(), request, observer)
+			if err == nil {
+				t.Fatalf("Run = %+v, want an error", report)
+			}
+
+			if !strings.HasPrefix(err.Error(), domain.SettingsStep.ID+": ") {
+				t.Errorf("error = %q, want it to name the step it failed in", err)
+			}
+
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("error = %q, want it to mention %q", err, tc.want)
+			}
+
+			if len(report.Results()) != 0 {
+				t.Errorf("Results() = %+v, want none", report.Results())
+			}
+
+			if len(observer.started) != 1 || len(observer.finished) != 0 {
+				t.Errorf("observer saw %d started and %d finished, want 1 and 0",
+					len(observer.started), len(observer.finished))
+			}
+		})
+	}
+}
+
+func TestRunReportsAnUnreadableSettingsFile(t *testing.T) {
+	files := newFakeFileSystem()
+	files.errs[settingsFull] = errors.New("permission denied")
+
+	if _, err := NewInitialize(files, toolsInstalled()).Run(
+		t.Context(),
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
+		nil,
+	); err == nil || !strings.Contains(err.Error(), "read .codefall/settings.json") {
+		t.Errorf("Run error = %v, want it to say the settings could not be read", err)
+	}
+}
+
+func TestRunStopsOnACancelledContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	_, err := NewInitialize(newFakeFileSystem(), toolsInstalled()).Run(
+		ctx,
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
+		nil,
+	)
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("Run error = %v, want a context.Canceled", err)
+	}
+}
+
+// --- the questions presentation asks -----------------------------------------------------------
+
+func TestSettingsExist(t *testing.T) {
+	files := newFakeFileSystem()
+
+	exists, err := NewInitialize(files, newFakeCommandRunner()).SettingsExist(workingDir)
+	if err != nil || exists {
+		t.Errorf("SettingsExist of an empty directory = %v, %v, want false, nil", exists, err)
+	}
+
+	files.files[settingsFull] = []byte("{}")
+
+	exists, err = NewInitialize(files, newFakeCommandRunner()).SettingsExist(workingDir)
+	if err != nil || !exists {
+		t.Errorf("SettingsExist with a settings file = %v, %v, want true, nil", exists, err)
+	}
+
+	files.errs[settingsFull] = errors.New("permission denied")
+
+	if _, err := NewInitialize(files, newFakeCommandRunner()).SettingsExist(workingDir); err == nil {
+		t.Error("SettingsExist of an unreadable file = nil error, want an error")
+	}
+}
+
+func TestSuggestGitHubRepo(t *testing.T) {
+	const command = "gh repo view --json nameWithOwner --jq .nameWithOwner"
+
+	installed := func() *fakeCommandRunner {
+		runner := newFakeCommandRunner()
+		runner.paths["gh"] = "/opt/homebrew/bin/gh"
+
+		return runner
+	}
+
+	t.Run("the repository gh names, trimmed", func(t *testing.T) {
+		runner := installed()
+		runner.runs[command] = CommandResult{Stdout: "lividlabs/codefall-cli\n"}
+
+		got := NewInitialize(newFakeFileSystem(), runner).SuggestGitHubRepo(t.Context(), workingDir)
+		if repo, ok := got.Get(); !ok || repo != "lividlabs/codefall-cli" {
+			t.Errorf("SuggestGitHubRepo = %v, want Some(%q)", got, "lividlabs/codefall-cli")
+		}
+
+		// gh answers about the directory init is running in, not about wherever the process started.
+		if len(runner.calls) != 1 || runner.calls[0].dir != workingDir {
+			t.Errorf("calls = %+v, want one in %q", runner.calls, workingDir)
+		}
+	})
+
+	for _, tc := range []struct {
+		name   string
+		runner func() *fakeCommandRunner
+	}{
+		{
+			name:   "gh is not installed",
+			runner: newFakeCommandRunner,
+		},
+		{
+			name: "the directory is not a GitHub repository",
+			runner: func() *fakeCommandRunner {
+				runner := installed()
+				runner.runs[command] = CommandResult{ExitCode: 1, Stderr: "not a git repository\n"}
+
+				return runner
+			},
+		},
+		{
+			name: "gh could not be started",
+			runner: func() *fakeCommandRunner {
+				runner := installed()
+				runner.errs[command] = errors.New("broken pipe")
+
+				return runner
+			},
+		},
+		{
+			name: "gh said nothing",
+			runner: func() *fakeCommandRunner {
+				runner := installed()
+				runner.runs[command] = CommandResult{Stdout: "  \n"}
+
+				return runner
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := NewInitialize(newFakeFileSystem(), tc.runner()).SuggestGitHubRepo(t.Context(), workingDir)
+			if got.IsPresent() {
+				t.Errorf("SuggestGitHubRepo = %v, want None", got)
+			}
+		})
+	}
+}

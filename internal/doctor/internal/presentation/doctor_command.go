@@ -1,96 +1,35 @@
 // Package presentation builds doctor's command. It is thin: it reads the working directory, calls
-// the use case, and prints what comes back.
+// the use case, and prints what comes back. The palette, the writer, and the spinner are the shared
+// UI module's; what belongs here is which tone a check's status is drawn in.
 package presentation
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
-	"sync"
 
-	"charm.land/bubbles/v2/spinner"
-	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/tree"
-	"github.com/charmbracelet/colorprofile"
-	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
 	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/ui"
 )
 
-// heading is the report's first line, drawn as a chip the way Fang draws its ERROR header: the same
-// foreground-on-background pair, padding, and weight, in the colour Fang gives a title. The
-// colorprofile writer strips the styling on a non-terminal stdout and under NO_COLOR, leaving the
-// word itself.
+// heading is the report's first line, drawn as a chip. The colorprofile writer strips the styling on
+// a non-terminal stdout and under NO_COLOR, leaving the word itself.
 const heading = "DOCTOR SUMMARY"
 
-var headingStyle = sync.OnceValue(func() lipgloss.Style {
-    c := lipgloss.LightDark(hasDarkBackground())
-    return lipgloss.NewStyle().
-        Bold(true).
-        Foreground(c(lipgloss.Color("#C8DADA"), lipgloss.Color("#C8DADA"))).
-        Background(c(lipgloss.Color("#143337"), lipgloss.Color("#3A7680"))).
-        Padding(0, 1)
-})
+// errCancelled is what an interrupted run reports. It is returned as it is rather than wrapped, so
+// Fang renders that sentence and not a prefix in front of it.
+var errCancelled = errors.New("doctor cancelled")
 
 // DiagnoseUseCase is what the command needs from the application layer, declared by its consumer.
 type DiagnoseUseCase interface {
 	Run(ctx context.Context, dir string) (domain.Report, error)
-}
-
-// Only the status mark is styled: the rest of a line is a path, a version, or a command to type, and
-// colour there would be decoration rather than information.
-//
-// The palette is the teal trail from the brand image — desaturated teals for pass, muted amber for
-// warn, muted coral for fail — picked light/dark-aware the way Fang's own colour scheme picks its.
-// Fail and warn are warm hues so they do not collapse into the teal.
-//
-// The scheme is built once, on first use, because deciding it means asking the terminal a question.
-var statusStyles = sync.OnceValue(func() map[domain.Status]lipgloss.Style {
-    c := lipgloss.LightDark(hasDarkBackground())
-    return map[domain.Status]lipgloss.Style{
-        domain.StatusPass: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#2F6B6B"), lipgloss.Color("#6AB3B3"))),
-        domain.StatusWarn: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#7E6217"), lipgloss.Color("#D9B44A"))),
-        domain.StatusFail: lipgloss.NewStyle().Bold(true).Foreground(c(lipgloss.Color("#9E3A3A"), lipgloss.Color("#E08878"))),
-    }
-})
-
-// hasDarkBackground asks the terminal for its background colour, the way Fang does before building
-// its styles. When stdout is not a terminal there is nothing to ask and nothing to see — colorprofile
-// strips the colour on its way out — so the answer is the dark variant, which is the one lipgloss
-// itself falls back to.
-func hasDarkBackground() bool {
-	if !stdoutIsTerminal() {
-		return true
-	}
-
-	return lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
-}
-
-// stdoutIsTerminal decides both questions that depend on who is reading: whether the terminal can be
-// asked about its background, and whether a spinner has anywhere to run. A pipe, a file, CI, and the
-// tests all answer no.
-func stdoutIsTerminal() bool {
-	return term.IsTerminal(os.Stdout.Fd())
-}
-
-// Secondary text is dimmed and tinted teal-grey: the versions and accounts in a header, and the
-// remedy under a problem. What is left at full strength is the sentence that says what is wrong,
-// which is the only thing a reader has to take in.
-var faintStyle = sync.OnceValue(func() lipgloss.Style {
-	c := lipgloss.LightDark(hasDarkBackground())
-
-	return lipgloss.NewStyle().Faint(true).Foreground(c(lipgloss.Color("#526D71"), lipgloss.Color("#8AA3A8")))
-})
-
-// The mark each status prints, in the header's brackets and in front of a problem line.
-var statusMarks = map[domain.Status]string{
-	domain.StatusPass: "✓",
-	domain.StatusWarn: "!",
-	domain.StatusFail: "✗",
 }
 
 // NewDoctorCommand builds `codefall doctor`.
@@ -108,13 +47,17 @@ func NewDoctorCommand(diagnose DiagnoseUseCase) *cobra.Command {
 				return fmt.Errorf("doctor: %w", err)
 			}
 
-			report, err := runDiagnose(cmd.Context(), diagnose, dir)
+			// One colour-profile writer for the whole report.
+			out := ui.NewWriter(cmd.OutOrStdout())
+
+			report, err := runDiagnose(cmd.Context(), diagnose, dir, out)
 			if err != nil {
+				if errors.Is(err, errCancelled) {
+					return err
+				}
+
 				return fmt.Errorf("doctor: %w", err)
 			}
-
-			// One colorprofile writer for the whole report; lipgloss.Fprint* would build one per line.
-			out := colorprofile.NewWriter(cmd.OutOrStdout(), os.Environ())
 
 			if err := renderReport(out, report); err != nil {
 				return err
@@ -129,7 +72,7 @@ func NewDoctorCommand(diagnose DiagnoseUseCase) *cobra.Command {
 					issues, plural(issues, "category", "categories"))
 			}
 
-			return writeLine(out, summaryLine(issues))
+			return ui.WriteLine(out, summaryLine(issues))
 		},
 	}
 }
@@ -138,96 +81,27 @@ func NewDoctorCommand(diagnose DiagnoseUseCase) *cobra.Command {
 // a run is slow enough to be worth acknowledging.
 const spinnerLabel = "Running checks…"
 
-// runDiagnose runs the use case, spinning while it works when there is a terminal to spin on.
-// Anywhere else — a pipe, a file, CI, a test — it calls the use case directly and the command writes
-// exactly the bytes it wrote before the spinner existed.
-func runDiagnose(ctx context.Context, diagnose DiagnoseUseCase, dir string) (domain.Report, error) {
-	if !stdoutIsTerminal() {
-		return diagnose.Run(ctx, dir)
-	}
-
-	// WithContext is what makes a cancelled command abort: the program stops with an error rather
-	// than spinning until the use case notices.
-	final, err := tea.NewProgram(newDiagnoseSpinner(ctx, diagnose, dir), tea.WithContext(ctx)).Run()
-	if err != nil {
-		return domain.Report{}, fmt.Errorf("spinner: %w", err)
-	}
-
-	model, ok := final.(diagnoseSpinner)
-	if !ok {
-		return domain.Report{}, fmt.Errorf("spinner: finished as %T, want %T", final, diagnoseSpinner{})
-	}
-
-	return model.report, model.err
-}
-
-// diagnosedMsg carries the use case's outcome back into the program. It holds the error rather than
-// failing the program with it, because the command decides what an error means, not the spinner.
-type diagnosedMsg struct {
-	report domain.Report
-	err    error
-}
-
-// diagnoseSpinner is the whole terminal program: a frame, a label, and one command running the use
-// case. It draws nothing once the answer arrives, so the report prints on a clean line.
-type diagnoseSpinner struct {
-	spinner spinner.Model
-	run     tea.Cmd
-	report  domain.Report
-	err     error
-	done    bool
-}
-
-func newDiagnoseSpinner(ctx context.Context, diagnose DiagnoseUseCase, dir string) diagnoseSpinner {
-	return diagnoseSpinner{
-		spinner: spinner.New(
-			spinner.WithSpinner(spinner.MiniDot),
-			spinner.WithStyle(statusStyle(domain.StatusPass)),
-		),
-		run: func() tea.Msg {
-			report, err := diagnose.Run(ctx, dir)
-
-			return diagnosedMsg{report: report, err: err}
-		},
-	}
-}
-
-func (m diagnoseSpinner) Init() tea.Cmd {
-	return tea.Batch(m.spinner.Tick, m.run)
-}
-
-func (m diagnoseSpinner) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if done, ok := msg.(diagnosedMsg); ok {
-		m.report, m.err, m.done = done.report, done.err, true
-
-		return m, tea.Quit
-	}
-
-	var cmd tea.Cmd
-
-	m.spinner, cmd = m.spinner.Update(msg)
-
-	return m, cmd
-}
-
-func (m diagnoseSpinner) View() tea.View {
-	if m.done {
-		return tea.NewView("")
-	}
-
-	return tea.NewView(m.spinner.View() + " " + faintStyle().Render(spinnerLabel))
+// runDiagnose runs the use case under the shared spinner. Doctor has nothing to say while it works —
+// the report is the whole of what it has to say — so it ignores the progress it is handed.
+func runDiagnose(
+	ctx context.Context, diagnose DiagnoseUseCase, dir string, out io.Writer,
+) (domain.Report, error) {
+	return ui.RunWithSpinner(ctx, out, spinnerLabel, errCancelled,
+		func(ctx context.Context, _ ui.Progress) (domain.Report, error) {
+			return diagnose.Run(ctx, dir)
+		})
 }
 
 // renderReport prints the heading, then one header line per category and, under it, one line per
 // problem. A check that passed says all it has to say in its section's header.
 func renderReport(w io.Writer, report domain.Report) error {
 	// The trailing newline is the blank line between the heading and the first section.
-	if err := writeLine(w, headingStyle().Render(heading)+"\n"); err != nil {
+	if err := ui.WriteLine(w, ui.HeadingStyle().Render(heading)+"\n"); err != nil {
 		return err
 	}
 
 	for _, section := range report.Sections() {
-		if err := writeLine(w, sectionTree(section)); err != nil {
+		if err := ui.WriteLine(w, sectionTree(section)); err != nil {
 			return err
 		}
 	}
@@ -342,29 +216,35 @@ func bracketedMark(status domain.Status) string {
 }
 
 func glyph(status domain.Status) string {
-	if g, ok := statusMarks[status]; ok {
-		return g
-	}
-
-	return "?"
+	return ui.Mark(tone(status))
 }
 
-// statusStyle is the one place a status becomes a colour, so the marks and the summary line cannot
-// drift apart. An unknown status is left unstyled.
+// statusStyle is the one place a status becomes a style. An unknown status is left unstyled.
 func statusStyle(status domain.Status) lipgloss.Style {
-	if style, ok := statusStyles()[status]; ok {
-		return style
-	}
-
-	return lipgloss.NewStyle()
+	return ui.Style(tone(status))
 }
 
-func writeLine(w io.Writer, line string) error {
-	if _, err := fmt.Fprintln(w, line); err != nil {
-		return fmt.Errorf("write report: %w", err)
+// tone is doctor's whole share of the palette: which of the shared tones each status is drawn in.
+// Only the mark is styled — the rest of a line is a path, a version, or a command to type, where
+// colour would be decoration rather than information.
+func tone(status domain.Status) ui.Tone {
+	switch status {
+	case domain.StatusPass:
+		return ui.TonePrimary
+	case domain.StatusWarn:
+		return ui.ToneWarn
+	case domain.StatusFail:
+		return ui.ToneFail
+	default:
+		return ui.ToneNone
 	}
+}
 
-	return nil
+// Secondary text is dimmed and tinted teal-grey: the versions and accounts in a header, and the
+// remedy under a problem. What is left at full strength is the sentence that says what is wrong,
+// which is the only thing a reader has to take in.
+func faintStyle() lipgloss.Style {
+	return ui.Style(ui.ToneFaint)
 }
 
 func plural(n int, one, many string) string {

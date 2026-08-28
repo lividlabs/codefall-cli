@@ -61,17 +61,17 @@ Decided at scaffold, 2026-08-16.
   Now imported: Cobra, Fang, `samber/do`, `samber/mo`, `charm.land/lipgloss/v2`, and
   `github.com/charmbracelet/colorprofile`. Huh still waits for the first prompt.
   Bubble Tea and Bubbles v2 joined with doctor's spinner, in `presentation/` only — an ADR-002
-  consequence rather than a new decision, and not the TUI question ADR-003 would settle.
+  consequence rather than a new decision, and not the TUI question a later ADR would settle.
   `schemas/settings.schema.json` is the published definition of `.codefall/settings.json`; the Go
   validator is hand-written in `domain/` so no schema library ships in the binary, and a test holds
   the two equal. One correction to ADR-002: Fang v1.0.0 does import `charm.land/lipgloss/v2`, so its
   note that Fang imports neither Lip Gloss major is out of date. Harmless — it is the v2 major, and
   the v1 generation stays out of the graph.
-- **Second component, 2026-08-27.** `internal/setup/` is `codefall init`, the thing that creates
-  what doctor checks. The package is named `setup` rather than `init` because `package init` is
-  legal but importing it is not: Go rejects `import ".../internal/init"` outright, since `init` must
-  be a func, so the import would need an alias. One aliased import in the whole codebase is a worse
-  trade than naming the directory after what it does. The command is `init`, unaffected.
+- **Second component, 2026-08-27.** `internal/initcmd/` is `codefall init`, the thing that creates
+  what doctor checks. The package is named `initcmd` rather than `init` because `init` cannot be
+  imported unaliased — Go rejects `import ".../internal/init"` because `init` must be a func — and
+  `initcmd` keeps the directory named after the command it holds, the maintainer's choice on review
+  over the earlier `setup`. The command is `init`, unaffected.
   A run is an ordered list of steps, each reporting Done or Skipped through an `Observer` the
   presentation layer implements twice: a spinner with the running step's title when stdout is a
   terminal, plain lines everywhere else. This change carries one step, `settings`; installing the
@@ -83,21 +83,171 @@ Decided at scaffold, 2026-08-16.
   and Linear with "(not yet available)" in the label and refuses them in the field's own validation:
   Huh v2 has no disabled option, and a tracker that is not offered at all reads as a tracker nobody
   thought of. The layer rules were re-proven the way ADR-GO-02 requires — a Cobra import from
-  `internal/setup/internal/application/` compiled and failed `golangci-lint run` on the
+  `internal/initcmd/internal/application/` compiled and failed `golangci-lint run` on the
   `application-layer` rule. Still no report contract crosses a facade: init does not consume
   doctor's.
+- **Init's plugin step, 2026-08-27.** `codefall init` installs the codefall plugin for Claude Code
+  as its second step, by running the harness's own CLI — `claude plugin marketplace add
+  lividlabs/codefall-plugin --scope project` and then `claude plugin install codefall@codefall
+  --scope project -y`. Both are project scope, so `.claude/settings.json` carries the marketplace
+  declaration and the enabled plugin and everyone who clones the repository gets them; a user-scope
+  install would work for whoever ran init and for nobody else. What is already done is read out of
+  that file rather than asked of `claude plugin list --json`, whose `enabled` field is computed from
+  the caller's working directory and stamped onto every row, so it misreports. The CLI merges into
+  the file, preserving keys it does not own, which is why init runs the CLI rather than writing the
+  file itself. The plugin's identifiers are domain constants because they are facts about codefall;
+  the CLI's name and argument shapes are application, because they are how a tool is asked. The step
+  switches on the harness with `claude-code` as its only case — presentation has already refused
+  every other value, so the default is unreachable and is where the next harness lands. Every run
+  now starts with a preflight that checks the tools it will reach for are on PATH, before the first
+  step: a tool that turns up missing halfway through leaves the project half set up, which is the
+  one state init exists to avoid. It reports every missing tool at once rather than the first, and
+  `bd` and git join `claude` there with the Beads step. Every tool init sets up is required on every
+  run, including a run where every step would skip, because a run that cannot act is not a run that
+  finished. The step's two halves are decided separately: the marketplace is declared whenever the
+  project does not already declare it, and the plugin installed whenever it is not already enabled,
+  because a plugin enabled with no project-scope marketplace beside it is exactly what a user-scope
+  install leaves behind — it works for whoever ran it and for nobody who clones the repository.
+- **Init's Beads steps, 2026-08-27.** `codefall init` finishes by initialising Beads and giving
+  Claude Code the hook that primes a session with what Beads knows — the third and fourth steps, and
+  the last of them. The invocation is `bd init --non-interactive --skip-agents`, which writes
+  `.beads/` and appends a Dolt block to `.gitignore` and nothing else. `--skip-agents` is what keeps
+  it to that: without it bd appends its own section to `AGENTS.md` and `CLAUDE.md` and writes
+  `.claude/settings.json`, `.codex/`, and `.agents/`, and codefall owns the first two. bd has no
+  template hook for `CLAUDE.md` at all — `--agents-template` applies only when `AGENTS.md` does not
+  exist yet — so there is no invocation that keeps bd's context and codefall's own words in the same
+  file. The text bd would have appended is
+  [`beads-section-minimal.md`](https://github.com/gastownhall/beads/blob/6c124203e771433a3550c348771a5b5e27fd3c21/internal/templates/agents/defaults/beads-section-minimal.md);
+  whoever wants codefall's own `AGENTS.md` to say the same things starts there.
+  The session hook is how a Claude Code session gets that context instead: a `SessionStart` entry
+  running `bd prime --hook-json`, the hook bd installs for the same purpose, written by init
+  rather than by `bd setup claude` — that command cannot be told to leave `CLAUDE.md` alone. `bd
+  setup claude --check` accepts what init writes (`✓ Project hooks installed`) and complains only
+  about the missing `CLAUDE.md` section, which is the intended difference. The hook step decodes
+  `.claude/settings.json` into a plain object so that every key the file has survives being written
+  back; key order is the one thing that does not, because `encoding/json` sorts it. It is written
+  back through a `json.Encoder` with `SetEscapeHTML(false)`, because `json.Marshal` escapes `<`, `>`
+  and `&` and would silently rewrite a permission rule like `Bash(a && b)` in a file codefall does
+  not own. It runs after the plugin step because both write that file, and the harness CLI's own
+  merge goes first.
+  Three guards run in preflight, because bd init decides things for itself that nobody asked.
+  It commits what it wrote with `git commit --no-verify` and no pathspec, and before that it stages
+  `.gitignore`, `AGENTS.md`, `CLAUDE.md`, `.claude/settings.json`, `.codex`, and `.agents` by name
+  when they exist — so both anything already in the index and any uncommitted change to one of those
+  paths lands in a commit that says it initialised Beads, under bd's message rather than its
+  author's. `--stealth` is the only flag that stops the commit and it also stops tracking `.beads/`,
+  which is not the trade. So a run refuses to start while `git diff --cached --quiet` reports a
+  staged index, and refuses again when `git status --porcelain` over exactly those six paths reports
+  anything — staged, unstaged, or untracked — naming the paths git reported. Both run only when bd
+  init is going to run at all, because otherwise what the directory has waiting is nobody's business
+  but whoever left it there. And bd init run outside a repository silently runs `git init` first, so
+  a run also refuses a directory that `git rev-parse --is-inside-work-tree` does not answer `true`
+  in — the word, not the exit code, because inside a bare repository and inside `.git` itself git
+  prints `false` and exits 0. The path guard runs in preflight rather than later so that the plugin
+  step's own write to `.claude/settings.json` is not what it catches: that write is codefall's to
+  make and bd committing it is harmless, and the difference between it and somebody's uncommitted
+  edit to the same file is exactly when the question is asked.
+  `bd info` is the question that decides whether there is anything to do, the same question doctor
+  asks and for the same reason — `BEADS_DIR` relocates `.beads/`, so looking for the directory asks
+  something else. Re-running `bd init` where it has already run is an error rather than a no-op, so
+  asking first is what keeps init safe to run again.
+- **Init's Beads section, 2026-08-27.** codefall ships its own `AGENTS.md` section about Beads and
+  `codefall init` writes it, as the fifth step and the last. `--skip-agents` is what makes this
+  necessary: bd would append
+  [`beads-section-minimal.md`](https://github.com/gastownhall/beads/blob/6c124203e771433a3550c348771a5b5e27fd3c21/internal/templates/agents/defaults/beads-section-minimal.md)
+  to `AGENTS.md` and `CLAUDE.md`, and that text describes a setup codefall does not create. There is
+  no invocation that keeps bd's context and codefall's own words in the same file — `--agents-template`
+  applies only to an `AGENTS.md` that does not exist yet, and bd has no template hook for `CLAUDE.md`
+  at all — so codefall writes the section itself. It lives at
+  `internal/initcmd/internal/domain/beads_section.md`, embedded with `//go:embed` and exposed as
+  `domain.BeadsSection`: the words codefall says are a fact about codefall, and `embed` is the
+  standard library, which the domain layer's allow-list already permits. How the section is spliced
+  into somebody's file is the application layer's, along with every other encoding.
+  The section opens and closes with HTML comment markers, `<!-- BEGIN CODEFALL BEADS -->` and
+  `<!-- END CODEFALL BEADS -->`, which is what makes a second run replace it in place rather than
+  append a second copy — everything on either side of the pair survives byte for byte, so the
+  project's own words are never this step's to rewrite. A file with an opening marker and no closing
+  one stops the run: where codefall's words end and the project's resume is not something to guess
+  at. A file with no markers keeps what it says and gains the section at the end.
+  The step runs after `bd init` rather than before it, because bd stages `AGENTS.md` and `CLAUDE.md`
+  when they exist and commits what it staged under its own message. Editing them afterwards leaves
+  the change uncommitted, which is where it belongs: the section is the author's to commit.
+  `CLAUDE.md` is created only for the `claude-code` harness and only when it is missing, holding one
+  line that points at `AGENTS.md`. That is the file convention the codefall plugin's `scaffold` skill
+  states — `AGENTS.md` holds the rules, and a harness that reads `CLAUDE.md` is pointed at them —
+  and it is what this repository's own `CLAUDE.md` says. A `CLAUDE.md` that already exists is left
+  alone whatever it holds, because writing a pointer over somebody's rules throws them away rather
+  than pointing at them.
+
+- **Shared modules, 2026-08-27.** `internal/shared/` exists, with the two modules the second
+  component turned out to have copied from the first. `internal/shared/ui/` owns the palette, the
+  styles, the marks, the colour-profile writer, and the spinner runner; a component maps its own
+  vocabulary onto a `ui.Tone` and owns nothing else about how a line looks — doctor maps a check's
+  status, initcmd maps a step's outcome and keeps its own dash for a skipped step, because nothing
+  is wrong there. `ui.RunWithSpinner` is one entry point covering both paths, so neither command
+  re-implements the branch between a terminal and a pipe: it takes the writer, draws finished lines
+  under the spinner and writes them again once Bubble Tea has cleared its frames, and writes them as
+  they arrive when there is nothing to spin on. `internal/shared/process/` owns running an external
+  tool and reaching the file system, including the `0o755`/`0o644` modes. Each component's
+  `infrastructure/` is now an adapter over it: the gateway interface and the result type stay the
+  consumer's to declare (ADR-GO-01), so the two `CommandRunner` interfaces and the two
+  `CommandResult` structs remain, and what the adapter adds is the translation.
+  What deliberately stays duplicated is `firstLine` and the settings-format constants in both
+  `domain/` packages: the layer rules keep `domain/` and `application/` off shared modules
+  altogether, and moving those would mean either widening those allow-lists or moving the constants
+  out of the layer that owns them. Both copies are pinned by each component's own schema test
+  against `schemas/settings.schema.json`, which is what makes the duplication safe rather than
+  merely tolerated. (Reversed the same day by **Pure shared modules** below, which widened the
+  allow-lists for modules that do not need widening — the option not seen here.)
+  The `shared-modules` rule now matches files and was proven, once per deny entry;
+  proving it needs a throwaway `internal/shared/proof/` package, because a real shared module
+  importing a component is an import cycle and so a compile error rather than the lint failure
+  ADR-GO-02 asks for. `domain/` and `application/` were re-proven against an `internal/shared/ui`
+  import the same way.
+
+- **Pure shared modules, 2026-08-27.** `domain/` and `application/` may now import a shared module
+  that is itself pure — one under `internal/shared/` importing only the standard library and
+  `samber/mo`, the same imports `domain/` already has — which is what lets the settings format and
+  the small helpers the two components had copied become one definition. The blanket denial that
+  produced those copies was aimed at `ui` and `process`, which import Charm and `os/exec`, and it
+  could not tell them apart from a module that adds nothing to the inner rings' dependency surface;
+  each pure module is now named four times in `.golangci.yml` — the two allow-lists plus the
+  `pure-shared-modules` rule's `files` and `allow` entries, the second of which is what also lets it
+  import another pure module — so the property the permission rests on is checked rather than claimed. Recorded as [`ADR-003`](adrs/ADR-003-pure-shared-modules.md), a new ADR rather
+  than an amendment to ADR-GO-02, which it refines and does not supersede.
+  Two modules moved under it. `internal/shared/settings/` is now the one definition of the
+  `.codefall/settings.json` format — the version, the schema id, the tracker names, the repository
+  pattern, the field tables, `Validate`, and the field-level `ParseTracker`, `ValidateRepo`, and
+  `ValidateProject` that a form calls while somebody is still typing. Doctor's `domain/settings.go`
+  is gone; initcmd's keeps the `Settings` value object and `NewSettings`, which is where the
+  combinations that make sense for a run are decided, and takes every constant and rule from the
+  shared module. `Harness` stayed initcmd's, in its own file: nothing else in the project has an
+  opinion about which harnesses can be set up. `internal/shared/text/` holds `FirstLine`, which both
+  application layers had written identically. The two facade-level schema tests became one
+  `schema_test.go` beside the format it pins, carrying every assertion either of them made — the
+  reason it could not live there before was that a `domain` test cannot import `os`, and a pure
+  shared module is not an inner layer. Names changed with the move, because the package name now
+  carries what the prefixes used to say: `SettingsVersion` and `SettingsSchemaID` are
+  `settings.Version` and `settings.SchemaID`, `ValidateSettings` is `settings.Validate`, and
+  `RequiredSettingsFields` is `settings.RequiredFields`.
+  Both halves of the new configuration were proven the way ADR-GO-02 requires, each compiling and
+  failing `golangci-lint run`: `charm.land/lipgloss/v2` imported inside `internal/shared/settings/`
+  failed the `pure-shared-modules` rule, and `internal/shared/ui` imported from
+  `internal/initcmd/internal/domain/` failed the `domain-layer` rule — while that same package's
+  import of `internal/shared/settings`, which is what the whole change rests on, passes.
 
 ## Open
 
-- **UI composition.** Shared UI widgets — theme, styles, the colour-profile writer, key maps,
-  reusable Bubble Tea models (list, table, status bar) — under `internal/shared/ui/`, generic over
-  the data they show; rule 4 means that module never imports a business component. Each component's
-  `presentation/` binds its own data to a shared widget, and a shell owns arrangement and navigation
-  (`main` for the command tree; `main` or an `internal/tui/` component for a TUI — unsettled). A
-  facade re-exports a view type by alias when the shell must name it. Alternatives seen and not
-  taken: one shared module holding all presentation (breaks rule 4); a shell rendering generic
-  widgets from contracts alone (widens every facade). Graduates to `ADR-003` with the first
-  component that has a view, or a committed TUI, whichever comes first.
+- **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
+  the colour-profile writer, and the spinner runner now live in `internal/shared/ui/`, and rule 4
+  holds there — proven, not assumed. What is still open is the other half: reusable Bubble Tea
+  models (list, table, status bar) generic over the data they show, with each component's
+  `presentation/` binding its own data, and a shell owning arrangement and navigation (`main` for
+  the command tree; `main` or an `internal/tui/` component for a TUI — unsettled). A facade
+  re-exports a view type by alias when the shell must name it. Alternatives seen and not taken: one
+  shared module holding all presentation (breaks rule 4); a shell rendering generic widgets from
+  contracts alone (widens every facade). Graduates to a later ADR with the first component that has a
+  view, or a committed TUI, whichever comes first.
 
 ## Parking lot
 

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	tea "charm.land/bubbletea/v2"
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
@@ -459,91 +458,6 @@ func TestSummaryLineTakesTheColourOfTheStatusItReports(t *testing.T) {
 				t.Errorf("summaryLine(%d) = %q, want it styled as %q", tc.issues, got, want)
 			}
 		})
-	}
-}
-
-// The spinner needs a terminal, so what is testable here is the model around it: that the use case
-// runs as its one command, that the answer quits the program, and that the last frame is empty so
-// the report starts on a clean line. The whole-command tests above cover the other half — without a
-// terminal there is no spinner and no extra byte.
-func TestDiagnoseSpinnerRunsTheUseCaseAndQuitsWithItsAnswer(t *testing.T) {
-	report := domain.NewReport(domain.CodefallDir.Pass())
-	failure := errors.New("diagnose: context canceled")
-	diagnose := &fakeDiagnose{report: report, err: failure}
-
-	model := newDiagnoseSpinner(context.Background(), diagnose, "/somewhere")
-
-	if !strings.Contains(model.View().Content, spinnerLabel) {
-		t.Errorf("View() = %q, want it to show %q", model.View().Content, spinnerLabel)
-	}
-
-	msg, ok := model.run().(diagnosedMsg)
-	if !ok {
-		t.Fatalf("the spinner's command returned %T, want a diagnosedMsg", model.run())
-	}
-
-	if diagnose.gotDir != "/somewhere" {
-		t.Errorf("diagnosed %q, want %q", diagnose.gotDir, "/somewhere")
-	}
-
-	// The error travels in the message rather than failing the program: the command decides what an
-	// error means, not the spinner.
-	if !errors.Is(msg.err, failure) {
-		t.Errorf("message error = %v, want it to wrap %v", msg.err, failure)
-	}
-
-	updated, cmd := model.Update(msg)
-
-	finished, ok := updated.(diagnoseSpinner)
-	if !ok {
-		t.Fatalf("Update returned %T, want a diagnoseSpinner", updated)
-	}
-
-	if cmd == nil {
-		t.Fatal("Update returned no command, want tea.Quit")
-	}
-
-	if _, quitting := cmd().(tea.QuitMsg); !quitting {
-		t.Errorf("Update's command produced %T, want tea.QuitMsg", cmd())
-	}
-
-	if !errors.Is(finished.err, failure) || len(finished.report.Results()) != len(report.Results()) {
-		t.Errorf("the model kept report %v and error %v, want the use case's own", finished.report, finished.err)
-	}
-
-	if content := finished.View().Content; content != "" {
-		t.Errorf("the last frame = %q, want nothing left on screen", content)
-	}
-}
-
-// A tick is the other message the model sees, and it must keep the program running.
-func TestDiagnoseSpinnerKeepsSpinningOnATick(t *testing.T) {
-	model := newDiagnoseSpinner(context.Background(), &fakeDiagnose{}, "/somewhere")
-
-	updated, cmd := model.Update(model.spinner.Tick())
-	if cmd == nil {
-		t.Fatal("Update on a tick returned no command, want the next frame")
-	}
-
-	if _, quitting := cmd().(tea.QuitMsg); quitting {
-		t.Error("Update on a tick quit the program, want it still spinning")
-	}
-
-	if spinning, ok := updated.(diagnoseSpinner); !ok || spinning.done {
-		t.Errorf("Update on a tick = %#v, want a spinner that is not done", updated)
-	}
-}
-
-// Under `go test` stdout is not a terminal, which is what puts every test above on the plain path:
-// no spinner, and nobody to ask about the background. Dark is the answer to the second, which is
-// what lipgloss falls back to as well.
-func TestWithoutATerminalNothingSpinsAndTheBackgroundIsDark(t *testing.T) {
-	if stdoutIsTerminal() {
-		t.Error("stdoutIsTerminal() = true, want false under go test")
-	}
-
-	if !hasDarkBackground() {
-		t.Error("hasDarkBackground() = false, want true when stdout is not a terminal")
 	}
 }
 

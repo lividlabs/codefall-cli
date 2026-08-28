@@ -18,7 +18,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/lividlabs/codefall-cli/internal/doctor"
-	"github.com/lividlabs/codefall-cli/internal/setup"
+	"github.com/lividlabs/codefall-cli/internal/initcmd"
 )
 
 func main() {
@@ -45,7 +45,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	}()
 
 	doctor.Register(injector)
-	setup.Register(injector)
+	initcmd.Register(injector)
 
 	root := &cobra.Command{
 		Use:   "codefall",
@@ -55,7 +55,7 @@ func run(args []string, stdout, stderr io.Writer) error {
 	root.SetOut(stdout)
 	root.SetErr(stderr)
 	root.AddCommand(doctor.Command(injector))
-	root.AddCommand(setup.Command(injector))
+	root.AddCommand(initcmd.Command(injector))
 
 	return fang.Execute(
 		context.Background(),

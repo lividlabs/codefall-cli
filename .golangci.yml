@@ -2,15 +2,30 @@
 # template: depguard's allow/deny lists are literal prefix matches with no glob support, so every
 # component's own import paths have to be named here.
 #
-# Components: doctor, setup. The layer rules were proven against a deliberate Cobra import from
-# `application/` on 2026-08-27 — from doctor's when they were written, and from setup's when it was
-# added. The `shared-modules` rule matches no files until `internal/shared/` exists, so it reports
-# `0 issues` — which, per ADR-GO-02, is indistinguishable from a rule that is broken; prove it
-# against a deliberate violation when that directory arrives.
+# Components: doctor, initcmd. Shared modules: internal/shared/ui and internal/shared/process
+# (impure), internal/shared/settings and internal/shared/text (pure — ADR-003). The layer rules were
+# proven against a deliberate Cobra import from `application/` on 2026-08-27 — from doctor's when
+# they were written, and from initcmd's when it was added — and re-proven the same day against an
+# `internal/shared/ui` import from `internal/initcmd/internal/application/` and from
+# `internal/doctor/internal/domain/`. The `shared-modules` rule was proven on 2026-08-27, once per
+# deny entry. The `pure-shared-modules` rule was proven the same day, against a
+# `charm.land/lipgloss/v2` import in `internal/shared/settings/` — it compiled and failed lint.
+#
+# Proving `shared-modules` needs a throwaway package: a real shared module imports a component only
+# in a build that already has an import cycle, and a cycle is a compile error rather than the lint
+# failure ADR-GO-02 asks for. Add `internal/shared/proof/` importing a component's facade, confirm
+# `go build ./...` passes and `golangci-lint run` fails on this rule, and delete it.
 #
 # ADDING A COMPONENT: add an `application-layer` allow entry for its `internal/domain` package, and a
 # `shared-modules` deny entry for its facade. Without the first, its application/ layer silently
 # loses access to its own domain/.
+#
+# ADDING A PURE SHARED MODULE: four entries — a `domain-layer` allow entry, an `application-layer`
+# allow entry, a `pure-shared-modules` files entry, and a `pure-shared-modules` allow entry (ADR-003).
+# The first two let the inner layers import it; the third holds it to the standard library, samber/mo,
+# and the other pure modules named in the fourth, which is what lets pure modules import one another
+# while still denying everything impure. A shared module not named in all four is impure and stays out
+# of domain/ and application/.
 version: "2"
 
 linters:
@@ -20,7 +35,10 @@ linters:
   settings:
     depguard:
       rules:
-        # Rule 2 (inward only) + rule 5 (no transport, no storage) for the innermost ring.
+        # Rule 2 (inward only) + rule 5 (no transport, no storage) for the innermost ring, plus the
+        # pure shared modules (ADR-003) — packages whose own imports are exactly this list, so
+        # importing one adds nothing to the domain's dependency surface. One allow entry per pure
+        # module, held pure by the `pure-shared-modules` rule below.
         domain-layer:
           list-mode: strict
           files:
@@ -28,6 +46,8 @@ linters:
           allow:
             - $gostd
             - github.com/samber/mo
+            - github.com/lividlabs/codefall-cli/internal/shared/settings
+            - github.com/lividlabs/codefall-cli/internal/shared/text
           deny:
             - pkg: net
               desc: "domain/ names no transport (ADR-GO-02 rule 5)"
@@ -44,7 +64,7 @@ linters:
 
         # Same, plus each component's own domain/ — and nothing else, so an outward import of
         # infrastructure/ or presentation/ fails while still compiling. One allow entry per
-        # component.
+        # component, and one per pure shared module (ADR-003).
         application-layer:
           list-mode: strict
           files:
@@ -53,7 +73,9 @@ linters:
             - $gostd
             - github.com/samber/mo
             - github.com/lividlabs/codefall-cli/internal/doctor/internal/domain
-            - github.com/lividlabs/codefall-cli/internal/setup/internal/domain
+            - github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain
+            - github.com/lividlabs/codefall-cli/internal/shared/settings
+            - github.com/lividlabs/codefall-cli/internal/shared/text
           deny:
             - pkg: net
               desc: "application/ names no transport (ADR-GO-02 rule 5)"
@@ -67,12 +89,36 @@ linters:
               desc: "application/ names no CLI framework — Charm v2 libraries (ADR-GO-02 rule 5, ADR-002)"
 
         # Rule 4 — shared modules are one-way; components may import them, never the reverse. One
-        # deny entry per component. This rule matches no files until `internal/shared/` exists.
+        # deny entry per component.
         shared-modules:
           files:
             - "**/internal/shared/**"
           deny:
             - pkg: github.com/lividlabs/codefall-cli/internal/doctor
               desc: "shared modules must not import components (ADR-GO-02 rule 4)"
-            - pkg: github.com/lividlabs/codefall-cli/internal/setup
+            - pkg: github.com/lividlabs/codefall-cli/internal/initcmd
               desc: "shared modules must not import components (ADR-GO-02 rule 4)"
+
+        # ADR-003 — the modules domain/ and application/ are allowed to import, held to the imports
+        # those layers themselves have. This rule is what makes the two allow entries above safe: it
+        # is the difference between "pure" as a claim in a comment and "pure" as a property the build
+        # checks. An impure import here fails lint while still compiling. One files entry per pure
+        # module; the allow list carries $gostd, samber/mo, and every pure module (so pure modules may
+        # import one another), and nothing else.
+        pure-shared-modules:
+          list-mode: strict
+          files:
+            - "**/internal/shared/settings/**"
+            - "**/internal/shared/text/**"
+          allow:
+            - $gostd
+            - github.com/samber/mo
+            - github.com/lividlabs/codefall-cli/internal/shared/settings
+            - github.com/lividlabs/codefall-cli/internal/shared/text
+
+# gofmt as a rule the linter enforces, not a habit. golangci-lint v2 runs formatters as their own
+# stage, and `golangci-lint run` fails on a file that gofmt would rewrite. Proven on 2026-08-27
+# against a deliberately misindented function body.
+formatters:
+  enable:
+    - gofmt
