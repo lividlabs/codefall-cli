@@ -8,14 +8,17 @@ type Step struct {
 }
 
 // The steps an init run performs, in the order it performs them. The settings file comes first, the
-// harness plugin second, Beads third, and the session hook that tells the harness about Beads last —
-// the hook step follows the plugin step because both of them write the harness's settings file, and
-// the harness CLI's own merge runs first.
+// harness plugin second, Beads third, the session hook that tells the harness about Beads fourth,
+// and the section that tells an agent how to use it last. The hook step follows the plugin step
+// because both of them write the harness's settings file, and the harness CLI's own merge runs
+// first. The agents step follows Beads because bd init commits what it staged, and codefall's edit
+// to AGENTS.md belongs in the author's own commit rather than bd's.
 var (
 	SettingsStep = Step{ID: "settings", Title: "Writing .codefall/settings.json"}
 	PluginStep   = Step{ID: "plugin", Title: "Installing the codefall plugin"}
 	BeadsStep    = Step{ID: "beads", Title: "Initializing Beads"}
 	HookStep     = Step{ID: "hook", Title: "Adding the Beads session hook"}
+	AgentsStep   = Step{ID: "agents", Title: "Writing the Beads section to AGENTS.md"}
 )
 
 // What codefall's plugin for Claude Code is called and where it comes from. These are facts about
