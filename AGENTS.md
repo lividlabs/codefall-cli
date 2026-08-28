@@ -106,6 +106,8 @@ The why lives in the ADRs. This file is the operative rules only — never resta
 - `internal/` facades are enforced by the compiler — a reach-around fails `go build`.
 - Layer direction is enforced by `depguard` strict allow-lists in `.golangci.yml`, which is generated
   for this project rather than copied from a template.
+- `gofmt` is enforced by golangci-lint's formatter stage: `golangci-lint run` fails on a file gofmt
+  would rewrite.
 - Run `go build ./...`, `go vet ./...`, `golangci-lint run`, `go test ./...` — or `make check`.
 - **Verifying the rules takes two checks, because there are two mechanisms.** A cross-component
   reach-around must fail `go build`. An outward layer import must fail `golangci-lint run` *while
