@@ -12,6 +12,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/settings"
 )
 
 // settings runs checks 1 to 4. Each one is the prerequisite of the next, so the first failure ends
@@ -21,12 +22,12 @@ import (
 // check's title in front of it.
 //
 // Decoding happens here rather than in infrastructure, which returns bytes, or in the domain, which
-// must not name an encoding. It decodes into the generic document so the domain's field table stays
+// must not name an encoding. It decodes into the generic document so the shared field tables stay
 // the single definition of the settings shape and every problem is reported at once.
 func (d *Diagnose) settings(_ context.Context, dir string, results []domain.Result) []domain.Result {
 	codefallDir := filepath.Join(dir, ".codefall")
 	settingsPath := filepath.Join(codefallDir, "settings.json")
-	createRemedy := mo.Some("create .codefall/settings.json; schema: " + domain.SettingsSchemaID)
+	createRemedy := mo.Some("create .codefall/settings.json; schema: " + settings.SchemaID)
 
 	exists, err := d.files.DirExists(codefallDir)
 
@@ -52,9 +53,9 @@ func (d *Diagnose) settings(_ context.Context, dir string, results []domain.Resu
 
 	results = append(results, domain.SettingsFile.Pass())
 
-	fixRemedy := mo.Some("fix the fields above; schema: " + domain.SettingsSchemaID)
+	fixRemedy := mo.Some("fix the fields above; schema: " + settings.SchemaID)
 
-	var doc domain.Document
+	var doc settings.Document
 
 	if err := json.Unmarshal(data, &doc); err != nil {
 		var syntaxErr *json.SyntaxError
@@ -80,7 +81,7 @@ func (d *Diagnose) settings(_ context.Context, dir string, results []domain.Resu
 
 	results = append(results, domain.SettingsJSON.Pass())
 
-	if problems := domain.ValidateSettings(doc); len(problems) > 0 {
+	if problems := settings.Validate(doc); len(problems) > 0 {
 		return append(results, domain.SettingsComplete.Fail(
 			"settings.json is incomplete: "+strings.Join(problems, "; "), fixRemedy))
 	}

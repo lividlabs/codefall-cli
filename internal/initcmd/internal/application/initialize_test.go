@@ -12,6 +12,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/settings"
 )
 
 const workingDir = "/work"
@@ -173,7 +174,7 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 		t.Context(),
 		Request{
 			Dir:           workingDir,
-			Tracker:       domain.TrackerGitHub,
+			Tracker:       settings.TrackerGitHub,
 			GitHubRepo:    mo.Some("lividlabs/codefall-cli"),
 			GitHubProject: mo.Some(3),
 			Harness:       domain.HarnessClaudeCode,
@@ -224,7 +225,7 @@ func TestRunEncodesGitHubSettings(t *testing.T) {
 		t.Context(),
 		Request{
 			Dir:           workingDir,
-			Tracker:       domain.TrackerGitHub,
+			Tracker:       settings.TrackerGitHub,
 			GitHubRepo:    mo.Some("owner/name"),
 			GitHubProject: mo.Some(3),
 			Harness:       domain.HarnessClaudeCode,
@@ -235,7 +236,7 @@ func TestRunEncodesGitHubSettings(t *testing.T) {
 	}
 
 	want := `{
-  "$schema": "` + domain.SettingsSchemaID + `",
+  "$schema": "` + settings.SchemaID + `",
   "version": 1,
   "tracker": "github",
   "github": {
@@ -262,7 +263,7 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 			name: "github without a project",
 			request: Request{
 				Dir:        workingDir,
-				Tracker:    domain.TrackerGitHub,
+				Tracker:    settings.TrackerGitHub,
 				GitHubRepo: mo.Some("owner/name"),
 				Harness:    domain.HarnessClaudeCode,
 			},
@@ -275,7 +276,7 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 		},
 		{
 			name:    "beads",
-			request: Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
+			request: Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
 			want: `  "tracker": "beads",
   "beads": {}
 }
@@ -307,7 +308,7 @@ func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
 
 	report, err := NewInitialize(files, toolsInstalled()).Run(
 		t.Context(),
-		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,
 	)
 	if err != nil {
@@ -335,7 +336,7 @@ func TestRunRewritesSettingsWithForce(t *testing.T) {
 
 	report, err := NewInitialize(files, toolsInstalled()).Run(
 		t.Context(),
-		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode, Force: true},
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode, Force: true},
 		nil,
 	)
 	if err != nil {
@@ -385,7 +386,7 @@ func TestRunStopsOnAStepThatFails(t *testing.T) {
 
 			observer := &recordingObserver{}
 
-			request := Request{Dir: workingDir, Tracker: domain.TrackerGitHub, Harness: domain.HarnessClaudeCode}
+			request := Request{Dir: workingDir, Tracker: settings.TrackerGitHub, Harness: domain.HarnessClaudeCode}
 			if tc.name != "the settings could not be built" {
 				request.GitHubRepo = mo.Some("owner/name")
 			}
@@ -421,7 +422,7 @@ func TestRunReportsAnUnreadableSettingsFile(t *testing.T) {
 
 	if _, err := NewInitialize(files, toolsInstalled()).Run(
 		t.Context(),
-		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,
 	); err == nil || !strings.Contains(err.Error(), "read .codefall/settings.json") {
 		t.Errorf("Run error = %v, want it to say the settings could not be read", err)
@@ -434,7 +435,7 @@ func TestRunStopsOnACancelledContext(t *testing.T) {
 
 	_, err := NewInitialize(newFakeFileSystem(), toolsInstalled()).Run(
 		ctx,
-		Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode},
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,
 	)
 	if !errors.Is(err, context.Canceled) {

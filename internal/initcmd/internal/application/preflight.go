@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/text"
 )
 
 // gitCommand is how git is invoked. Init never asks git to change anything: it asks it two questions
@@ -153,7 +154,7 @@ func (i *Initialize) stagedChangesProblem(ctx context.Context, dir string) error
 			"so commit or unstage them first")
 	default:
 		return fmt.Errorf("git diff --cached --quiet exited %d: %s",
-			result.ExitCode, firstLine(result.Stderr))
+			result.ExitCode, text.FirstLine(result.Stderr))
 	}
 }
 
@@ -181,7 +182,7 @@ func (i *Initialize) uncommittedFilesProblem(ctx context.Context, dir string) er
 
 	if result.ExitCode != 0 {
 		return fmt.Errorf("%s exited %d: %s",
-			commandLine(gitCommand, args), result.ExitCode, firstLine(result.Stderr))
+			commandLine(gitCommand, args), result.ExitCode, text.FirstLine(result.Stderr))
 	}
 
 	changed := changedPaths(result.Stdout)

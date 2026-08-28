@@ -1,11 +1,11 @@
 // Package application holds doctor's one use case. It owns the gateway interfaces its checks need
-// and depends on nothing but the standard library, mo, and doctor's own domain.
+// and depends on nothing but the standard library, mo, doctor's own domain, and the pure shared
+// modules (ADR-003).
 package application
 
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/samber/mo"
 
@@ -71,11 +71,4 @@ func (d *Diagnose) Run(ctx context.Context, dir string) (domain.Report, error) {
 	}
 
 	return domain.NewReport(results...), nil
-}
-
-// firstLine is how a tool's chatty output becomes one line of report detail.
-func firstLine(s string) string {
-	line, _, _ := strings.Cut(s, "\n")
-
-	return strings.TrimSpace(line)
 }

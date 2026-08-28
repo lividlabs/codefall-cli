@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/settings"
 )
 
 // beadsRequest is the run every preflight test makes: the tracker and the harness are settled, and
 // what the test changes is the state of the machine and of the directory.
 func beadsRequest() Request {
-	return Request{Dir: workingDir, Tracker: domain.TrackerBeads, Harness: domain.HarnessClaudeCode}
+	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode}
 }
 
 // A tool that is missing is found before anything has been done, so a run that cannot finish has

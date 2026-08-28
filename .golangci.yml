@@ -8,7 +8,8 @@
 # they were written, and from initcmd's when it was added — and re-proven the same day against an
 # `internal/shared/ui` import from `internal/initcmd/internal/application/` and from
 # `internal/doctor/internal/domain/`. The `shared-modules` rule was proven on 2026-08-27, once per
-# deny entry.
+# deny entry. The `pure-shared-modules` rule was proven the same day, against a
+# `charm.land/lipgloss/v2` import in `internal/shared/settings/` — it compiled and failed lint.
 #
 # Proving `shared-modules` needs a throwaway package: a real shared module imports a component only
 # in a build that already has an import cycle, and a cycle is a compile error rather than the lint

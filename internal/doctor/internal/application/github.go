@@ -9,6 +9,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
+	"github.com/lividlabs/codefall-cli/internal/shared/text"
 )
 
 // ghAuthStatus is the shape of `gh auth status --json hosts`.
@@ -50,9 +51,9 @@ func (d *Diagnose) github(ctx context.Context, dir string, results []domain.Resu
 	var status ghAuthStatus
 
 	if err := json.Unmarshal([]byte(result.Stdout), &status); err != nil {
-		detail := firstLine(result.Stderr)
+		detail := text.FirstLine(result.Stderr)
 		if detail == "" {
-			detail = firstLine(result.Stdout)
+			detail = text.FirstLine(result.Stdout)
 		}
 
 		return append(results, domain.GHAuthenticated.Fail(

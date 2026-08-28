@@ -197,7 +197,9 @@ Decided at scaffold, 2026-08-16.
   altogether, and moving those would mean either widening those allow-lists or moving the constants
   out of the layer that owns them. Both copies are pinned by each component's own schema test
   against `schemas/settings.schema.json`, which is what makes the duplication safe rather than
-  merely tolerated. The `shared-modules` rule now matches files and was proven, once per deny entry;
+  merely tolerated. (Reversed the same day by **Pure shared modules** below, which widened the
+  allow-lists for modules that do not need widening — the option not seen here.)
+  The `shared-modules` rule now matches files and was proven, once per deny entry;
   proving it needs a throwaway `internal/shared/proof/` package, because a real shared module
   importing a component is an import cycle and so a compile error rather than the lint failure
   ADR-GO-02 asks for. `domain/` and `application/` were re-proven against an `internal/shared/ui`
@@ -213,6 +215,26 @@ Decided at scaffold, 2026-08-16.
   `pure-shared-modules` rule that keeps it pure — so the property the permission rests on is checked
   rather than claimed. Recorded as [`ADR-003`](adrs/ADR-003-pure-shared-modules.md), a new ADR rather
   than an amendment to ADR-GO-02, which it refines and does not supersede.
+  Two modules moved under it. `internal/shared/settings/` is now the one definition of the
+  `.codefall/settings.json` format — the version, the schema id, the tracker names, the repository
+  pattern, the field tables, `Validate`, and the field-level `ParseTracker`, `ValidateRepo`, and
+  `ValidateProject` that a form calls while somebody is still typing. Doctor's `domain/settings.go`
+  is gone; initcmd's keeps the `Settings` value object and `NewSettings`, which is where the
+  combinations that make sense for a run are decided, and takes every constant and rule from the
+  shared module. `Harness` stayed initcmd's, in its own file: nothing else in the project has an
+  opinion about which harnesses can be set up. `internal/shared/text/` holds `FirstLine`, which both
+  application layers had written identically. The two facade-level schema tests became one
+  `schema_test.go` beside the format it pins, carrying every assertion either of them made — the
+  reason it could not live there before was that a `domain` test cannot import `os`, and a pure
+  shared module is not an inner layer. Names changed with the move, because the package name now
+  carries what the prefixes used to say: `SettingsVersion` and `SettingsSchemaID` are
+  `settings.Version` and `settings.SchemaID`, `ValidateSettings` is `settings.Validate`, and
+  `RequiredSettingsFields` is `settings.RequiredFields`.
+  Both halves of the new configuration were proven the way ADR-GO-02 requires, each compiling and
+  failing `golangci-lint run`: `charm.land/lipgloss/v2` imported inside `internal/shared/settings/`
+  failed the `pure-shared-modules` rule, and `internal/shared/ui` imported from
+  `internal/initcmd/internal/domain/` failed the `domain-layer` rule — while that same package's
+  import of `internal/shared/settings`, which is what the whole change rests on, passes.
 
 ## Open
 
