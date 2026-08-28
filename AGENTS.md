@@ -2,9 +2,9 @@
 
 A Go command-line tool. One surface, one app, one module.
 
-**State: one component.** `internal/doctor/` (`codefall doctor`) is the first component and the
-reference for the rules below; `cmd/codefall/main.go` is the composition root and builds the
-injector.
+**State: two components.** `internal/doctor/` (`codefall doctor`) is the first and the reference for
+the rules below; `internal/setup/` (`codefall init`) is the second, and follows it.
+`cmd/codefall/main.go` is the composition root and builds the injector.
 
 ## Applicable ADRs
 
@@ -139,10 +139,10 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   test that holds `schemas/settings.schema.json` equal to the domain constants lives in the facade
   package.
 - **`go.mod` requires `samber/do`, `samber/mo`, Cobra, Fang, Lip Gloss v2, Bubble Tea v2, Bubbles v2,
-  `colorprofile`, `x/exp/charmtone`, and `x/term`** — the last two for the Charm palette and the
-  terminal detection Fang's own theme uses, Bubble Tea and Bubbles for doctor's spinner. Huh
-  (ADR-002) arrives with the first prompt. Add each library with the code that needs it, not up
-  front.
+  `colorprofile`, `x/term`, and Huh v2** — `x/term` for the terminal detection Fang's own theme uses,
+  Bubble Tea and Bubbles for the spinners, Huh for init's survey. Add each library with the code that
+  needs it, not up front, and run `go mod tidy` after: a library nothing imports any more belongs in
+  the indirect block.
 - **A facade that returns a `domain` type compiles for its callers even though they cannot import
   that package.** Go's `internal/` rule restricts naming a package, not holding a value: `o :=
   orders.Find(id)` infers the type and `o.Total()` works, while `var o *domain.Order` does not
