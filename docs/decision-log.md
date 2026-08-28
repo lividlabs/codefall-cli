@@ -67,6 +67,25 @@ Decided at scaffold, 2026-08-16.
   the two equal. One correction to ADR-002: Fang v1.0.0 does import `charm.land/lipgloss/v2`, so its
   note that Fang imports neither Lip Gloss major is out of date. Harmless — it is the v2 major, and
   the v1 generation stays out of the graph.
+- **Second component, 2026-08-27.** `internal/setup/` is `codefall init`, the thing that creates
+  what doctor checks. The package is named `setup` rather than `init` because `package init` is
+  legal but importing it is not: Go rejects `import ".../internal/init"` outright, since `init` must
+  be a func, so the import would need an alias. One aliased import in the whole codebase is a worse
+  trade than naming the directory after what it does. The command is `init`, unaffected.
+  A run is an ordered list of steps, each reporting Done or Skipped through an `Observer` the
+  presentation layer implements twice: a spinner with the running step's title when stdout is a
+  terminal, plain lines everywhere else. This change carries one step, `settings`; installing the
+  Claude Code plugin and running `bd init` are the next two, appended to the same list. Settings
+  that already exist are left alone and the step reports Skipped — `--force` rewrites them — so init
+  is safe to run again once it has more steps than this. `--harness` is accepted and validated now,
+  with `claude-code` the only value, because the steps after this one are the ones that need it.
+  Huh v2 is now imported, the first prompt in the project (ADR-002). The tracker survey lists Jira
+  and Linear with "(not yet available)" in the label and refuses them in the field's own validation:
+  Huh v2 has no disabled option, and a tracker that is not offered at all reads as a tracker nobody
+  thought of. The layer rules were re-proven the way ADR-GO-02 requires — a Cobra import from
+  `internal/setup/internal/application/` compiled and failed `golangci-lint run` on the
+  `application-layer` rule. Still no report contract crosses a facade: init does not consume
+  doctor's.
 
 ## Open
 
