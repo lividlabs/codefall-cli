@@ -44,6 +44,12 @@ const (
 // what to run next.
 const nextStep = "Next: codefall doctor"
 
+// errCancelled is what both places a run can be interrupted report. Huh says the user aborted the
+// form and Bubble Tea says the program was interrupted, but Ctrl-C during a question and Ctrl-C
+// during the spinner are one event to the person who pressed it. It is returned as it is rather
+// than wrapped, so Fang renders that sentence and not a prefix in front of it.
+var errCancelled = errors.New("init cancelled")
+
 // NewInitCommand builds `codefall init`.
 func NewInitCommand(initialize InitializeUseCase) *cobra.Command {
 	flags := &initFlags{}
@@ -107,6 +113,10 @@ func runInit(cmd *cobra.Command, initialize InitializeUseCase, flags *initFlags)
 	out := colorprofile.NewWriter(cmd.OutOrStdout(), os.Environ())
 
 	if _, err := runInitialize(cmd.Context(), initialize, request, out); err != nil {
+		if errors.Is(err, errCancelled) {
+			return err
+		}
+
 		return fmt.Errorf("init: %w", err)
 	}
 
@@ -159,11 +169,38 @@ func buildRequest(
 		return application.Request{}, fmt.Errorf("init: %w", err)
 	}
 
-	if settled && !request.Force {
-		return request, nil
+	if !settled || request.Force {
+		request, err = collect(cmd.Context(), initialize, request)
+		if err != nil {
+			return application.Request{}, err
+		}
 	}
 
-	return collect(cmd.Context(), initialize, request)
+	// The tracker is settled by now, whether a flag or the survey chose it, so this is the last
+	// place the two answers can be held against each other.
+	if err := rejectGitHubFlags(cmd, request.Tracker); err != nil {
+		return application.Request{}, err
+	}
+
+	return request, nil
+}
+
+// rejectGitHubFlags refuses the GitHub flags on a tracker that does not use them, in the terms the
+// person typed. The domain refuses the same combination as an invariant, but it does so two layers
+// away and in terms of settings, in a sentence that names neither flag; this is the sentence that
+// does.
+func rejectGitHubFlags(cmd *cobra.Command, tracker string) error {
+	if tracker == "" || tracker == domain.TrackerGitHub {
+		return nil
+	}
+
+	for _, name := range []string{"github-repo", "github-project"} {
+		if cmd.Flags().Changed(name) {
+			return fmt.Errorf("--%s is only used with --tracker %s", name, domain.TrackerGitHub)
+		}
+	}
+
+	return nil
 }
 
 // collect fills in the answers the flags did not supply, by asking a person when there is one and by
@@ -285,14 +322,12 @@ func gitHubFields(request application.Request, repo, project *string) []huh.Fiel
 	return fields
 }
 
-// runForm runs the survey, or does nothing when every question was answered by a flag. A form is a
-// terminal program, so a cancelled command cancels it (ADR-002) and ACCESSIBLE chooses the
-// screen-reader mode, as Huh's own examples do.
+// runForm runs the survey. A form is a terminal program, so a cancelled command cancels it
+// (ADR-002) and ACCESSIBLE chooses the screen-reader mode, as Huh's own examples do.
+//
+// There is always at least one group: survey is reached only when an answer is missing, and each
+// answer that could be missing adds a group of its own.
 func runForm(ctx context.Context, groups []*huh.Group) error {
-	if len(groups) == 0 {
-		return nil
-	}
-
 	err := huh.NewForm(groups...).
 		WithAccessible(os.Getenv("ACCESSIBLE") != "").
 		RunWithContext(ctx)
@@ -301,7 +336,7 @@ func runForm(ctx context.Context, groups []*huh.Group) error {
 	case err == nil:
 		return nil
 	case errors.Is(err, huh.ErrUserAborted):
-		return errors.New("init cancelled")
+		return errCancelled
 	default:
 		return fmt.Errorf("init: %w", err)
 	}

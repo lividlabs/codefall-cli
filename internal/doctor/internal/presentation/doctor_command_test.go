@@ -462,6 +462,20 @@ func TestSummaryLineTakesTheColourOfTheStatusItReports(t *testing.T) {
 	}
 }
 
+// Ctrl-C during the spinner is a person stopping the run, not something going wrong, so it is said
+// in those terms and returned as it is, for Fang to render without a prefix.
+func TestSpinnerErrorSaysCancelledWhenTheProgramWasInterrupted(t *testing.T) {
+	if got := spinnerError(tea.ErrInterrupted); !errors.Is(got, errCancelled) {
+		t.Errorf("spinnerError(tea.ErrInterrupted) = %v, want %v", got, errCancelled)
+	}
+
+	failure := errors.New("no terminal")
+	if got := spinnerError(failure); !errors.Is(got, failure) ||
+		!strings.HasPrefix(got.Error(), "spinner: ") {
+		t.Errorf("spinnerError(%v) = %v, want it wrapped as a spinner failure", failure, got)
+	}
+}
+
 // The spinner needs a terminal, so what is testable here is the model around it: that the use case
 // runs as its one command, that the answer quits the program, and that the last frame is empty so
 // the report starts on a clean line. The whole-command tests above cover the other half — without a

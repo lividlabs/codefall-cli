@@ -31,12 +31,13 @@ const (
 	beadsInfo      = "bd info"
 	gitWorkTree    = "git rev-parse --is-inside-work-tree"
 	gitStaged      = "git diff --cached --quiet"
+	gitStatus      = "git status --porcelain -- " +
+		".gitignore AGENTS.md CLAUDE.md .claude/settings.json .codex .agents"
 )
 
 // --- fakes -------------------------------------------------------------------------------------
 
 type fakeFileSystem struct {
-	dirs  map[string]bool
 	files map[string][]byte
 	errs  map[string]error
 	made  []string
@@ -44,18 +45,9 @@ type fakeFileSystem struct {
 
 func newFakeFileSystem() *fakeFileSystem {
 	return &fakeFileSystem{
-		dirs:  map[string]bool{},
 		files: map[string][]byte{},
 		errs:  map[string]error{},
 	}
-}
-
-func (f *fakeFileSystem) DirExists(path string) (bool, error) {
-	if err, ok := f.errs[path]; ok {
-		return false, err
-	}
-
-	return f.dirs[path], nil
 }
 
 func (f *fakeFileSystem) ReadFile(path string) ([]byte, error) {
@@ -77,7 +69,6 @@ func (f *fakeFileSystem) MkdirAll(path string) error {
 	}
 
 	f.made = append(f.made, path)
-	f.dirs[path] = true
 
 	return nil
 }
@@ -142,6 +133,8 @@ func toolsInstalled() *fakeCommandRunner {
 	runner.paths["claude"] = "/opt/homebrew/bin/claude"
 	runner.paths["bd"] = "/opt/homebrew/bin/bd"
 	runner.paths["git"] = "/usr/bin/git"
+	// git answers the work-tree question with a word, not an exit code.
+	runner.runs[gitWorkTree] = CommandResult{Stdout: "true\n"}
 
 	return runner
 }

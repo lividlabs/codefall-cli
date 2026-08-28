@@ -13,9 +13,9 @@ type Step struct {
 // the harness CLI's own merge runs first.
 var (
 	SettingsStep = Step{ID: "settings", Title: "Writing .codefall/settings.json"}
-	PluginStep   = Step{ID: "plugin", Title: "Installing the codefall plugin for Claude Code"}
+	PluginStep   = Step{ID: "plugin", Title: "Installing the codefall plugin"}
 	BeadsStep    = Step{ID: "beads", Title: "Initializing Beads"}
-	HookStep     = Step{ID: "hook", Title: "Adding the Beads session hook for Claude Code"}
+	HookStep     = Step{ID: "hook", Title: "Adding the Beads session hook"}
 )
 
 // What codefall's plugin for Claude Code is called and where it comes from. These are facts about
@@ -41,6 +41,9 @@ const (
 
 // Outcome is what a step did. A step that could not do its work returns an error instead: there is
 // no failed outcome, because a failure stops the run.
+//
+// It has no String: presentation prints a mark rather than a word, so a name for each outcome would
+// have nothing but a test to read it.
 type Outcome int
 
 // The two outcomes, in the order a reader is most likely to see them.
@@ -48,18 +51,6 @@ const (
 	OutcomeDone Outcome = iota
 	OutcomeSkipped
 )
-
-// String returns the word the report prints for the outcome.
-func (o Outcome) String() string {
-	switch o {
-	case OutcomeDone:
-		return "DONE"
-	case OutcomeSkipped:
-		return "SKIPPED"
-	default:
-		return "UNKNOWN"
-	}
-}
 
 // StepResult is what one step did and the sentence that says so. Every result carries a detail:
 // a step that ran has something to report, and a step that was skipped has a reason.

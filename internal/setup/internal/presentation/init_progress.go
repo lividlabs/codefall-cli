@@ -2,6 +2,7 @@ package presentation
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -27,6 +28,9 @@ func runInitialize(
 
 		report, err := initialize.Run(ctx, request, observer)
 		if err != nil {
+			// A line that could not be written is dropped here on purpose: the run's own error is
+			// what the reader needs, and a failed write is only how they would have been told about
+			// a step that did finish.
 			return domain.Report{}, err
 		}
 
@@ -44,7 +48,7 @@ func runInitialize(
 
 	final, err := program.Run()
 	if err != nil {
-		return domain.Report{}, fmt.Errorf("spinner: %w", err)
+		return domain.Report{}, spinnerError(err)
 	}
 
 	model, ok := final.(initSpinner)
@@ -63,6 +67,17 @@ func runInitialize(
 	}
 
 	return model.report, model.err
+}
+
+// spinnerError is what a terminal program's failure means to the command. Bubble Tea reports Ctrl-C
+// as a program that was interrupted; that is the same event the survey reports as an abort, so it
+// gets the same sentence rather than a second phrasing of one keystroke.
+func spinnerError(err error) error {
+	if errors.Is(err, tea.ErrInterrupted) {
+		return errCancelled
+	}
+
+	return fmt.Errorf("spinner: %w", err)
 }
 
 // writingObserver is what watches a run with no terminal to draw on: each finished step is a line,

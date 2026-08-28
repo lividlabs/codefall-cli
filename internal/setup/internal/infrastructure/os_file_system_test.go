@@ -12,43 +12,6 @@ import (
 
 var _ application.FileSystem = (*OSFileSystem)(nil)
 
-func TestOSFileSystemDirExists(t *testing.T) {
-	root := t.TempDir()
-
-	nested := filepath.Join(root, "nested")
-	if err := os.Mkdir(nested, 0o755); err != nil {
-		t.Fatalf("mkdir: %v", err)
-	}
-
-	file := filepath.Join(root, "file.txt")
-	if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
-		t.Fatalf("write: %v", err)
-	}
-
-	files := NewOSFileSystem()
-
-	for _, tc := range []struct {
-		name string
-		path string
-		want bool
-	}{
-		{"a directory", nested, true},
-		{"a file is not a directory", file, false},
-		{"a missing path is not an error", filepath.Join(root, "nope"), false},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			got, err := files.DirExists(tc.path)
-			if err != nil {
-				t.Fatalf("DirExists: %v", err)
-			}
-
-			if got != tc.want {
-				t.Errorf("DirExists(%q) = %v, want %v", tc.path, got, tc.want)
-			}
-		})
-	}
-}
-
 func TestOSFileSystemReadFile(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "settings.json")

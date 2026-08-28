@@ -185,6 +185,16 @@ func TestInitCommandRejects(t *testing.T) {
 			want: "--github-project 0 must be a positive integer",
 		},
 		{
+			name: "a repository on a tracker that has no use for one",
+			args: []string{"--tracker", "beads", "--github-repo", "owner/name"},
+			want: "--github-repo is only used with --tracker github",
+		},
+		{
+			name: "a project number on a tracker that has no use for one",
+			args: []string{"--tracker", "beads", "--github-project", "3"},
+			want: "--github-project is only used with --tracker github",
+		},
+		{
 			name: "an argument",
 			args: []string{"somewhere"},
 			want: "unknown command",
@@ -300,8 +310,9 @@ func TestInitCommandStillAsksWhenForcingOverExistingSettings(t *testing.T) {
 func TestInitCommandPrintsALineForEachFinishedStepAndWhatToRunNext(t *testing.T) {
 	initialize := newFakeInitialize()
 	initialize.report = domain.NewReport(
-		domain.SettingsStep.Done("wrote .codefall/settings.json (tracker: github, repo: owner/name)"),
-		domain.PluginStep.Skipped("codefall@codefall is already enabled in .claude/settings.json"),
+		domain.SettingsStep.Done("wrote .codefall/settings.json (tracker: beads)"),
+		domain.PluginStep.Skipped(
+			"the codefall marketplace is declared and codefall@codefall enabled in .claude/settings.json"),
 	)
 
 	out, err := run(t, initialize, "--tracker", "beads")
@@ -309,8 +320,8 @@ func TestInitCommandPrintsALineForEachFinishedStepAndWhatToRunNext(t *testing.T)
 		t.Fatalf("Execute: %v", err)
 	}
 
-	want := "✓ wrote .codefall/settings.json (tracker: github, repo: owner/name)\n" +
-		"- codefall@codefall is already enabled in .claude/settings.json\n" +
+	want := "✓ wrote .codefall/settings.json (tracker: beads)\n" +
+		"- the codefall marketplace is declared and codefall@codefall enabled in .claude/settings.json\n" +
 		nextStep + "\n"
 	if out != want {
 		t.Errorf("output =\n%q\nwant\n%q", out, want)
@@ -529,6 +540,20 @@ func TestInitSpinnerKeepsSpinningOnATick(t *testing.T) {
 
 	if spinning, ok := updated.(initSpinner); !ok || spinning.done {
 		t.Errorf("Update on a tick = %#v, want a spinner that is not done", updated)
+	}
+}
+
+// Ctrl-C during the spinner and Ctrl-C during a question are one event to the person who pressed it,
+// so they get one sentence — and it is returned as it is, for Fang to render without a prefix.
+func TestSpinnerErrorSaysCancelledWhenTheProgramWasInterrupted(t *testing.T) {
+	if got := spinnerError(tea.ErrInterrupted); !errors.Is(got, errCancelled) {
+		t.Errorf("spinnerError(tea.ErrInterrupted) = %v, want %v", got, errCancelled)
+	}
+
+	failure := errors.New("no terminal")
+	if got := spinnerError(failure); !errors.Is(got, failure) ||
+		!strings.HasPrefix(got.Error(), "spinner: ") {
+		t.Errorf("spinnerError(%v) = %v, want it wrapped as a spinner failure", failure, got)
 	}
 }
 

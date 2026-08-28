@@ -29,8 +29,8 @@ func settled(claudeSettings string) *fakeFileSystem {
 }
 
 // probes are the questions a run asks about the directory rather than work it does in it: preflight
-// asks all three, and the beads step asks `bd info` again to decide whether it has anything to do.
-var probes = []string{gitWorkTree, gitStaged, beadsInfo}
+// asks all four, and the beads step asks `bd info` again to decide whether it has anything to do.
+var probes = []string{gitWorkTree, gitStaged, gitStatus, beadsInfo}
 
 // commands is the work the runner was asked to do, in order, with the probes left out — a test about
 // one step reads better without the questions every run asks.
@@ -46,61 +46,57 @@ func commands(runner *fakeCommandRunner) []string {
 	return got
 }
 
-// A plugin the project already enables is left alone: the file says so, and nothing is run.
-func TestPluginStepSkipsAPluginThatIsAlreadyEnabled(t *testing.T) {
-	runner := toolsInstalled()
+// The two halves of the file are read separately, so what the step does is whichever of them is
+// missing. The project this repository is in — a plugin enabled with no marketplace declared at
+// project scope — is the case that used to be skipped entirely.
+//
+// Both commands run in the directory init was pointed at, not wherever the process started, and the
+// marketplace is declared before the plugin that comes from it is installed.
+func TestPluginStepDeclaresWhateverTheProjectIsMissing(t *testing.T) {
+	const (
+		declared = `"extraKnownMarketplaces": {"codefall": ` +
+			`{"source": {"source": "github", "repo": "lividlabs/codefall-plugin"}}}`
+		enabled = `"enabledPlugins": {"codefall@codefall": true}`
+	)
 
-	report, err := NewInitialize(
-		settled(`{"enabledPlugins": {"codefall@codefall": true}}`), runner,
-	).Run(t.Context(), pluginRequest(), nil)
-	if err != nil {
-		t.Fatalf("Run: %v", err)
-	}
-
-	result := report.Results()[1]
-	if result.Outcome != domain.OutcomeSkipped {
-		t.Errorf("outcome = %v, want SKIPPED", result.Outcome)
-	}
-
-	want := "codefall@codefall is already enabled in .claude/settings.json"
-	if result.Detail != want {
-		t.Errorf("detail = %q, want %q", result.Detail, want)
-	}
-
-	if got := commands(runner); len(got) != 0 {
-		t.Errorf("ran %q, want nothing", got)
-	}
-}
-
-// The marketplace is declared before the plugin is installed, and only when the project does not
-// declare it already. Both commands run in the directory init was pointed at, not wherever the
-// process started.
-func TestPluginStepInstallsThePlugin(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		settings string
-		want     []string
+		commands []string
+		want     string
 	}{
 		{
 			name:     "no .claude/settings.json at all",
 			settings: "",
-			want:     []string{marketplaceAdd, pluginInstall},
+			commands: []string{marketplaceAdd, pluginInstall},
+			want: "declared the codefall marketplace and installed codefall@codefall " +
+				"for this project (.claude/settings.json)",
 		},
 		{
 			name:     "settings that declare nothing",
 			settings: `{"permissions": {"allow": []}}`,
-			want:     []string{marketplaceAdd, pluginInstall},
+			commands: []string{marketplaceAdd, pluginInstall},
+			want: "declared the codefall marketplace and installed codefall@codefall " +
+				"for this project (.claude/settings.json)",
 		},
 		{
 			name:     "the plugin is off rather than absent",
 			settings: `{"enabledPlugins": {"codefall@codefall": false}}`,
-			want:     []string{marketplaceAdd, pluginInstall},
+			commands: []string{marketplaceAdd, pluginInstall},
+			want: "declared the codefall marketplace and installed codefall@codefall " +
+				"for this project (.claude/settings.json)",
 		},
 		{
-			name: "the marketplace is already declared",
-			settings: `{"extraKnownMarketplaces": {"codefall": ` +
-				`{"source": {"source": "github", "repo": "lividlabs/codefall-plugin"}}}}`,
-			want: []string{pluginInstall},
+			name:     "the marketplace is already declared",
+			settings: "{" + declared + "}",
+			commands: []string{pluginInstall},
+			want:     "installed codefall@codefall for this project (.claude/settings.json)",
+		},
+		{
+			name:     "the plugin is enabled but the marketplace is not declared",
+			settings: "{" + enabled + "}",
+			commands: []string{marketplaceAdd},
+			want:     "declared the codefall marketplace for this project (.claude/settings.json)",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -117,13 +113,12 @@ func TestPluginStepInstallsThePlugin(t *testing.T) {
 				t.Errorf("outcome = %v, want DONE", result.Outcome)
 			}
 
-			want := "installed codefall@codefall for this project (.claude/settings.json)"
-			if result.Detail != want {
-				t.Errorf("detail = %q, want %q", result.Detail, want)
+			if result.Detail != tc.want {
+				t.Errorf("detail = %q, want %q", result.Detail, tc.want)
 			}
 
-			if got := commands(runner); !slices.Equal(got, tc.want) {
-				t.Errorf("ran %q, want %q", got, tc.want)
+			if got := commands(runner); !slices.Equal(got, tc.commands) {
+				t.Errorf("ran %q, want %q", got, tc.commands)
 			}
 
 			for _, call := range runner.calls {
@@ -134,8 +129,72 @@ func TestPluginStepInstallsThePlugin(t *testing.T) {
 
 			// The CLI writes the plugin's half of the file; this step never does. The hook step
 			// writes the same file afterwards, and what it leaves behind still says everything the
-			// file said before the run.
-			assertKeysSurvive(t, files.files[claudeFull], tc.settings)
+			// file said before the run. A run that started from nothing has nothing to hold it to.
+			if tc.settings != "" {
+				assertKeysSurvive(t, files.files[claudeFull], tc.settings)
+			}
+		})
+	}
+}
+
+// A project that already has both is the only one with nothing to do: the file says the marketplace
+// is declared and the plugin enabled, and nothing is run.
+func TestPluginStepSkipsAProjectThatHasBoth(t *testing.T) {
+	runner := toolsInstalled()
+
+	report, err := NewInitialize(settled(
+		`{"enabledPlugins": {"codefall@codefall": true},`+
+			`"extraKnownMarketplaces": {"codefall": {"source": "lividlabs/codefall-plugin"}}}`,
+	), runner).Run(t.Context(), pluginRequest(), nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	result := report.Results()[1]
+	if result.Outcome != domain.OutcomeSkipped {
+		t.Errorf("outcome = %v, want SKIPPED", result.Outcome)
+	}
+
+	want := "the codefall marketplace is declared and codefall@codefall enabled in .claude/settings.json"
+	if result.Detail != want {
+		t.Errorf("detail = %q, want %q", result.Detail, want)
+	}
+
+	if got := commands(runner); len(got) != 0 {
+		t.Errorf("ran %q, want nothing", got)
+	}
+}
+
+// A file that is there and says nothing is the same answer as one that is not there. Both steps that
+// read it go on to do their work, rather than one refusing what encoding/json would have accepted.
+func TestBothStepsTreatAFileThatSaysNothingAsAMissingOne(t *testing.T) {
+	for _, tc := range []struct{ name, settings string }{
+		{"empty", ""},
+		{"whitespace only", " \n\t "},
+		{"the JSON literal null", "null\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			files := settled("")
+			files.files[claudeFull] = []byte(tc.settings)
+
+			runner := toolsInstalled()
+
+			report, err := NewInitialize(files, runner).Run(t.Context(), pluginRequest(), nil)
+			if err != nil {
+				t.Fatalf("Run: %v", err)
+			}
+
+			if got := commands(runner); !slices.Equal(got, []string{marketplaceAdd, pluginInstall}) {
+				t.Errorf("ran %q, want both commands", got)
+			}
+
+			if got := report.Results()[3].Outcome; got != domain.OutcomeDone {
+				t.Errorf("the hook step = %v, want DONE", got)
+			}
+
+			if got := string(files.files[claudeFull]); got != beadsHook {
+				t.Errorf(".claude/settings.json =\n%s\nwant\n%s", got, beadsHook)
+			}
 		})
 	}
 }
@@ -229,8 +288,13 @@ func TestPluginStepReportsSettingsItCannotRead(t *testing.T) {
 			want:  "decode .claude/settings.json",
 		},
 		{
-			name:  "the file is JSON but not an object",
+			name:  "the file is a JSON array",
 			files: func() *fakeFileSystem { return settled(`["codefall@codefall"]`) },
+			want:  "decode .claude/settings.json",
+		},
+		{
+			name:  "the file is a JSON string",
+			files: func() *fakeFileSystem { return settled(`"codefall@codefall"`) },
 			want:  "decode .claude/settings.json",
 		},
 	} {

@@ -2,6 +2,7 @@ package application
 
 import (
 	"encoding/json"
+	"errors"
 	"maps"
 	"reflect"
 	"slices"
@@ -47,10 +48,6 @@ func hookResult(t *testing.T, report domain.Report) domain.StepResult {
 // object's keys and the file comes back in its order, not the one it was written in.
 func assertKeysSurvive(t *testing.T, got []byte, before string) {
 	t.Helper()
-
-	if before == "" {
-		return
-	}
 
 	var was, now map[string]any
 
@@ -190,6 +187,10 @@ func TestHookStepSkipsAHookThatIsAlreadyThere(t *testing.T) {
 
 // A file the step cannot make sense of stops the run rather than being written over: it is somebody
 // else's file, and init is not the thing that should decide what it meant.
+//
+// The step is called directly rather than through a run, because the plugin step reads the same file
+// first and refuses the same two bodies with the same words — so a run would prove nothing about the
+// branches here.
 func TestHookStepReportsAFileItCannotWorkWith(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
@@ -202,8 +203,13 @@ func TestHookStepReportsAFileItCannotWorkWith(t *testing.T) {
 			want:     "decode .claude/settings.json",
 		},
 		{
-			name:     "the file is JSON but not an object",
+			name:     "the file is a JSON array",
 			settings: `[{"hooks": {}}]`,
+			want:     "decode .claude/settings.json",
+		},
+		{
+			name:     "the file is a JSON string",
+			settings: `"hooks"`,
 			want:     "decode .claude/settings.json",
 		},
 		{
@@ -220,15 +226,48 @@ func TestHookStepReportsAFileItCannotWorkWith(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			files := settled(tc.settings)
 
-			_, err := NewInitialize(files, toolsInstalled()).Run(t.Context(), beadsRequest(), nil)
+			_, err := NewInitialize(files, toolsInstalled()).hook(t.Context(), beadsRequest())
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
-				t.Errorf("Run error = %v, want it to mention %q", err, tc.want)
+				t.Errorf("hook error = %v, want it to mention %q", err, tc.want)
 			}
 
 			if got := string(files.files[claudeFull]); got != tc.settings {
 				t.Errorf(".claude/settings.json = %q, want it untouched", got)
 			}
 		})
+	}
+}
+
+// A file that cannot be read at all is the step's error too, named so the reader knows which file.
+func TestHookStepReportsAFileItCannotRead(t *testing.T) {
+	files := settled("{}")
+	files.errs[claudeFull] = errors.New("permission denied")
+
+	_, err := NewInitialize(files, toolsInstalled()).hook(t.Context(), beadsRequest())
+	if err == nil || !strings.Contains(err.Error(), "read .claude/settings.json") {
+		t.Errorf("hook error = %v, want it to say the file could not be read", err)
+	}
+}
+
+// The file is somebody else's, so what it says comes back byte for byte. json.Marshal would escape
+// <, > and & into \u sequences and quietly rewrite a permission rule; the step's encoder is told
+// not to.
+func TestHookStepDoesNotEscapeWhatTheFileAlreadySays(t *testing.T) {
+	const rule = "Bash(test a && b < c > d)"
+
+	files := settled(`{"permissions": {"allow": ["` + rule + `"]}}`)
+
+	if _, err := NewInitialize(files, toolsInstalled()).Run(t.Context(), beadsRequest(), nil); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	got := string(files.files[claudeFull])
+	if !strings.Contains(got, rule) {
+		t.Errorf(".claude/settings.json =\n%s\nwant %q in it, unescaped", got, rule)
+	}
+
+	if strings.Contains(got, `\u00`) {
+		t.Errorf(".claude/settings.json =\n%s\nwant no \\u escapes in it", got)
 	}
 }
 

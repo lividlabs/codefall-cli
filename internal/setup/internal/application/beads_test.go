@@ -61,7 +61,7 @@ func TestBeadsStepInitializesBeads(t *testing.T) {
 				Stdout: "✓ Created .beads/\n  ✓ Committed beads files to git\nbd initialized successfully!\n",
 				Stderr: "⚠ No Dolt remote configured\n",
 			},
-			want: `initialized Beads (bd init committed .beads/ and .gitignore as ` +
+			want: `initialized Beads (bd init committed what it wrote as ` +
 				`"bd init: initialize beads issue tracking")`,
 		},
 		{

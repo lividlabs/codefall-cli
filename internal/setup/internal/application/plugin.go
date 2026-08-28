@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/samber/mo"
+
 	"github.com/lividlabs/codefall-cli/internal/setup/internal/domain"
 )
 
@@ -45,34 +47,57 @@ func (i *Initialize) plugin(ctx context.Context, request Request) (domain.StepRe
 // What is already done is read out of that file rather than asked of `claude plugin list`, whose
 // enabled flag is computed from the current working directory and stamped onto every row. The file
 // is the project-local truth; the CLI merges into it, so init never writes it itself.
+//
+// The two halves are decided separately, because a project can have either without the other. A
+// plugin enabled with no marketplace declared at project scope is what a user-scope marketplace
+// leaves behind: it works for whoever ran the install and for nobody who clones the repository. The
+// step is skipped only when the file already carries both.
 func (i *Initialize) claudeCodePlugin(ctx context.Context, dir string) (domain.StepResult, error) {
 	settings, err := i.readClaudeSettings(dir)
 	if err != nil {
 		return domain.StepResult{}, err
 	}
 
-	if settings.EnabledPlugins[domain.PluginID] {
-		return domain.PluginStep.Skipped(
-			fmt.Sprintf("%s is already enabled in %s", domain.PluginID, claudeFullName)), nil
+	_, declared := settings.ExtraKnownMarketplaces[domain.MarketplaceName]
+	enabled := settings.EnabledPlugins[domain.PluginID]
+
+	if declared && enabled {
+		return domain.PluginStep.Skipped(fmt.Sprintf(
+			"the %s marketplace is declared and %s enabled in %s",
+			domain.MarketplaceName, domain.PluginID, claudeFullName)), nil
 	}
 
-	// Installing works without the declaration, because the marketplace may be registered for this
-	// user — but then a teammate who clones the repository does not have it. Declaring it at project
-	// scope is what makes the install repeatable for everyone else.
-	if _, declared := settings.ExtraKnownMarketplaces[domain.MarketplaceName]; !declared {
+	if !declared {
 		if err := i.claude(ctx, dir,
 			"plugin", "marketplace", "add", domain.MarketplaceSource, "--scope", "project"); err != nil {
 			return domain.StepResult{}, err
 		}
 	}
 
-	if err := i.claude(ctx, dir,
-		"plugin", "install", domain.PluginID, "--scope", "project", "-y"); err != nil {
-		return domain.StepResult{}, err
+	if !enabled {
+		if err := i.claude(ctx, dir,
+			"plugin", "install", domain.PluginID, "--scope", "project", "-y"); err != nil {
+			return domain.StepResult{}, err
+		}
 	}
 
-	return domain.PluginStep.Done(
-		fmt.Sprintf("installed %s for this project (%s)", domain.PluginID, claudeFullName)), nil
+	return domain.PluginStep.Done(pluginDetail(declared, enabled)), nil
+}
+
+// pluginDetail is what the step reports it did, which is whichever of the two things it found
+// missing. Both already there is not one of these sentences: that is the skip.
+func pluginDetail(declared, enabled bool) string {
+	var did []string
+
+	if !declared {
+		did = append(did, "declared the "+domain.MarketplaceName+" marketplace")
+	}
+
+	if !enabled {
+		did = append(did, "installed "+domain.PluginID)
+	}
+
+	return fmt.Sprintf("%s for this project (%s)", strings.Join(did, " and "), claudeFullName)
 }
 
 // claude runs the harness CLI in the project's directory and turns a refusal into the error that
@@ -106,17 +131,18 @@ type claudeSettings struct {
 	ExtraKnownMarketplaces map[string]json.RawMessage `json:"extraKnownMarketplaces"`
 }
 
-// readClaudeSettings reads what the project has already told Claude Code. A file that is not there
-// yet says nothing, which is not a problem: the CLI creates it. A file that cannot be read or is not
-// settings at all is a problem, because the CLI is about to merge into it.
+// readClaudeSettings reads what the project has already told Claude Code. A file with nothing to say
+// is not a problem: the CLI creates it, and declares nothing until it does. A file that cannot be
+// read or is not settings at all is a problem, because the CLI is about to merge into it.
 func (i *Initialize) readClaudeSettings(dir string) (claudeSettings, error) {
-	data, err := i.files.ReadFile(claudePath(dir))
+	body, err := i.readClaudeFile(dir)
+	if err != nil {
+		return claudeSettings{}, err
+	}
 
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
+	data, said := body.Get()
+	if !said {
 		return claudeSettings{}, nil
-	case err != nil:
-		return claudeSettings{}, fmt.Errorf("read %s: %w", claudeFullName, err)
 	}
 
 	var settings claudeSettings
@@ -126,6 +152,30 @@ func (i *Initialize) readClaudeSettings(dir string) (claudeSettings, error) {
 	}
 
 	return settings, nil
+}
+
+// readClaudeFile is the one read of the harness's settings file, shared by the two steps that write
+// it — the plugin step decodes it into a struct, the hook step into a plain object.
+//
+// Three files say the same nothing: one that is not there, one that is empty or only whitespace, and
+// one holding the JSON literal null. They are one answer here rather than three behaviours further
+// down, because json.Unmarshal accepts null into anything and leaves it as it was while rejecting
+// the other two (ADR-GO-03). Anything else is handed back for the caller to make sense of.
+func (i *Initialize) readClaudeFile(dir string) (mo.Option[[]byte], error) {
+	data, err := i.files.ReadFile(claudePath(dir))
+
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return mo.None[[]byte](), nil
+	case err != nil:
+		return mo.None[[]byte](), fmt.Errorf("read %s: %w", claudeFullName, err)
+	}
+
+	if trimmed := strings.TrimSpace(string(data)); trimmed == "" || trimmed == "null" {
+		return mo.None[[]byte](), nil
+	}
+
+	return mo.Some(data), nil
 }
 
 func claudePath(dir string) string {
