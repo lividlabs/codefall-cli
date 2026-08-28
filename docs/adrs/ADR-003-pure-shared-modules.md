@@ -89,11 +89,11 @@ Transitivity is part of the definition: what matters is what a pure module's imp
 just what it names. It may not import a shared module that is not pure, and it may not import a
 component — ADR-GO-02 rule 4 already forbids the second, in either direction of purity.
 
-One pure module importing another would satisfy the definition, and the enforcement below is
-deliberately stricter than that: the purity rule's allow-list is the standard library and `samber/mo`
-and nothing else, so a pure module naming another pure module fails it. Nothing needs that today, and
-a rule that is narrower than the definition is the safe direction to be wrong in. The day something
-does need it, the fix is one more allow entry in that rule, decided then.
+One pure module importing another satisfies the definition: a pure module's imports are already the
+standard library and `samber/mo`, so another pure module adds nothing beyond what the importing
+module is already allowed. The purity rule's allow-list says so directly — each pure module is named
+there too, alongside the standard library and `samber/mo` — which is what lets `internal/shared/settings`
+import `internal/shared/text` while the rule still denies everything impure.
 
 ### Who may import one
 
@@ -109,18 +109,21 @@ impure, deliberately, and stay there.
 
 ### How it is enforced
 
-Each pure module is named in `.golangci.yml` **three times**:
+Each pure module is named in `.golangci.yml` **four times**:
 
 1. In the `domain-layer` rule's `allow` list, so `domain/` may import it.
 2. In the `application-layer` rule's `allow` list, so `application/` may import it.
-3. In a new `pure-shared-modules` rule, whose `files` list holds that module's path, with
-   `list-mode: strict` and an `allow` list of `$gostd` and `github.com/samber/mo` only.
+3. In the `pure-shared-modules` rule's `files` list, holding that module's path under
+   `list-mode: strict`.
+4. In the `pure-shared-modules` rule's own `allow` list, alongside `$gostd` and `github.com/samber/mo`.
 
-The third entry is what makes the first two safe. Without it, "pure" is a claim in a comment and the
-day someone adds an import to the module is the day two `domain/` packages silently gain a
-dependency on it. With it, an impure import inside a pure module fails `golangci-lint run` while
-still compiling — the same shape of failure ADR-GO-02 asks for everywhere else, and the reason the
-lint half of the verification exists at all.
+Entries 3 and 4 together are what make the first two safe. Without the third, "pure" is a claim in a
+comment and the day someone adds an import to the module is the day two `domain/` packages silently
+gain a dependency on it. With it, an impure import inside a pure module fails `golangci-lint run`
+while still compiling — the same shape of failure ADR-GO-02 asks for everywhere else, and the reason
+the lint half of the verification exists at all. The fourth is what lets a pure module import
+another: naming a module in its own rule's allow-list is the only way one pure module can name
+another without also opening the rule to `ui`, `process`, or anything else outside this list.
 
 The direction rule needs no new configuration: the existing `shared-modules` rule already denies
 every component's facade from anything under `internal/shared/`, and a pure module is under
@@ -155,11 +158,11 @@ prevent, arriving by a different route.
 - **The settings format gets one definition and one schema test.** Adding a tracker becomes one row
   in the shared field table plus one `oneOf` branch in the published schema, with one test holding
   them equal, instead of the same edit in two components and two tests.
-- **Three configuration entries per pure module, and nothing enforces that all three were written.**
+- **Four configuration entries per pure module, and nothing enforces that all four were written.**
   This is the same class of gotcha as the per-component `application-layer` entry: `depguard`'s
   allow-lists are literal prefix matches with no globs, so a pure module that is only half declared
-  either cannot be imported where it should be or is not held to purity. It belongs in AGENTS.md's
-  gotchas beside the existing one.
+  either cannot be imported where it should be, is not held to purity, or cannot be imported by
+  another pure module. It belongs in AGENTS.md's gotchas beside the existing one.
 - **The purity rule matches no files until the module exists**, and a `depguard` rule that matches
   nothing reports `0 issues` and exits 0 — indistinguishable from one that works. The existing rule
   applies: prove it against a deliberate violation once the module is there.

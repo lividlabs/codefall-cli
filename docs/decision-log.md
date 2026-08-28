@@ -211,9 +211,9 @@ Decided at scaffold, 2026-08-16.
   the small helpers the two components had copied become one definition. The blanket denial that
   produced those copies was aimed at `ui` and `process`, which import Charm and `os/exec`, and it
   could not tell them apart from a module that adds nothing to the inner rings' dependency surface;
-  each pure module is now named three times in `.golangci.yml` — the two allow-lists plus a
-  `pure-shared-modules` rule that keeps it pure — so the property the permission rests on is checked
-  rather than claimed. Recorded as [`ADR-003`](adrs/ADR-003-pure-shared-modules.md), a new ADR rather
+  each pure module is now named four times in `.golangci.yml` — the two allow-lists plus the
+  `pure-shared-modules` rule's `files` and `allow` entries, the second of which is what also lets it
+  import another pure module — so the property the permission rests on is checked rather than claimed. Recorded as [`ADR-003`](adrs/ADR-003-pure-shared-modules.md), a new ADR rather
   than an amendment to ADR-GO-02, which it refines and does not supersede.
   Two modules moved under it. `internal/shared/settings/` is now the one definition of the
   `.codefall/settings.json` format — the version, the schema id, the tracker names, the repository

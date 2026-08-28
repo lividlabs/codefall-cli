@@ -143,11 +143,13 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   `depguard`'s `allow` is literal prefix matching with no globs, so a new component's `application/`
   package silently loses access to its own `domain/` until its import path is named there. The
   `shared-modules` rule needs a deny entry per component for the same reason.
-- **A pure shared module needs three `.golangci.yml` entries** — a `domain-layer` allow entry, an
-  `application-layer` allow entry, and a `pure-shared-modules` `files` entry (ADR-003). The first two
-  let the inner layers import it; the third holds it to the standard library and `samber/mo`, and is
-  the only reason the first two are safe. The purity rule matches nothing until the module exists, so
-  it reports `0 issues` until then — prove it against a deliberate violation when the module lands.
+- **A pure shared module needs four `.golangci.yml` entries** — a `domain-layer` allow entry, an
+  `application-layer` allow entry, a `pure-shared-modules` `files` entry, and a `pure-shared-modules`
+  `allow` entry naming the module itself (ADR-003). The first two let the inner layers import it; the
+  third holds it to the standard library and `samber/mo`, and is the only reason the first two are
+  safe; the fourth is what lets one pure module import another while the rule still denies everything
+  impure. The purity rule matches nothing until the module exists, so it reports `0 issues` until
+  then — prove it against a deliberate violation when the module lands.
 - **Proving the `shared-modules` rule needs a throwaway package.** A real shared module can import a
   component only in a build that already has an import cycle, and a cycle fails `go build` — which
   is the compiler, not the configuration. Add `internal/shared/proof/` importing a component's
