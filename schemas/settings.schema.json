@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/lividlabs/codefall-cli/main/schemas/settings.schema.json",
+  "title": "Codefall settings",
+  "description": "Per-repository configuration read from .codefall/settings.json.",
+  "type": "object",
+  "required": ["version", "tracker"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "type": "integer", "const": 1 },
+    "tracker": { "type": "string", "enum": ["github"] },
+    "github": {
+      "type": "object",
+      "required": ["repo"],
+      "properties": {
+        "repo": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "project": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": true
+    }
+  },
+  "oneOf": [
+    { "properties": { "tracker": { "const": "github" } }, "required": ["tracker", "github"] }
+  ],
+  "additionalProperties": true
+}

@@ -2,10 +2,10 @@
 # template: depguard's allow/deny lists are literal prefix matches with no glob support, so every
 # component's own import paths have to be named here.
 #
-# THERE ARE NO COMPONENTS YET, so the layer rules below currently match no files and report `0
-# issues` — which, per ADR-GO-02, is indistinguishable from a rule that is broken. They were proven
-# against deliberate violations when written; re-prove them the same way with the first real
-# component.
+# Components: doctor. The layer rules were proven against a deliberate Cobra import from
+# `application/` on 2026-08-27. The `shared-modules` rule matches no files until `internal/shared/`
+# exists, so it reports `0 issues` — which, per ADR-GO-02, is indistinguishable from a rule that is
+# broken; prove it against a deliberate violation when that directory arrives.
 #
 # ADDING A COMPONENT: add an `application-layer` allow entry for its `internal/domain` package, and a
 # `shared-modules` deny entry for its facade. Without the first, its application/ layer silently
@@ -26,6 +26,7 @@ linters:
             - "**/internal/domain/**"
           allow:
             - $gostd
+            - github.com/samber/mo
           deny:
             - pkg: net
               desc: "domain/ names no transport (ADR-GO-02 rule 5)"
@@ -42,13 +43,15 @@ linters:
 
         # Same, plus each component's own domain/ — and nothing else, so an outward import of
         # infrastructure/ or presentation/ fails while still compiling. One allow entry per
-        # component; there are none yet.
+        # component.
         application-layer:
           list-mode: strict
           files:
             - "**/internal/application/**"
           allow:
             - $gostd
+            - github.com/samber/mo
+            - github.com/lividlabs/codefall-cli/internal/doctor/internal/domain
           deny:
             - pkg: net
               desc: "application/ names no transport (ADR-GO-02 rule 5)"
@@ -61,11 +64,11 @@ linters:
             - pkg: charm.land/
               desc: "application/ names no CLI framework — Charm v2 libraries (ADR-GO-02 rule 5, ADR-002)"
 
-        # Rule 4 — shared modules are one-way; components may import them, never the reverse — is
-        # not expressible until there is a component facade to deny. Add it with the first one:
-        #
-        #   shared-modules:
-        #     files: ["**/internal/shared/**"]
-        #     deny:
-        #       - pkg: github.com/lividlabs/codefall-cli/internal/<component>
-        #         desc: "shared modules must not import components (ADR-GO-02 rule 4)"
+        # Rule 4 — shared modules are one-way; components may import them, never the reverse. One
+        # deny entry per component. This rule matches no files until `internal/shared/` exists.
+        shared-modules:
+          files:
+            - "**/internal/shared/**"
+          deny:
+            - pkg: github.com/lividlabs/codefall-cli/internal/doctor
+              desc: "shared modules must not import components (ADR-GO-02 rule 4)"
