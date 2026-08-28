@@ -18,6 +18,7 @@ type Document map[string]any
 // equal to these, so the two definitions cannot drift apart silently.
 const (
 	SettingsVersion  = 1
+	TrackerBeads     = "beads"
 	TrackerGitHub    = "github"
 	RepoPattern      = `^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`
 	SettingsSchemaID = "https://raw.githubusercontent.com/lividlabs/codefall-cli/main/schemas/settings.schema.json"
@@ -44,6 +45,9 @@ var topLevelFields = []fieldSpec{
 // selects it. Adding a tracker is one row here plus one oneOf branch in the schema; the
 // "exactly one tracker block" rule then applies to it without further code.
 var trackerFields = map[string][]fieldSpec{
+	// bd keeps its own configuration under .beads/, so the block carries no fields of its own today;
+	// it exists so the "exactly one tracker block" rule applies to it uniformly.
+	TrackerBeads: {},
 	TrackerGitHub: {
 		{"repo", true, matches(repoRegexp, "owner/name")},
 		{"project", false, isPositiveInteger},
