@@ -85,7 +85,8 @@ func (f *initFlags) register(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.tracker, "tracker", "",
 		"issue tracker to use ("+strings.Join(settings.Trackers(), ", ")+")")
 	cmd.Flags().StringVar(&f.githubRepo, "github-repo", "",
-		"repository as owner/name on GitHub (required when the tracker is "+settings.TrackerGitHub+")")
+		"repository as owner/name on GitHub (defaults to the repository this directory belongs to; "+
+			"required when the tracker is "+settings.TrackerGitHub+" and that cannot be worked out)")
 	cmd.Flags().IntVar(&f.githubProject, "github-project", 0,
 		"number of the GitHub Project to use (optional)")
 	cmd.Flags().StringVar(&f.harness, "harness", domain.HarnessClaudeCode,
