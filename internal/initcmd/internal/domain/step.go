@@ -32,6 +32,11 @@ const (
 	PluginID          = "codefall@codefall"
 	MarketplaceName   = "codefall"
 	MarketplaceSource = "lividlabs/codefall-plugin"
+
+	// PluginVersion is the plugin release the skills-directory harnesses are fetched from. It is
+	// pinned rather than latest so that every run installs the same release until a CLI release
+	// deliberately moves it; the --plugin-version flag overrides it for one run.
+	PluginVersion = "0.7.0"
 )
 
 // The session hook codefall installs so that a harness session starts knowing about the project's

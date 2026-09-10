@@ -39,7 +39,7 @@ func run(t *testing.T, markdown map[string][]byte) (*fakeFileSystem, domain.Step
 		files.files[path] = body
 	}
 
-	report, err := NewInitialize(files, toolsInstalled()).Run(t.Context(), beadsRequest(), nil)
+	report, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(t.Context(), beadsRequest(), nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -183,7 +183,7 @@ func TestAgentsStepWritesClaudeMdOnlyForClaudeCode(t *testing.T) {
 	request := beadsRequest()
 	request.Harness = "aider"
 
-	result, err := NewInitialize(files, toolsInstalled()).agents(t.Context(), request)
+	result, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).agents(t.Context(), request)
 	if err != nil {
 		t.Fatalf("agents: %v", err)
 	}
@@ -206,7 +206,7 @@ func TestAgentsStepRefusesAnUnclosedSection(t *testing.T) {
 	files := settled("{}")
 	files.files[agentsFull] = []byte(before)
 
-	_, err := NewInitialize(files, toolsInstalled()).agents(t.Context(), beadsRequest())
+	_, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).agents(t.Context(), beadsRequest())
 	if err == nil || !strings.Contains(err.Error(), "AGENTS.md has "+domain.BeadsSectionBegin+
 		" with no "+domain.BeadsSectionEnd+" after it") {
 		t.Errorf("agents error = %v, want it to name the file and the missing marker", err)
@@ -251,7 +251,7 @@ func TestAgentsStepReportsAFileItCannotUse(t *testing.T) {
 			files := settled("{}")
 			tc.setup(files)
 
-			_, err := NewInitialize(files, toolsInstalled()).agents(t.Context(), beadsRequest())
+			_, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).agents(t.Context(), beadsRequest())
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Errorf("agents error = %v, want it to mention %q", err, tc.want)
 			}
@@ -264,7 +264,7 @@ func TestAgentsStepReportsAFileItCannotUse(t *testing.T) {
 func TestAgentsStepRunsAfterBeads(t *testing.T) {
 	observer := &recordingObserver{}
 
-	if _, err := NewInitialize(settled("{}"), toolsInstalled()).Run(
+	if _, err := NewInitialize(settled("{}"), toolsInstalled(), newFakePluginFetcher()).Run(
 		t.Context(), beadsRequest(), observer,
 	); err != nil {
 		t.Fatalf("Run: %v", err)

@@ -71,7 +71,7 @@ func assertKeysSurvive(t *testing.T, got []byte, before string) {
 func TestHookStepAddsTheHookToAFileThatHasNone(t *testing.T) {
 	files := settled("")
 
-	report, err := NewInitialize(files, toolsInstalled()).Run(t.Context(), beadsRequest(), nil)
+	report, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(t.Context(), beadsRequest(), nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestHookStepKeepsWhatTheFileAlreadySays(t *testing.T) {
 
 	files := settled(before)
 
-	report, err := NewInitialize(files, toolsInstalled()).Run(t.Context(), beadsRequest(), nil)
+	report, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(t.Context(), beadsRequest(), nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestHookStepSkipsAHookThatIsAlreadyThere(t *testing.T) {
 
 	files := settled(before)
 
-	report, err := NewInitialize(files, toolsInstalled()).Run(t.Context(), beadsRequest(), nil)
+	report, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(t.Context(), beadsRequest(), nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -226,7 +226,7 @@ func TestHookStepReportsAFileItCannotWorkWith(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			files := settled(tc.settings)
 
-			_, err := NewInitialize(files, toolsInstalled()).hook(t.Context(), beadsRequest())
+			_, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).hook(t.Context(), beadsRequest())
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Errorf("hook error = %v, want it to mention %q", err, tc.want)
 			}
@@ -243,7 +243,7 @@ func TestHookStepReportsAFileItCannotRead(t *testing.T) {
 	files := settled("{}")
 	files.errs[claudeFull] = errors.New("permission denied")
 
-	_, err := NewInitialize(files, toolsInstalled()).hook(t.Context(), beadsRequest())
+	_, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).hook(t.Context(), beadsRequest())
 	if err == nil || !strings.Contains(err.Error(), "read .claude/settings.json") {
 		t.Errorf("hook error = %v, want it to say the file could not be read", err)
 	}
@@ -257,7 +257,7 @@ func TestHookStepDoesNotEscapeWhatTheFileAlreadySays(t *testing.T) {
 
 	files := settled(`{"permissions": {"allow": ["` + rule + `"]}}`)
 
-	if _, err := NewInitialize(files, toolsInstalled()).Run(t.Context(), beadsRequest(), nil); err != nil {
+	if _, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(t.Context(), beadsRequest(), nil); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 
@@ -271,14 +271,14 @@ func TestHookStepDoesNotEscapeWhatTheFileAlreadySays(t *testing.T) {
 	}
 }
 
-// The switch is where the next harness lands, the way the plugin step's is.
+// The mechanism table guards the step the same way the plugin step is guarded.
 func TestHookStepRefusesAHarnessItDoesNotKnow(t *testing.T) {
 	request := beadsRequest()
 	request.Harness = "aider"
 
 	// The plugin step refuses this harness first, so the hook step is asked on its own.
-	result, err := NewInitialize(settled(""), toolsInstalled()).hook(t.Context(), request)
-	if err == nil || !strings.Contains(err.Error(), `harness "aider" has no session hook to add`) {
-		t.Errorf("hook = %+v, %v, want it to say the harness has no hook", result, err)
+	_, err := NewInitialize(settled(""), toolsInstalled(), newFakePluginFetcher()).hook(t.Context(), request)
+	if err == nil || !strings.Contains(err.Error(), `harness "aider" has no plugin mechanism`) {
+		t.Errorf("hook error = %v, want it to say the harness has no plugin mechanism", err)
 	}
 }

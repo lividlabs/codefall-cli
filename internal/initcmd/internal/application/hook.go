@@ -21,18 +21,25 @@ const (
 	commandHookType = "command"
 )
 
-// hook is the last step of a run: it tells the harness to prime each session with what Beads knows.
+// hook is the fourth step of a run, and only Claude Code has a hook to write: it tells the harness
+// to prime each session with what Beads knows.
 //
 // bd would install this hook itself, along with a section in AGENTS.md and CLAUDE.md that codefall
 // owns and bd cannot be told to leave alone — so init writes the hook and bd writes nothing outside
-// .beads/. One case per harness, like the plugin step, and for the same reason.
+// .beads/. A harness that takes codefall's skills as files has no session hook for them yet, so its
+// report is a skip rather than an error that would leave the project half set up.
 func (i *Initialize) hook(_ context.Context, request Request) (domain.StepResult, error) {
-	switch request.Harness {
-	case domain.HarnessClaudeCode:
-		return i.claudeCodeHook(request.Dir)
-	default:
-		return domain.StepResult{}, fmt.Errorf("harness %q has no session hook to add", request.Harness)
+	mechanism, known := harnessMechanisms[request.Harness]
+	if !known {
+		return domain.StepResult{}, fmt.Errorf("harness %q has no plugin mechanism", request.Harness)
 	}
+
+	if mechanism != claudeMarketplace {
+		return domain.HookStep.Skipped(fmt.Sprintf(
+			"codefall has no session hook for %s yet", request.Harness)), nil
+	}
+
+	return i.claudeCodeHook(request.Dir)
 }
 
 // claudeCodeHook appends codefall's SessionStart hook to .claude/settings.json, which the plugin

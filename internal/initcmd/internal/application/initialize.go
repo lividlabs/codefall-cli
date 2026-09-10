@@ -42,6 +42,16 @@ type CommandResult struct {
 	ExitCode int
 }
 
+// PluginFetcher retrieves the plugin's files at a given release (one gateway role). Where they are
+// fetched from and the shape they arrive in — a tarball of the repository at a tag — are its
+// business; the use case names a version and a directory.
+type PluginFetcher interface {
+	// Fetch downloads the plugin at version and mirrors the plugin's tree under destDir. The
+	// mirror is what the skills resolve against, so the tree's shapes are one: skills at the root
+	// of the skills directory, shared beside them.
+	Fetch(ctx context.Context, version, destDir string) error
+}
+
 // Request is what presentation hands the use case: every answer a survey or a set of flags could
 // collect, already parsed. Absence is an Option, so "no project number" and "project number zero"
 // cannot be confused (ADR-GO-03). Tracker may be empty when settings already exist and Force is
@@ -53,6 +63,10 @@ type Request struct {
 	GitHubRepo    mo.Option[string]
 	GitHubProject mo.Option[int]
 	Harness       string
+	// PluginVersion is the release a skills-directory harness is fetched from; absent means the
+	// pinned default in the domain. Claude Code install takes the marketplace instead, so it has
+	// no use for one.
+	PluginVersion mo.Option[string]
 	Force         bool
 }
 
@@ -70,13 +84,14 @@ type Observer interface {
 // plugin, initialises Beads, gives the harness the session hook that primes a session with what
 // Beads knows, and writes the section of AGENTS.md that says how the project uses it.
 type Initialize struct {
-	files  FileSystem
-	runner CommandRunner
+	files   FileSystem
+	runner  CommandRunner
+	fetcher PluginFetcher
 }
 
-// NewInitialize builds the use case over its two gateways.
-func NewInitialize(files FileSystem, runner CommandRunner) *Initialize {
-	return &Initialize{files: files, runner: runner}
+// NewInitialize builds the use case over its gateways.
+func NewInitialize(files FileSystem, runner CommandRunner, fetcher PluginFetcher) *Initialize {
+	return &Initialize{files: files, runner: runner, fetcher: fetcher}
 }
 
 // step is one unit of work in a run. It returns what it did, or an error that stops the run: a step
