@@ -6,28 +6,32 @@ import (
 )
 
 func TestHarnessesAreSortedAndCopied(t *testing.T) {
-	if got, want := Harnesses(), []string{HarnessClaudeCode}; !slices.Equal(got, want) {
+	want := []string{
+		HarnessAntigravity, HarnessClaudeCode, HarnessCodex, HarnessMuse, HarnessOpenCode,
+	}
+
+	if got := Harnesses(); !slices.Equal(got, want) {
 		t.Errorf("Harnesses() = %q, want %q", got, want)
 	}
 
 	// The caller gets a copy: mutating it must not change what the next caller sees.
 	Harnesses()[0] = "mutated"
 
-	if got := Harnesses()[0]; got != HarnessClaudeCode {
-		t.Errorf("Harnesses()[0] after a caller mutated its copy = %q, want %q", got, HarnessClaudeCode)
+	if got := Harnesses()[0]; got != HarnessAntigravity {
+		t.Errorf("Harnesses()[0] after a caller mutated its copy = %q, want %q", got, HarnessAntigravity)
 	}
 }
 
 func TestParseHarness(t *testing.T) {
-	if got, err := ParseHarness(HarnessClaudeCode); err != nil || got != HarnessClaudeCode {
-		t.Errorf("ParseHarness(%q) = %q, %v, want %q, nil", HarnessClaudeCode, got, err, HarnessClaudeCode)
+	if got, err := ParseHarness(HarnessCodex); err != nil || got != HarnessCodex {
+		t.Errorf("ParseHarness(%q) = %q, %v, want %q, nil", HarnessCodex, got, err, HarnessCodex)
 	}
 
-	err := errorFrom(ParseHarness("codex"))
+	err := errorFrom(ParseHarness("cursor"))
 
-	want := `harness "codex" is not supported yet (supported: claude-code)`
+	want := `harness "cursor" is not supported yet (supported: antigravity, claude-code, codex, muse, opencode)`
 	if err == nil || err.Error() != want {
-		t.Errorf("ParseHarness(%q) error = %v, want %q", "codex", err, want)
+		t.Errorf("ParseHarness(%q) error = %v, want %q", "cursor", err, want)
 	}
 }
 

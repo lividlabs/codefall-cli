@@ -104,7 +104,7 @@ func TestPluginStepDeclaresWhateverTheProjectIsMissing(t *testing.T) {
 			files := settled(tc.settings)
 			runner := toolsInstalled()
 
-			report, err := NewInitialize(files, runner).Run(t.Context(), pluginRequest(), nil)
+			report, err := NewInitialize(files, runner, newFakePluginFetcher()).Run(t.Context(), pluginRequest(), nil)
 			if err != nil {
 				t.Fatalf("Run: %v", err)
 			}
@@ -146,7 +146,7 @@ func TestPluginStepSkipsAProjectThatHasBoth(t *testing.T) {
 	report, err := NewInitialize(settled(
 		`{"enabledPlugins": {"codefall@codefall": true},`+
 			`"extraKnownMarketplaces": {"codefall": {"source": "lividlabs/codefall-plugin"}}}`,
-	), runner).Run(t.Context(), pluginRequest(), nil)
+	), runner, newFakePluginFetcher()).Run(t.Context(), pluginRequest(), nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -180,7 +180,7 @@ func TestBothStepsTreatAFileThatSaysNothingAsAMissingOne(t *testing.T) {
 
 			runner := toolsInstalled()
 
-			report, err := NewInitialize(files, runner).Run(t.Context(), pluginRequest(), nil)
+			report, err := NewInitialize(files, runner, newFakePluginFetcher()).Run(t.Context(), pluginRequest(), nil)
 			if err != nil {
 				t.Fatalf("Run: %v", err)
 			}
@@ -228,7 +228,7 @@ func TestPluginStepStopsTheRunWhenTheHarnessRefuses(t *testing.T) {
 
 			observer := &recordingObserver{}
 
-			report, err := NewInitialize(settled(""), runner).Run(t.Context(), pluginRequest(), observer)
+			report, err := NewInitialize(settled(""), runner, newFakePluginFetcher()).Run(t.Context(), pluginRequest(), observer)
 			if err == nil {
 				t.Fatalf("Run = %+v, want an error", report)
 			}
@@ -259,7 +259,7 @@ func TestPluginStepStopsTheRunWhenTheHarnessCannotBeStarted(t *testing.T) {
 	runner := toolsInstalled()
 	runner.errs[marketplaceAdd] = errors.New("broken pipe")
 
-	_, err := NewInitialize(settled(""), runner).Run(t.Context(), pluginRequest(), nil)
+	_, err := NewInitialize(settled(""), runner, newFakePluginFetcher()).Run(t.Context(), pluginRequest(), nil)
 	if err == nil || !strings.Contains(err.Error(), "run claude plugin marketplace add") {
 		t.Errorf("Run error = %v, want it to say the command could not be run", err)
 	}
@@ -302,7 +302,7 @@ func TestPluginStepReportsSettingsItCannotRead(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			runner := toolsInstalled()
 
-			_, err := NewInitialize(tc.files(), runner).Run(t.Context(), pluginRequest(), nil)
+			_, err := NewInitialize(tc.files(), runner, newFakePluginFetcher()).Run(t.Context(), pluginRequest(), nil)
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Errorf("Run error = %v, want it to mention %q", err, tc.want)
 			}
@@ -314,15 +314,14 @@ func TestPluginStepReportsSettingsItCannotRead(t *testing.T) {
 	}
 }
 
-// The switch is where the next harness lands; today anything but Claude Code is a failure rather
-// than a step that quietly does nothing. Presentation refuses these values before the use case sees
-// them, so this is a guard and not a path a person can take.
+// The mechanism table is a guard: presentation refuses an unknown harness before the use case sees
+// it, so this is a path a run should never take.
 func TestPluginStepRefusesAHarnessItDoesNotKnow(t *testing.T) {
 	request := pluginRequest()
 	request.Harness = "aider"
 
-	_, err := NewInitialize(settled(""), toolsInstalled()).Run(t.Context(), request, nil)
-	if err == nil || !strings.Contains(err.Error(), `harness "aider" has no plugin to install`) {
-		t.Errorf("Run error = %v, want it to say the harness has no plugin", err)
+	_, err := NewInitialize(settled(""), toolsInstalled(), newFakePluginFetcher()).Run(t.Context(), request, nil)
+	if err == nil || !strings.Contains(err.Error(), `harness "aider" has no plugin mechanism`) {
+		t.Errorf("Run error = %v, want it to say the harness has no plugin mechanism", err)
 	}
 }

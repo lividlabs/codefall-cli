@@ -34,10 +34,15 @@ func Register(injector do.Injector) {
 		return infrastructure.NewExecCommandRunner(), nil
 	})
 
+	do.Provide(injector, func(do.Injector) (application.PluginFetcher, error) {
+		return infrastructure.NewCodeloadPluginFetcher(), nil
+	})
+
 	do.Provide(injector, func(i do.Injector) (presentation.InitializeUseCase, error) {
 		return application.NewInitialize(
 			do.MustInvoke[application.FileSystem](i),
 			do.MustInvoke[application.CommandRunner](i),
+			do.MustInvoke[application.PluginFetcher](i),
 		), nil
 	})
 }

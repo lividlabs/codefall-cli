@@ -28,17 +28,40 @@ const (
 	claudeFullName = claudeDir + "/" + claudeFile
 )
 
+// how a harness gets codefall's plugin. Claude Code takes a marketplace install through its own
+// CLI; every other harness takes the plugin's files, mirrored under the project's .agents/
+// directory. The mapping from harness to mechanism is the table below: adding a harness that
+// uses the skills directory is one row, and adding a mechanism is a new case in plugin().
+type mechanism int
+
+const (
+	claudeMarketplace mechanism = iota
+	skillsIntoAgents
+)
+
+var harnessMechanisms = map[string]mechanism{
+	domain.HarnessAntigravity: skillsIntoAgents,
+	domain.HarnessClaudeCode:  claudeMarketplace,
+	domain.HarnessCodex:       skillsIntoAgents,
+	domain.HarnessMuse:        skillsIntoAgents,
+	domain.HarnessOpenCode:    skillsIntoAgents,
+}
+
 // plugin is the second step of a run: it makes codefall's skills available to the harness the
 // project uses.
-//
-// One case per harness. Claude Code is the only one today, and presentation has already refused
-// every other value — so the default is unreachable, and it is where the next harness lands.
 func (i *Initialize) plugin(ctx context.Context, request Request) (domain.StepResult, error) {
-	switch request.Harness {
-	case domain.HarnessClaudeCode:
+	mechanism, known := harnessMechanisms[request.Harness]
+	if !known {
+		return domain.StepResult{}, fmt.Errorf("harness %q has no plugin mechanism", request.Harness)
+	}
+
+	switch mechanism {
+	case claudeMarketplace:
 		return i.claudeCodePlugin(ctx, request.Dir)
+	case skillsIntoAgents:
+		return i.skillsDirPlugin(ctx, request)
 	default:
-		return domain.StepResult{}, fmt.Errorf("harness %q has no plugin to install", request.Harness)
+		return domain.StepResult{}, fmt.Errorf("mechanism %d has no installer", mechanism)
 	}
 }
 

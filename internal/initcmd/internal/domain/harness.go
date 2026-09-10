@@ -6,15 +6,26 @@ import (
 	"strings"
 )
 
-// The coding harnesses codefall can set up. Claude Code is the only one today; the flag exists so
-// the later steps of init have something to branch on.
+// The coding harnesses codefall can set up.
 //
 // This is initcmd's own, unlike the settings format: nothing else in the project has an opinion
 // about which harnesses can be set up, because setting them up is what init does.
-const HarnessClaudeCode = "claude-code"
+const (
+	HarnessAntigravity = "antigravity"
+	HarnessClaudeCode  = "claude-code"
+	HarnessCodex       = "codex"
+	HarnessMuse        = "muse"
+	HarnessOpenCode    = "opencode"
+)
 
 // The list is sorted once, here.
-var harnesses = slices.Sorted(slices.Values([]string{HarnessClaudeCode}))
+var harnesses = slices.Sorted(slices.Values([]string{
+	HarnessAntigravity,
+	HarnessClaudeCode,
+	HarnessCodex,
+	HarnessMuse,
+	HarnessOpenCode,
+}))
 
 // Harnesses returns the supported harness names, sorted.
 func Harnesses() []string {

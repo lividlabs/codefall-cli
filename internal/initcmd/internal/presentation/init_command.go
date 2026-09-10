@@ -59,7 +59,9 @@ func NewInitCommand(initialize InitializeUseCase) *cobra.Command {
 		Use:   "init",
 		Short: "Set this directory up for codefall",
 		Long: "Creates .codefall/settings.json from your answers. Every question is also a flag, so " +
-			"a scripted run passes them and is never prompted.",
+			"a scripted run passes them and is never prompted. The codefall plugin is installed for " +
+			"the harness: Claude Code gets it at project scope into .claude/settings.json, and a " +
+			"harness that reads the .agents/skills convention gets the plugin's tree under .agents/.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runInit(cmd, initialize, flags)
@@ -78,6 +80,7 @@ type initFlags struct {
 	githubRepo    string
 	githubProject int
 	harness       string
+	pluginVersion string
 	force         bool
 }
 
@@ -90,7 +93,10 @@ func (f *initFlags) register(cmd *cobra.Command) {
 	cmd.Flags().IntVar(&f.githubProject, "github-project", 0,
 		"number of the GitHub Project to use (optional)")
 	cmd.Flags().StringVar(&f.harness, "harness", domain.HarnessClaudeCode,
-		"coding harness to set up; claude-code is the only one supported today")
+		"coding harness to set up ("+strings.Join(domain.Harnesses(), ", ")+")")
+	cmd.Flags().StringVar(&f.pluginVersion, "plugin-version", "",
+		"plugin release to install from the plugin repository (harnesses that read .agents/skills "+
+			"only)")
 	cmd.Flags().BoolVar(&f.force, "force", false,
 		"rewrite .codefall/settings.json if it is already there")
 }
@@ -135,6 +141,19 @@ func buildRequest(
 	}
 
 	request := application.Request{Dir: dir, Harness: harness, Force: flags.force}
+
+	// The Claude Code install takes the marketplace rather than a release, so it has no version to
+	// give. The check lives here, with the other flag-combination rejections, rather than in the
+	// use case's boundary, because the sentence that names the flag is the one that helps.
+	if flags.pluginVersion != "" {
+		if harness == domain.HarnessClaudeCode {
+			return application.Request{}, fmt.Errorf(
+				"the --plugin-version flag is not used with --harness %s (its plugin comes from "+
+					"the marketplace)", domain.HarnessClaudeCode)
+		}
+
+		request.PluginVersion = mo.Some(flags.pluginVersion)
+	}
 
 	if flags.tracker != "" {
 		tracker, err := settings.ParseTracker(flags.tracker)
