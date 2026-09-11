@@ -23,7 +23,9 @@ mise use packslip:github.com/lividlabs/codefall-cli     # current project
 mise use -g packslip:github.com/lividlabs/codefall-cli  # global installation
 ```
 
+### Download pre-compiled binaries
 
+All realease binaries can be found on the [Github project release list](https://github.com/lividlabs/codefall-cli/releases).
 
 ### Getting Started
 
@@ -35,8 +37,6 @@ codefall init
 
 `codefall init` detects (or takes `--harness`) and installs for the harness: Claude Code, Codex,
 Muse, OpenCode, or Antigravity. 
-
-default branch, and a `SessionStart` prime on what Beads knows where the harness has the event.
 
 ## CLI commands
 
