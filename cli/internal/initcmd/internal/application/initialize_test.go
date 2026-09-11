@@ -169,26 +169,20 @@ type fetchCall struct {
 	dir string
 }
 
-// fakePluginFetcher remembers each Fetch and answers success unless the test gave it an error;
-// Version reports the test's version, as the embedded tree reports its own.
+// fakePluginFetcher remembers each Fetch and answers success unless the test gave it an error.
 type fakePluginFetcher struct {
-	calls   []fetchCall
-	err     error
-	version string
+	calls []fetchCall
+	err   error
 }
 
 func newFakePluginFetcher() *fakePluginFetcher {
-	return &fakePluginFetcher{version: "0.0.0-test"}
+	return &fakePluginFetcher{}
 }
 
 func (f *fakePluginFetcher) Fetch(_ context.Context, destDir string) error {
 	f.calls = append(f.calls, fetchCall{dir: destDir})
 
 	return f.err
-}
-
-func (f *fakePluginFetcher) Version() (string, error) {
-	return f.version, nil
 }
 
 // --- the run -----------------------------------------------------------------------------------

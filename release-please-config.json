@@ -4,15 +4,8 @@
     ".": {
       "release-type": "simple",
       "package-name": "codefall",
-      "changelog-path": "extensions/CHANGELOG.md",
-      "include-component-in-tag": false,
-      "extra-files": [
-        {
-          "type": "json",
-          "path": "extensions/.claude-plugin/plugin.json",
-          "jsonpath": "$.version"
-        }
-      ]
+      "changelog-path": "CHANGELOG.md",
+      "include-component-in-tag": false
     }
   },
   "changelog-sections": [

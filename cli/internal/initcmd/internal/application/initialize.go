@@ -42,14 +42,11 @@ type CommandResult struct {
 	ExitCode int
 }
 
-// PluginFetcher copies the plugin's files and knows which version they are (one gateway role).
-// The tree is embedded in the binary, so neither is interesting — the fetcher mirrors files and
-// reads its manifest's version.
+// PluginFetcher copies the plugin's files (one gateway role); the tree is embedded in the binary,
+// so fetching is a local copy and the role holds no version to check against.
 type PluginFetcher interface {
 	// Fetch mirrors the plugin's tree onto destDir.
 	Fetch(ctx context.Context, destDir string) error
-	// Version reports the release the tree belongs to, for the re-copy check.
-	Version() (string, error)
 }
 
 // Request is what presentation hands the use case: every answer a survey or a set of flags could
