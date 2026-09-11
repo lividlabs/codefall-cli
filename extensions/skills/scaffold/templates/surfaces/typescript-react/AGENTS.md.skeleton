@@ -1,0 +1,65 @@
+# <package / app name>
+
+<One line: what this surface is.>
+
+## Applicable ADRs
+
+The why lives in the ADRs. This file is the operative rules only — never restate the reasoning here.
+
+- [ADR-BASE-01 Clean Architecture](<path>/docs/adrs/ADR-BASE-01-clean-architecture.md) ·
+  [ADR-BASE-02 Package-by-component](<path>/docs/adrs/ADR-BASE-02-package-by-component.md) ·
+  [ADR-BASE-03 Extraction readiness](<path>/docs/adrs/ADR-BASE-03-extraction-readiness.md) ·  <delete this link on a surface that can never be split>
+  [ADR-TS-01 Dependency Injection](<path>/docs/adrs/ADR-TS-01-dependency-injection.md) ·
+  [ADR-TS-02 Frontend state](<path>/docs/adrs/ADR-TS-02-frontend-state.md) ·
+  [ADR-TS-03 Boundary enforcement](<path>/docs/adrs/ADR-TS-03-boundary-enforcement.md)
+- <plus any surface-specific ADRs>
+- <plus this project's own ADRs, numbered separately from ADR-001>
+
+## Structure
+
+- Package-by-component: capabilities as folders under `src/<component>/`, each fronted by `index.ts`.
+- Clean layers nest **inside** a component: `domain/` `application/` `infrastructure/` `presentation/`.
+- Shared technical modules under `src/shared/` (each its own facade); shared UI/kit is its own package.
+
+## Layer rules
+
+- Dependencies point inward only. Interfaces live in `application/` with the use cases; `domain/` =
+  entities + value objects + errors.
+- Controllers/handlers are thin; use cases never see delivery types.
+
+## DI
+
+- Inversify; inject interfaces only; `Thing` / `<Qualifier>Thing` naming; tokens in `types.ts`
+  (`TYPES`). Rebind to mocks in tests.
+- <frontend only> Container wires logic; the query client + Zustand stores stay idiomatic (not in the
+  container); reach the container via `useInjection`.
+
+## State  <frontend only>
+
+- Server → TanStack Query · navigation → the router · shared client → Zustand · local → `useState`.
+  Never mirror server or navigation state into Zustand.
+
+## Extraction readiness  <never-splittable: delete this section>
+
+- Each component owns its data. Reference another component's records **by id**, never by foreign
+  key, and resolve them through that component's facade.
+- One transaction commits one component's writes. Never span two.
+- What crosses a facade is a **contract** — a data shape of primitives and ids — never a domain
+  entity.
+- Shared modules hold technical primitives (clock, logger, ids). Never the data layer.
+- Knowingly breaking one of these is a decision: record it in the decision log as extraction debt.
+
+## Enforcement
+
+- `index.ts` facades + `eslint-plugin-boundaries`. Don't import past a component's facade.
+
+## Workflow
+
+- Conventional commits, with a body that says *why*.
+- Work happens on a branch or worktree, never on `main`. Stacked branches are fine for landing
+  large work as smaller reviewable pieces.
+- Deliberately minimal: no branching model beyond this is decided here.
+
+## Gotchas
+
+- <surface-specific things a contributor must know>
