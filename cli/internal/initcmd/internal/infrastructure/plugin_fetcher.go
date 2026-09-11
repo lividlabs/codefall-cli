@@ -6,6 +6,8 @@ import (
 	"io/fs"
 	"path/filepath"
 
+	"sort"
+
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/process"
 )
 
@@ -21,10 +23,12 @@ func NewEmbeddedPluginFetcher(src fs.FS) *EmbeddedPluginFetcher {
 	return &EmbeddedPluginFetcher{src: src, files: process.NewFileSystem()}
 }
 
-// Fetch mirrors every file in the embedded tree onto destDir. Entries are files and empty dirs in
-// an embed.FS, nothing else — the walk is a copy and nothing else.
-func (f *EmbeddedPluginFetcher) Fetch(ctx context.Context, destDir string) error {
-	return fs.WalkDir(f.src, ".", func(path string, d fs.DirEntry, err error) error {
+// Fetch mirrors every file in the embedded tree onto destDir, and returns the relative paths it
+// wrote (a manifest-of-one-copy) sorted so two sequential runs produce the same record.
+func (f *EmbeddedPluginFetcher) Fetch(ctx context.Context, destDir string) ([]string, error) {
+	var installed []string
+
+	err := fs.WalkDir(f.src, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -52,6 +56,10 @@ func (f *EmbeddedPluginFetcher) Fetch(ctx context.Context, destDir string) error
 			return fmt.Errorf("write %s: %w", target, err)
 		}
 
+		installed = append(installed, path)
 		return nil
 	})
+
+	sort.Strings(installed)
+	return installed, err
 }
