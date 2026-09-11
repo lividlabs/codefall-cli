@@ -1,5 +1,9 @@
 # codefall-cli
 
+The repo root is a mini-monorepo-in-progress: the CLI lives under `cli/`, and the codefall plugin
+tree joins it (under `extensions/`) when the merge of `lividlabs/codefall-plugin` lands. Every path
+below is relative to `cli/` unless it says otherwise.
+
 A Go command-line tool. One surface, one app, one module.
 
 **State: two components and four shared modules.** `internal/doctor/` (`codefall doctor`) is the
