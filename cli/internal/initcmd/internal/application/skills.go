@@ -2,80 +2,27 @@ package application
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io/fs"
 	"path/filepath"
-
-	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 )
 
 // agentsDir is where a harness that reads the .agents/skills convention keeps its skills, relative
 // to the directory init runs in. The display form is what a person reads in a report; the path form
-// is what the file system is given. The plugin manifest made alongside them is what a rerun checks
-// its version against.
+// is what the file system is given.
 const (
 	agentsDir      = ".agents"
 	agentsFullName = agentsDir + "/"
-	pluginManifest = ".claude-plugin/plugin.json"
 )
 
 // skillsDirPlugin is the plugin step for every harness that reads the .agents/skills convention:
-// it copies the plugin tree out of the embedded FS under the project's .agents/. A run whose
-// installed manifest matches the embedded version is skipped: the tree it would write is the tree
-// that is already there.
+// it copies the embedded plugin tree under the project's .agents/. There is nothing to compare — a
+// copy of fifty files is cheap, an install-what-you-have is not a state to negotiate with.
 func (i *Initialize) skillsDirPlugin(ctx context.Context, request Request) (domain.StepResult, error) {
-	version, err := i.fetcher.Version()
-	if err != nil {
-		return domain.StepResult{}, fmt.Errorf("read the embedded plugin version: %w", err)
-	}
-
-	installed, err := i.installedPluginVersion(request.Dir)
-	if err != nil {
-		return domain.StepResult{}, err
-	}
-
-	if previous, ok := installed.Get(); ok && previous == version {
-		return domain.PluginStep.Skipped(fmt.Sprintf(
-			"codefall's skills are already at %s in %s", version, agentsFullName)), nil
-	}
-
 	if err := i.fetcher.Fetch(ctx, filepath.Join(request.Dir, agentsDir)); err != nil {
 		return domain.StepResult{}, fmt.Errorf("install the embedded plugin: %w", err)
 	}
 
-	return domain.PluginStep.Done(fmt.Sprintf(
-		"installed codefall's skills at %s into %s", version, agentsFullName)), nil
-}
-
-// installedPluginVersion is the release the mirror in .agents/ came from, read out of the plugin's
-// own manifest rather than asked of any harness. A directory with nothing to say says nothing —
-// the install then runs — and a file that cannot be read or is not a manifest is an error, because
-// the step is about to write over it. A manifest without a version is the same as none at all.
-func (i *Initialize) installedPluginVersion(dir string) (mo.Option[string], error) {
-	path := filepath.Join(dir, agentsDir, pluginManifest)
-
-	data, err := i.files.ReadFile(path)
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-		return mo.None[string](), nil
-	case err != nil:
-		return mo.None[string](), fmt.Errorf("read %s%s: %w", agentsFullName, pluginManifest, err)
-	}
-
-	var manifest struct {
-		Version string `json:"version"`
-	}
-	if err := json.Unmarshal(data, &manifest); err != nil {
-		return mo.None[string](), fmt.Errorf("decode %s%s: %w", agentsFullName, pluginManifest, err)
-	}
-
-	if manifest.Version == "" {
-		return mo.None[string](), nil
-	}
-
-	return mo.Some(manifest.Version), nil
+	return domain.PluginStep.Done("installed codefall's skills into " + agentsFullName), nil
 }
