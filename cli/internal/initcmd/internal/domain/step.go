@@ -29,12 +29,8 @@ var (
 // MarketplaceName — written out rather than composed, because it is the string the harness prints
 // and the string a person types.
 const (
-	PluginID          = "codefall@codefall"
-	MarketplaceName   = "codefall"
-	MarketplaceSource = "lividlabs/codefall-plugin"
-
 	// ManifestName is the install record the plugin step writes, so upgrade and drift checks can
-	// know exactly which files belong to it. It lives in .codefall/, next to the settings.
+	// know exactly which files belong to it. It lives in .codefall/, next to settings.json.
 	ManifestName = ".codefall/manifest.json"
 )
 
