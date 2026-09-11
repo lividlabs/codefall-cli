@@ -42,11 +42,11 @@ type CommandResult struct {
 	ExitCode int
 }
 
-// PluginFetcher copies the plugin's files and records what it copied (one gateway role): the
+// ExtensionFetcher copies the extension's files and records what it copied (one gateway role): the
 // embedded tree in the binary, so Fetch is a local copy, and the relative paths it wrote are
 // what init uses for the install manifest.
-type PluginFetcher interface {
-	// Fetch mirrors the plugin's tree onto destDir and returns every path it wrote, relative to
+type ExtensionFetcher interface {
+	// Fetch mirrors the extension's tree onto destDir and returns every path it wrote, relative to
 	// destDir, so the caller can put it on record.
 	Fetch(ctx context.Context, destDir string) ([]string, error)
 }
@@ -76,16 +76,16 @@ type Observer interface {
 }
 
 // Initialize sets a project up for codefall: it writes .codefall/settings.json, installs the harness
-// plugin, initialises Beads, gives the harness the session hook that primes a session with what
+// extension, initialises Beads, gives the harness the session hook that primes a session with what
 // Beads knows, and writes the section of AGENTS.md that says how the project uses it.
 type Initialize struct {
 	files   FileSystem
 	runner  CommandRunner
-	fetcher PluginFetcher
+	fetcher ExtensionFetcher
 }
 
 // NewInitialize builds the use case over its gateways.
-func NewInitialize(files FileSystem, runner CommandRunner, fetcher PluginFetcher) *Initialize {
+func NewInitialize(files FileSystem, runner CommandRunner, fetcher ExtensionFetcher) *Initialize {
 	return &Initialize{files: files, runner: runner, fetcher: fetcher}
 }
 
@@ -114,7 +114,7 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 
 	steps := []step{
 		{Step: domain.SettingsStep, run: i.settings},
-		{Step: domain.PluginStep, run: i.plugin},
+		{Step: domain.ExtensionStep, run: i.extension},
 		{Step: domain.BeadsStep, run: i.beads},
 		{Step: domain.HookStep, run: i.hook},
 		{Step: domain.AgentsStep, run: i.agents},

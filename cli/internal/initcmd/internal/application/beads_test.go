@@ -26,7 +26,7 @@ func beadsResult(t *testing.T, report domain.Report) domain.StepResult {
 func TestBeadsStepSkipsARepositoryThatAlreadyHasBeads(t *testing.T) {
 	runner := toolsInstalled()
 
-	report, err := NewInitialize(settled("{}"), runner, newFakePluginFetcher()).Run(t.Context(), beadsRequest(), nil)
+	report, err := NewInitialize(settled("{}"), runner, newFakeExtensionFetcher()).Run(t.Context(), beadsRequest(), nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestBeadsStepInitializesBeads(t *testing.T) {
 			runner := uninitialized()
 			runner.runs[beadsInit] = tc.result
 
-			report, err := NewInitialize(settled("{}"), runner, newFakePluginFetcher()).Run(t.Context(), beadsRequest(), nil)
+			report, err := NewInitialize(settled("{}"), runner, newFakeExtensionFetcher()).Run(t.Context(), beadsRequest(), nil)
 			if err != nil {
 				t.Fatalf("Run: %v", err)
 			}
@@ -111,7 +111,7 @@ func TestBeadsStepStopsTheRunWhenBeadsRefuses(t *testing.T) {
 	files := settled("{}")
 	observer := &recordingObserver{}
 
-	report, err := NewInitialize(files, runner, newFakePluginFetcher()).Run(t.Context(), beadsRequest(), observer)
+	report, err := NewInitialize(files, runner, newFakeExtensionFetcher()).Run(t.Context(), beadsRequest(), observer)
 	if err == nil {
 		t.Fatalf("Run = %+v, want an error", report)
 	}
@@ -125,7 +125,7 @@ func TestBeadsStepStopsTheRunWhenBeadsRefuses(t *testing.T) {
 		t.Errorf("error = %q, want it to mention %q", err, want)
 	}
 
-	// The settings and plugin steps finished; the beads step started and never did.
+	// The settings and extension steps finished; the beads step started and never did.
 	if len(observer.started) != 3 || len(observer.finished) != 2 {
 		t.Errorf("observer saw %d started and %d finished, want 3 and 2",
 			len(observer.started), len(observer.finished))
@@ -141,7 +141,7 @@ func TestBeadsStepStopsTheRunWhenBeadsCannotBeStarted(t *testing.T) {
 	runner := uninitialized()
 	runner.errs[beadsInit] = errors.New("broken pipe")
 
-	_, err := NewInitialize(settled("{}"), runner, newFakePluginFetcher()).Run(t.Context(), beadsRequest(), nil)
+	_, err := NewInitialize(settled("{}"), runner, newFakeExtensionFetcher()).Run(t.Context(), beadsRequest(), nil)
 	if err == nil || !strings.Contains(err.Error(), "run bd init --non-interactive --skip-agents") {
 		t.Errorf("Run error = %v, want it to say the command could not be run", err)
 	}

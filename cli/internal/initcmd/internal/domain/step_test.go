@@ -15,12 +15,11 @@ func TestStepResults(t *testing.T) {
 }
 
 // A step is named by its id in the error that stops a run, so two steps cannot share one. The
-// plugin's identifier is its own name joined to the marketplace it comes from; the two are separate
 // constants because the harness CLI is given them separately.
 func TestTheStepsAreIdentifiedConsistently(t *testing.T) {
 	seen := map[string]bool{}
 
-	for _, step := range []Step{SettingsStep, PluginStep, BeadsStep, HookStep, AgentsStep} {
+	for _, step := range []Step{SettingsStep, ExtensionStep, BeadsStep, HookStep, AgentsStep} {
 		if seen[step.ID] {
 			t.Errorf("two steps have the id %q, want them distinct", step.ID)
 		}

@@ -11,17 +11,17 @@ import (
 
 // The walk mirrors the whole source tree. The promise "everything that is in the source, nothing
 // else" is checked with the names read from the destination, never from a second literal list.
-func TestEmbeddedPluginFetcherCopiesTheTree(t *testing.T) {
+func TestEmbeddedExtensionFetcherCopiesTheTree(t *testing.T) {
 	src := fstest.MapFS{
 		"hooks/hooks.json":  &fstest.MapFile{Data: []byte(`{"event": "PreToolUse"}`)},
 		"skills/x/SKILL.md": &fstest.MapFile{Data: []byte("---\nname: x\n---\n")},
 		"shared/preflight.sh": &fstest.MapFile{
 			Data: []byte("#!/bin/sh\n"),
 		},
-		"README.md":       &fstest.MapFile{Data: []byte("# plugin\n")},
+		"README.md":       &fstest.MapFile{Data: []byte("# extension\n")},
 		"docs/ROADMAP.md": &fstest.MapFile{Data: []byte("road")},
 	}
-	fetcher := NewEmbeddedPluginFetcher(src)
+	fetcher := NewEmbeddedExtensionFetcher(src)
 	dest := t.TempDir()
 
 	installed, err := fetcher.Fetch(context.Background(), dest)
@@ -65,11 +65,11 @@ func readAllFiles(t *testing.T, dir string) []string {
 }
 
 // A cancelled context ends the walk rather than halting mid-directory.
-func TestEmbeddedPluginFetcherHonoursTheContext(t *testing.T) {
+func TestEmbeddedExtensionFetcherHonoursTheContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := NewEmbeddedPluginFetcher(fstest.MapFS{"one.txt": &fstest.MapFile{}}).Fetch(ctx, t.TempDir())
+	_, err := NewEmbeddedExtensionFetcher(fstest.MapFS{"one.txt": &fstest.MapFile{}}).Fetch(ctx, t.TempDir())
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("Fetch err = %v, want context.Canceled", err)
 	}

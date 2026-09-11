@@ -16,10 +16,10 @@ func skillsRequest() Request {
 	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessCodex}
 }
 
-// The step copies the embedded plugin tree into the project's .agents/, one Fetch call, one
+// The step copies the embedded extension tree into the project's .agents/, one Fetch call, one
 // destination.
 func TestSkillsStepCopiesTheEmbeddedTree(t *testing.T) {
-	fetcher := newFakePluginFetcher()
+	fetcher := newFakeExtensionFetcher()
 
 	report, err := NewInitialize(settled(""), toolsInstalled(), fetcher).Run(t.Context(), skillsRequest(), nil)
 	if err != nil {
@@ -42,24 +42,24 @@ func TestSkillsStepCopiesTheEmbeddedTree(t *testing.T) {
 	}
 }
 
-// The fetcher failing stops the run in the plugin step, which is the second step of five, so the
+// The fetcher failing stops the run in the extension step, which is the second step of five, so the
 // report carries the one step that is already done.
 func TestSkillsStepStopsTheRunWhenTheCopyFails(t *testing.T) {
-	fetcher := newFakePluginFetcher()
+	fetcher := newFakeExtensionFetcher()
 	fetcher.err = errors.New("disk full")
 
 	_, err := NewInitialize(settled(""), toolsInstalled(), fetcher).Run(t.Context(), skillsRequest(), nil)
 	if err == nil ||
-		!strings.HasPrefix(err.Error(), domain.PluginStep.ID+": ") ||
-		!strings.Contains(err.Error(), "install the embedded plugin: disk full") {
-		t.Errorf("Run error = %v, want it to name the plugin step and the copy that failed", err)
+		!strings.HasPrefix(err.Error(), domain.ExtensionStep.ID+": ") ||
+		!strings.Contains(err.Error(), "install the embedded extension: disk full") {
+		t.Errorf("Run error = %v, want it to name the extension step and the copy that failed", err)
 	}
 }
 
-// A skills-directory harness runs all five steps: the plugin step installs where the mechanism
+// A skills-directory harness runs all five steps: the extension step installs where the mechanism
 // installs, the hook step skips, and the rest are untouched.
 func TestSkillsRunStillRunsEveryStep(t *testing.T) {
-	report, err := NewInitialize(settled(""), toolsInstalled(), newFakePluginFetcher()).Run(
+	report, err := NewInitialize(settled(""), toolsInstalled(), newFakeExtensionFetcher()).Run(
 		t.Context(), skillsRequest(), nil,
 	)
 	if err != nil {
@@ -81,7 +81,7 @@ func TestSkillsRunStillRunsEveryStep(t *testing.T) {
 	}
 
 	steps := []domain.Step{
-		domain.SettingsStep, domain.PluginStep, domain.BeadsStep, domain.HookStep, domain.AgentsStep,
+		domain.SettingsStep, domain.ExtensionStep, domain.BeadsStep, domain.HookStep, domain.AgentsStep,
 	}
 	got := make([]domain.Step, 0, len(results))
 	for _, result := range results {

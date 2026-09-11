@@ -26,13 +26,12 @@ var (
 
 // The commands a run gives its tools, keyed the way the fake runner keys them.
 const (
-	marketplaceAdd = "claude plugin marketplace add lividlabs/codefall-plugin --scope project"
-	pluginInstall  = "claude plugin install codefall@codefall --scope project -y"
-	beadsInit      = "bd init --non-interactive --skip-agents"
-	beadsInfo      = "bd info"
-	gitWorkTree    = "git rev-parse --is-inside-work-tree"
-	gitStaged      = "git diff --cached --quiet"
-	gitStatus      = "git status --porcelain -- " +
+	pluginInstall = "claude extension install codefall@codefall --scope project -y"
+	beadsInit     = "bd init --non-interactive --skip-agents"
+	beadsInfo     = "bd info"
+	gitWorkTree   = "git rev-parse --is-inside-work-tree"
+	gitStaged     = "git diff --cached --quiet"
+	gitStatus     = "git status --porcelain -- " +
 		".gitignore AGENTS.md CLAUDE.md .claude/settings.json .codex .agents"
 )
 
@@ -169,18 +168,18 @@ type fetchCall struct {
 	dir string
 }
 
-// fakePluginFetcher remembers each Fetch and answers success unless the test gave it an error.
+// fakeExtensionFetcher remembers each Fetch and answers success unless the test gave it an error.
 // Its one-file list is what a manifest would record, so the detail string mentions it.
-type fakePluginFetcher struct {
+type fakeExtensionFetcher struct {
 	calls []fetchCall
 	err   error
 }
 
-func newFakePluginFetcher() *fakePluginFetcher {
-	return &fakePluginFetcher{}
+func newFakeExtensionFetcher() *fakeExtensionFetcher {
+	return &fakeExtensionFetcher{}
 }
 
-func (f *fakePluginFetcher) Fetch(_ context.Context, destDir string) ([]string, error) {
+func (f *fakeExtensionFetcher) Fetch(_ context.Context, destDir string) ([]string, error) {
 	f.calls = append(f.calls, fetchCall{dir: destDir})
 
 	return []string{"skills/design/SKILL.md"}, f.err
@@ -192,7 +191,7 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 	files := newFakeFileSystem()
 	observer := &recordingObserver{}
 
-	report, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(
+	report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionFetcher()).Run(
 		t.Context(),
 		Request{
 			Dir:           workingDir,
@@ -229,7 +228,7 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 	// The observer sees every step start and finish, in order, and what it sees on finishing is the
 	// result the report carries.
 	steps := []domain.Step{
-		domain.SettingsStep, domain.PluginStep, domain.BeadsStep, domain.HookStep, domain.AgentsStep,
+		domain.SettingsStep, domain.ExtensionStep, domain.BeadsStep, domain.HookStep, domain.AgentsStep,
 	}
 	if !slices.Equal(observer.started, steps) {
 		t.Errorf("started = %+v, want %+v", observer.started, steps)
@@ -243,7 +242,7 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 func TestRunEncodesGitHubSettings(t *testing.T) {
 	files := newFakeFileSystem()
 
-	if _, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(
+	if _, err := NewInitialize(files, toolsInstalled(), newFakeExtensionFetcher()).Run(
 		t.Context(),
 		Request{
 			Dir:           workingDir,
@@ -308,7 +307,7 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			files := newFakeFileSystem()
 
-			if _, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(t.Context(), tc.request, nil); err != nil {
+			if _, err := NewInitialize(files, toolsInstalled(), newFakeExtensionFetcher()).Run(t.Context(), tc.request, nil); err != nil {
 				t.Fatalf("Run: %v", err)
 			}
 
@@ -328,7 +327,7 @@ func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
 	files := newFakeFileSystem()
 	files.files[settingsFull] = []byte("{}\n")
 
-	report, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(
+	report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionFetcher()).Run(
 		t.Context(),
 		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,
@@ -356,7 +355,7 @@ func TestRunRewritesSettingsWithForce(t *testing.T) {
 	files := newFakeFileSystem()
 	files.files[settingsFull] = []byte("{}\n")
 
-	report, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(
+	report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionFetcher()).Run(
 		t.Context(),
 		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode, Force: true},
 		nil,
@@ -413,7 +412,7 @@ func TestRunStopsOnAStepThatFails(t *testing.T) {
 				request.GitHubRepo = mo.Some("owner/name")
 			}
 
-			report, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(t.Context(), request, observer)
+			report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionFetcher()).Run(t.Context(), request, observer)
 			if err == nil {
 				t.Fatalf("Run = %+v, want an error", report)
 			}
@@ -442,7 +441,7 @@ func TestRunReportsAnUnreadableSettingsFile(t *testing.T) {
 	files := newFakeFileSystem()
 	files.errs[settingsFull] = errors.New("permission denied")
 
-	if _, err := NewInitialize(files, toolsInstalled(), newFakePluginFetcher()).Run(
+	if _, err := NewInitialize(files, toolsInstalled(), newFakeExtensionFetcher()).Run(
 		t.Context(),
 		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,
@@ -455,7 +454,7 @@ func TestRunStopsOnACancelledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	_, err := NewInitialize(newFakeFileSystem(), toolsInstalled(), newFakePluginFetcher()).Run(
+	_, err := NewInitialize(newFakeFileSystem(), toolsInstalled(), newFakeExtensionFetcher()).Run(
 		ctx,
 		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
 		nil,
@@ -470,21 +469,21 @@ func TestRunStopsOnACancelledContext(t *testing.T) {
 func TestSettingsExist(t *testing.T) {
 	files := newFakeFileSystem()
 
-	exists, err := NewInitialize(files, newFakeCommandRunner(), newFakePluginFetcher()).SettingsExist(workingDir)
+	exists, err := NewInitialize(files, newFakeCommandRunner(), newFakeExtensionFetcher()).SettingsExist(workingDir)
 	if err != nil || exists {
 		t.Errorf("SettingsExist of an empty directory = %v, %v, want false, nil", exists, err)
 	}
 
 	files.files[settingsFull] = []byte("{}")
 
-	exists, err = NewInitialize(files, newFakeCommandRunner(), newFakePluginFetcher()).SettingsExist(workingDir)
+	exists, err = NewInitialize(files, newFakeCommandRunner(), newFakeExtensionFetcher()).SettingsExist(workingDir)
 	if err != nil || !exists {
 		t.Errorf("SettingsExist with a settings file = %v, %v, want true, nil", exists, err)
 	}
 
 	files.errs[settingsFull] = errors.New("permission denied")
 
-	if _, err := NewInitialize(files, newFakeCommandRunner(), newFakePluginFetcher()).SettingsExist(workingDir); err == nil {
+	if _, err := NewInitialize(files, newFakeCommandRunner(), newFakeExtensionFetcher()).SettingsExist(workingDir); err == nil {
 		t.Error("SettingsExist of an unreadable file = nil error, want an error")
 	}
 }
@@ -515,7 +514,7 @@ func TestSuggestGitHubRepo(t *testing.T) {
 		runner := withGit(withGH(), "git@github.com:lividlabs/stale.git\n")
 		runner.runs[ghRepoView] = CommandResult{Stdout: "lividlabs/codefall-cli\n"}
 
-		got := NewInitialize(newFakeFileSystem(), runner, newFakePluginFetcher()).SuggestGitHubRepo(t.Context(), workingDir)
+		got := NewInitialize(newFakeFileSystem(), runner, newFakeExtensionFetcher()).SuggestGitHubRepo(t.Context(), workingDir)
 		if repo, ok := got.Get(); !ok || repo != "lividlabs/codefall-cli" {
 			t.Errorf("SuggestGitHubRepo = %v, want Some(%q)", got, "lividlabs/codefall-cli")
 		}
@@ -547,7 +546,7 @@ func TestSuggestGitHubRepo(t *testing.T) {
 		},
 	} {
 		t.Run("the origin remote when "+tc.name, func(t *testing.T) {
-			got := NewInitialize(newFakeFileSystem(), tc.runner(), newFakePluginFetcher()).SuggestGitHubRepo(t.Context(), workingDir)
+			got := NewInitialize(newFakeFileSystem(), tc.runner(), newFakeExtensionFetcher()).SuggestGitHubRepo(t.Context(), workingDir)
 			if repo, ok := got.Get(); !ok || repo != "lividlabs/codefall-cli" {
 				t.Errorf("SuggestGitHubRepo = %v, want Some(%q)", got, "lividlabs/codefall-cli")
 			}
@@ -601,7 +600,7 @@ func TestSuggestGitHubRepo(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := NewInitialize(newFakeFileSystem(), tc.runner(), newFakePluginFetcher()).SuggestGitHubRepo(t.Context(), workingDir)
+			got := NewInitialize(newFakeFileSystem(), tc.runner(), newFakeExtensionFetcher()).SuggestGitHubRepo(t.Context(), workingDir)
 			if got.IsPresent() {
 				t.Errorf("SuggestGitHubRepo = %v, want None", got)
 			}

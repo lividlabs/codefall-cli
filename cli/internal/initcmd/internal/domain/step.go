@@ -8,34 +8,30 @@ type Step struct {
 }
 
 // The steps an init run performs, in the order it performs them. The settings file comes first, the
-// harness plugin second, Beads third, the session hook that tells the harness about Beads fourth,
-// and the section that tells an agent how to use it last. The hook step follows the plugin step
+// harness extension second, Beads third, the session hook that tells the harness about Beads fourth,
+// and the section that tells an agent how to use it last. The hook step follows the extension step
 // because both of them write the harness's settings file, and the harness CLI's own merge runs
 // first. The agents step follows Beads because bd init commits what it staged, and codefall's edit
 // to AGENTS.md belongs in the author's own commit rather than bd's.
 var (
-	SettingsStep = Step{ID: "settings", Title: "Writing .codefall/settings.json"}
-	PluginStep   = Step{ID: "plugin", Title: "Installing the codefall plugin"}
-	BeadsStep    = Step{ID: "beads", Title: "Initializing Beads"}
-	HookStep     = Step{ID: "hook", Title: "Adding the Beads session hook"}
-	AgentsStep   = Step{ID: "agents", Title: "Writing the Beads section to AGENTS.md"}
+	SettingsStep  = Step{ID: "settings", Title: "Writing .codefall/settings.json"}
+	ExtensionStep = Step{ID: "extension", Title: "Installing the codefall extension"}
+	BeadsStep     = Step{ID: "beads", Title: "Initializing Beads"}
+	HookStep      = Step{ID: "hook", Title: "Adding the Beads session hook"}
+	AgentsStep    = Step{ID: "agents", Title: "Writing the Beads section to AGENTS.md"}
 )
 
-// What codefall's plugin for Claude Code is called and where it comes from. These are facts about
+// What codefall's extension for Claude Code is called and where it comes from. These are facts about
 // codefall itself, which is why they live here; how the harness CLI is asked to install them is the
 // application layer's business.
-//
-// A plugin is identified as name@marketplace, so PluginID is the plugin's own name joined to
-// MarketplaceName — written out rather than composed, because it is the string the harness prints
-// and the string a person types.
 const (
-	// ManifestName is the install record the plugin step writes, so upgrade and drift checks can
+	// ManifestName is the install record the extension step writes, so upgrade and drift checks can
 	// know exactly which files belong to it. It lives in .codefall/, next to settings.json.
 	ManifestName = ".codefall/manifest.json"
 )
 
 // The session hook codefall installs so that a harness session starts knowing about the project's
-// Beads database. These are facts about what codefall installs, like the plugin's identifiers above;
+// Beads database. These are facts about what codefall installs, like the extension's identifiers above;
 // the file the hook is written into, and the shape that file wants, belong to the application layer.
 const (
 	BeadsHookEvent   = "SessionStart"
