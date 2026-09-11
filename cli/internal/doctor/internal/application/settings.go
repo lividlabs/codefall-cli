@@ -11,8 +11,8 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
-	"github.com/lividlabs/codefall-cli/internal/shared/settings"
+	"github.com/lividlabs/codefall-cli/cli/internal/doctor/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
 // settings runs checks 1 to 4. Each one is the prerequisite of the next, so the first failure ends

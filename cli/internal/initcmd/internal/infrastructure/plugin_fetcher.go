@@ -1,123 +1,80 @@
 package infrastructure
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"io/fs"
 	"path/filepath"
-	"strings"
 
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
-	"github.com/lividlabs/codefall-cli/internal/shared/process"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/process"
 )
 
-// CodeloadPluginFetcher retrieves the plugin's release from GitHub's tarball service and mirrors
-// the plugin's tree into the project's directory. The URL shape and the root directory a tarball
-// arrives wrapped in are codeload's conventions; a tag being spelled "v" + version and the plugin
-// tree living under plugins/codefall/ are the plugin repository's conventions.
-type CodeloadPluginFetcher struct {
-	host   string
-	client *http.Client
-	files  *process.FileSystem
+// EmbeddedPluginFetcher copies the plugin tree out of the embedded extensions FS. Versioning lives
+// in the same tree, in the plugin manifest, where it also lives after install.
+type EmbeddedPluginFetcher struct {
+	src   fs.FS
+	files *process.FileSystem
 }
 
-// NewCodeloadPluginFetcher builds the real fetch gateway.
-func NewCodeloadPluginFetcher() *CodeloadPluginFetcher {
-	return &CodeloadPluginFetcher{
-		host:   "https://codeload.github.com",
-		client: http.DefaultClient,
-		files:  process.NewFileSystem(),
-	}
+// NewEmbeddedPluginFetcher builds the fetch gateway over the tree the binary was compiled with.
+// The source fs is injected so tests can drive an in-memory tree instead of the real one.
+func NewEmbeddedPluginFetcher(src fs.FS) *EmbeddedPluginFetcher {
+	return &EmbeddedPluginFetcher{src: src, files: process.NewFileSystem()}
 }
 
-// Fetch downloads the plugin's release tarball and rebases every regular file under
-// plugins/codefall/ onto destDir. Entries outside the plugin tree, and headers that are not
-// regular files, are skipped: the mirror is of the plugin's files and nothing else.
-func (f *CodeloadPluginFetcher) Fetch(ctx context.Context, version, destDir string) error {
-	ref := "v" + version
+// pluginManifest is the version file's path inside the plugin tree, before and after install.
+const pluginManifest = ".claude-plugin/plugin.json"
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet,
-		f.host+"/"+domain.MarketplaceSource+"/tar.gz/refs/tags/"+ref, nil)
+// Version returns the plugin release the embedded tree belongs to, read from the manifest before
+// anything is copied — the same check the install does.
+func (f *EmbeddedPluginFetcher) Version() (string, error) {
+	data, err := fs.ReadFile(f.src, pluginManifest)
 	if err != nil {
-		return fmt.Errorf("build the %s request: %w", ref, err)
+		return "", fmt.Errorf("read %s from the embedded tree: %w", pluginManifest, err)
 	}
 
-	response, err := f.client.Do(request)
-	if err != nil {
-		return fmt.Errorf("GET %s: %w", ref, err)
+	var manifest struct {
+		Version string `json:"version"`
 	}
-	defer func() { _ = response.Body.Close() }()
-
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("GET %s: HTTP %d", ref, response.StatusCode)
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return "", fmt.Errorf("decode %s from the embedded tree: %w", pluginManifest, err)
 	}
 
-	uncompressed, err := gzip.NewReader(response.Body)
-	if err != nil {
-		return fmt.Errorf("open the %s tarball: %w", ref, err)
-	}
-	defer func() { _ = uncompressed.Close() }()
+	return manifest.Version, nil
+}
 
-	entries := tar.NewReader(uncompressed)
-
-	for {
-		header, err := entries.Next()
-		if err == io.EOF {
-			break
-		}
+// Fetch mirrors every file in the embedded tree onto destDir. Entries are files and empty dirs in
+// an embed.FS, nothing else — the walk is a copy and nothing else, with the manifest path visible.
+func (f *EmbeddedPluginFetcher) Fetch(ctx context.Context, destDir string) error {
+	return fs.WalkDir(f.src, ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("read the %s tarball: %w", ref, err)
+			return err
 		}
+
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
-		if header.Typeflag != tar.TypeReg {
-			continue
+		if d.IsDir() {
+			return nil
 		}
 
-		rebased, plugin := rebase(header.Name)
-		if !plugin {
-			continue
+		data, err := fs.ReadFile(f.src, path)
+		if err != nil {
+			return fmt.Errorf("read %s: %w", path, err)
 		}
 
-		target := filepath.Join(destDir, rebased)
+		target := filepath.Join(destDir, path)
 
 		if err := f.files.MkdirAll(filepath.Dir(target)); err != nil {
 			return fmt.Errorf("create %s: %w", filepath.Dir(target), err)
 		}
 
-		data, err := io.ReadAll(entries)
-		if err != nil {
-			return fmt.Errorf("read %s: %w", header.Name, err)
-		}
-
 		if err := f.files.WriteFile(target, data); err != nil {
 			return fmt.Errorf("write %s: %w", target, err)
 		}
-	}
 
-	return nil
-}
-
-// rebase returns the path of an entry relative to the plugin tree — its codeload root directory
-// removed and its plugins/codefall/ prefix confirmed — or no path when the entry is not under the
-// plugin tree at all. A name that would walk out of the tree is treated as not one of the plugin's,
-// because a tarball is read from the network whatever its origin says.
-func rebase(name string) (string, bool) {
-	parts := strings.Split(name, "/")
-	if len(parts) < 4 || parts[1] != "plugins" || parts[2] != "codefall" {
-		return "", false
-	}
-
-	for _, part := range parts {
-		if part == "" || part == "." || part == ".." {
-			return "", false
-		}
-	}
-
-	return strings.Join(parts[3:], "/"), true
+		return nil
+	})
 }

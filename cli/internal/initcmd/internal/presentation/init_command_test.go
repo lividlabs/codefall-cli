@@ -10,10 +10,10 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
-	"github.com/lividlabs/codefall-cli/internal/shared/settings"
-	"github.com/lividlabs/codefall-cli/internal/shared/ui"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/application"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/ui"
 )
 
 type fakeInitialize struct {
@@ -153,33 +153,9 @@ func TestInitCommandDefaultsTheHarnessAndLeavesTheOptionalValuesAbsent(t *testin
 		t.Error("Force = true, want false without the flag")
 	}
 
-	if initialize.got.PluginVersion.IsPresent() {
-		t.Errorf("PluginVersion = %v, want absent without the flag", initialize.got.PluginVersion)
-	}
-
 	// Beads needs no repository, so gh is not asked about one.
 	if initialize.suggested {
 		t.Error("asked gh for a repository, want it not asked when the tracker is beads")
-	}
-}
-
-// A version a run names for a skills-directory harness reaches the use case; the harness and the
-// version survive whole.
-func TestInitCommandPassesThePluginVersionToASkillsHarness(t *testing.T) {
-	initialize := newFakeInitialize()
-
-	if _, err := run(t, initialize,
-		"--tracker", "beads", "--harness", "codex", "--plugin-version", "0.9.0",
-	); err != nil {
-		t.Fatalf("Execute: %v", err)
-	}
-
-	if initialize.got.Harness != domain.HarnessCodex {
-		t.Errorf("Harness = %q, want %q", initialize.got.Harness, domain.HarnessCodex)
-	}
-
-	if version, ok := initialize.got.PluginVersion.Get(); !ok || version != "0.9.0" {
-		t.Errorf("PluginVersion = %v, want Some(0.9.0)", initialize.got.PluginVersion)
 	}
 }
 
@@ -198,11 +174,6 @@ func TestInitCommandRejects(t *testing.T) {
 			name: "a harness codefall cannot set up yet",
 			args: []string{"--tracker", "beads", "--harness", "cursor"},
 			want: `harness "cursor" is not supported yet (supported: antigravity, claude-code, codex, muse, opencode)`,
-		},
-		{
-			name: "a plugin version on the harness whose plugin comes from the marketplace",
-			args: []string{"--tracker", "beads", "--plugin-version", "0.9.0"},
-			want: "the --plugin-version flag is not used with --harness claude-code",
 		},
 		{
 			name: "a repository that is not owner/name",

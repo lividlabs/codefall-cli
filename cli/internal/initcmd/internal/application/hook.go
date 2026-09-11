@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 )
 
 // The keys Claude Code's settings file uses to describe a hook. They are the shape of somebody

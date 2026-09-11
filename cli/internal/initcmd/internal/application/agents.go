@@ -10,7 +10,7 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 )
 
 // The two files this step knows about, named as a person reads them. AGENTS.md holds the rules;

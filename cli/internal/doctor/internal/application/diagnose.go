@@ -9,7 +9,7 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/doctor/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/doctor/internal/domain"
 )
 
 // FileSystem is the doctor's view of the working directory (one gateway role).

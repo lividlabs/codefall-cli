@@ -46,8 +46,8 @@ linters:
           allow:
             - $gostd
             - github.com/samber/mo
-            - github.com/lividlabs/codefall-cli/internal/shared/settings
-            - github.com/lividlabs/codefall-cli/internal/shared/text
+            - github.com/lividlabs/codefall-cli/cli/internal/shared/settings
+            - github.com/lividlabs/codefall-cli/cli/internal/shared/text
           deny:
             - pkg: net
               desc: "domain/ names no transport (ADR-GO-02 rule 5)"
@@ -72,10 +72,10 @@ linters:
           allow:
             - $gostd
             - github.com/samber/mo
-            - github.com/lividlabs/codefall-cli/internal/doctor/internal/domain
-            - github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain
-            - github.com/lividlabs/codefall-cli/internal/shared/settings
-            - github.com/lividlabs/codefall-cli/internal/shared/text
+            - github.com/lividlabs/codefall-cli/cli/internal/doctor/internal/domain
+            - github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain
+            - github.com/lividlabs/codefall-cli/cli/internal/shared/settings
+            - github.com/lividlabs/codefall-cli/cli/internal/shared/text
           deny:
             - pkg: net
               desc: "application/ names no transport (ADR-GO-02 rule 5)"
@@ -94,9 +94,9 @@ linters:
           files:
             - "**/internal/shared/**"
           deny:
-            - pkg: github.com/lividlabs/codefall-cli/internal/doctor
+            - pkg: github.com/lividlabs/codefall-cli/cli/internal/doctor
               desc: "shared modules must not import components (ADR-GO-02 rule 4)"
-            - pkg: github.com/lividlabs/codefall-cli/internal/initcmd
+            - pkg: github.com/lividlabs/codefall-cli/cli/internal/initcmd
               desc: "shared modules must not import components (ADR-GO-02 rule 4)"
 
         # ADR-003 — the modules domain/ and application/ are allowed to import, held to the imports
@@ -113,8 +113,8 @@ linters:
           allow:
             - $gostd
             - github.com/samber/mo
-            - github.com/lividlabs/codefall-cli/internal/shared/settings
-            - github.com/lividlabs/codefall-cli/internal/shared/text
+            - github.com/lividlabs/codefall-cli/cli/internal/shared/settings
+            - github.com/lividlabs/codefall-cli/cli/internal/shared/text
 
 # gofmt as a rule the linter enforces, not a habit. golangci-lint v2 runs formatters as their own
 # stage, and `golangci-lint run` fails on a file that gofmt would rewrite. Proven on 2026-08-27

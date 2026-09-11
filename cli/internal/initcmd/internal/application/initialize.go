@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 )
 
 // FileSystem is initcmd's view of the working directory (one gateway role). It reads what is already
@@ -42,14 +42,14 @@ type CommandResult struct {
 	ExitCode int
 }
 
-// PluginFetcher retrieves the plugin's files at a given release (one gateway role). Where they are
-// fetched from and the shape they arrive in — a tarball of the repository at a tag — are its
-// business; the use case names a version and a directory.
+// PluginFetcher copies the plugin's files and knows which version they are (one gateway role).
+// The tree is embedded in the binary, so neither is interesting — the fetcher mirrors files and
+// reads its manifest's version.
 type PluginFetcher interface {
-	// Fetch downloads the plugin at version and mirrors the plugin's tree under destDir. The
-	// mirror is what the skills resolve against, so the tree's shapes are one: skills at the root
-	// of the skills directory, shared beside them.
-	Fetch(ctx context.Context, version, destDir string) error
+	// Fetch mirrors the plugin's tree onto destDir.
+	Fetch(ctx context.Context, destDir string) error
+	// Version reports the release the tree belongs to, for the re-copy check.
+	Version() (string, error)
 }
 
 // Request is what presentation hands the use case: every answer a survey or a set of flags could
@@ -63,10 +63,6 @@ type Request struct {
 	GitHubRepo    mo.Option[string]
 	GitHubProject mo.Option[int]
 	Harness       string
-	// PluginVersion is the release a skills-directory harness is fetched from; absent means the
-	// pinned default in the domain. Claude Code install takes the marketplace instead, so it has
-	// no use for one.
-	PluginVersion mo.Option[string]
 	Force         bool
 }
 

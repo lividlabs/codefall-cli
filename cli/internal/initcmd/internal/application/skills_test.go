@@ -7,23 +7,25 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/samber/mo"
-
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
-	"github.com/lividlabs/codefall-cli/internal/shared/settings"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
 // skillsRequest is a run on a harness that reads the .agents/skills convention. What the test
-// varies is the plugin version and the state of the tree.
+// varies is the fake fetcher's reported version and the state of the Manifest.
 func skillsRequest() Request {
 	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessCodex}
 }
 
 var agentsManifest = filepath.Join(workingDir, ".agents", ".claude-plugin", "plugin.json")
 
-// The step mirrors the plugin's release into the project's .agents/, and the fetcher is given the
-// pinned version when the request has none.
-func TestSkillsStepInstallsThePinnedRelease(t *testing.T) {
+// fakeVersion is what newFakePluginFetcher returns, so it is what the embedded manifest would
+// carry: the step compares installs against it.
+const fakeVersion = "0.0.0-test"
+
+// The step mirrors the embedded plugin tree into the project's .agents/, one Fetch call, one
+// destination; the detail names the fetcher's version.
+func TestSkillsStepInstallsTheEmbeddedTree(t *testing.T) {
 	fetcher := newFakePluginFetcher()
 
 	report, err := NewInitialize(settled(""), toolsInstalled(), fetcher).Run(t.Context(), skillsRequest(), nil)
@@ -36,40 +38,22 @@ func TestSkillsStepInstallsThePinnedRelease(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	want := "installed codefall's skills at 0.7.0 into .agents/"
+	want := "installed codefall's skills at " + fakeVersion + " into .agents/"
 	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
-	if len(fetcher.calls) != 1 || fetcher.calls[0].version != domain.PluginVersion ||
-		fetcher.calls[0].dir != filepath.Join(workingDir, ".agents") {
-		t.Errorf("fetcher calls = %+v, want one fetch of %q into %q",
-			fetcher.calls, domain.PluginVersion, filepath.Join(workingDir, ".agents"))
+	if len(fetcher.calls) != 1 || fetcher.calls[0].dir != filepath.Join(workingDir, ".agents") {
+		t.Errorf("fetcher calls = %+v, want one fetch into %q",
+			fetcher.calls, filepath.Join(workingDir, ".agents"))
 	}
 }
 
-// A version the request names is the one it is fetched from.
-func TestSkillsStepUsesTheVersionItIsGiven(t *testing.T) {
-	fetcher := newFakePluginFetcher()
-	request := skillsRequest()
-	request.PluginVersion = mo.Some("0.9.0")
-
-	if _, err := NewInitialize(settled(""), toolsInstalled(), fetcher).Run(
-		t.Context(), request, nil,
-	); err != nil {
-		t.Fatalf("Run: %v", err)
-	}
-
-	if len(fetcher.calls) != 1 || fetcher.calls[0].version != "0.9.0" {
-		t.Errorf("fetcher calls = %+v, want one fetch of 0.9.0", fetcher.calls)
-	}
-}
-
-// A run that already has the pinned release is skipped: the manifest the previous run left behind
+// A run that already has the fake version is skipped: the manifest the previous copy left behind
 // says so, and the fetcher is not asked.
 func TestSkillsStepSkipsTheReleaseItAlreadyHas(t *testing.T) {
 	files := settled("")
-	files.files[agentsManifest] = []byte(`{"version": "0.7.0"}`)
+	files.files[agentsManifest] = []byte(`{"version": "` + fakeVersion + `"}`)
 	fetcher := newFakePluginFetcher()
 
 	report, err := NewInitialize(files, toolsInstalled(), fetcher).Run(t.Context(), skillsRequest(), nil)
@@ -82,7 +66,7 @@ func TestSkillsStepSkipsTheReleaseItAlreadyHas(t *testing.T) {
 		t.Errorf("outcome = %v, want SKIPPED", result.Outcome)
 	}
 
-	want := "codefall's skills are already at 0.7.0 in .agents/"
+	want := "codefall's skills are already at " + fakeVersion + " in .agents/"
 	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
@@ -92,8 +76,8 @@ func TestSkillsStepSkipsTheReleaseItAlreadyHas(t *testing.T) {
 	}
 }
 
-// A tree made from another release is rebuilt from the one the run is pointed at.
-func TestSkillsStepRebuildsAnotherRelease(t *testing.T) {
+// A tree made from another version is re-copied from the embedded tree.
+func TestSkillsStepReCopiesAnotherVersion(t *testing.T) {
 	files := settled("")
 	files.files[agentsManifest] = []byte(`{"version": "0.6.0"}`)
 	fetcher := newFakePluginFetcher()
@@ -107,8 +91,8 @@ func TestSkillsStepRebuildsAnotherRelease(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", got)
 	}
 
-	if len(fetcher.calls) != 1 || fetcher.calls[0].version != domain.PluginVersion {
-		t.Errorf("fetcher calls = %+v, want one fetch of %q", fetcher.calls, domain.PluginVersion)
+	if len(fetcher.calls) != 1 {
+		t.Errorf("fetcher calls = %+v, want one fetch", fetcher.calls)
 	}
 }
 
@@ -176,15 +160,15 @@ func settledManifest(manifest string) *fakeFileSystem {
 
 // The fetcher failing stops the run in the plugin step, which is the second step of five, so the
 // report carries the one step that is already done.
-func TestSkillsStepStopsTheRunWhenTheFetchFails(t *testing.T) {
+func TestSkillsStepStopsTheRunWhenTheCopyFails(t *testing.T) {
 	fetcher := newFakePluginFetcher()
-	fetcher.err = errors.New("connection refused")
+	fetcher.err = errors.New("disk full")
 
 	_, err := NewInitialize(settled(""), toolsInstalled(), fetcher).Run(t.Context(), skillsRequest(), nil)
 	if err == nil ||
 		!strings.HasPrefix(err.Error(), domain.PluginStep.ID+": ") ||
-		!strings.Contains(err.Error(), "fetch the plugin at 0.7.0: connection refused") {
-		t.Errorf("Run error = %v, want it to name the plugin step and the fetch that failed", err)
+		!strings.Contains(err.Error(), "install the embedded plugin: disk full") {
+		t.Errorf("Run error = %v, want it to name the plugin step and the copy that failed", err)
 	}
 }
 
