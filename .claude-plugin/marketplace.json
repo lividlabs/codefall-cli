@@ -1,0 +1,26 @@
+{
+  "name": "codefall",
+  "description": "Livid Labs' plugins for Claude Code — opinionated, verb-named skills for the software development lifecycle.",
+  "owner": {
+    "name": "Livid Labs",
+    "url": "https://github.com/lividlabs"
+  },
+  "plugins": [
+    {
+      "name": "codefall",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/lividlabs/codefall-plugin.git",
+        "path": "plugins/codefall",
+        "ref": "main",
+        "sha": "43135f81c385fe1db7d8c9fc923a83b56b354187"
+      },
+      "description": "Codefall — Opinionated skills for the software development lifecycle."
+    },
+    {
+      "name": "codefall-dev",
+      "source": "./plugins/codefall",
+      "description": "Codefall, from your working tree — add this marketplace from a local path to iterate without publishing."
+    }
+  ]
+}
