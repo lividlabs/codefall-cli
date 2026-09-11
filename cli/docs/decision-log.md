@@ -250,6 +250,46 @@ Decided at scaffold, 2026-08-16.
   Only `origin` is consulted: a project whose GitHub repository is under some other remote name is
   one its owner knows better than init does.
 
+- **Unified hooks, 2026-09-11.** `extensions/hooks/` is now the one source of truth for what init
+  registers with each harness: `hooks/shared/` holds the script every guard runs
+  (`codefall-block-merge-to-main.sh`, `--antigravity` selects the stdout-JSON deny contract that
+  harness wants), and `hooks/<harness>/` holds the definition — `claude` and `codex` in the
+  shared event shape (`PreToolUse` guard plus `bd prime --hook-json` on `SessionStart`),
+  `antigravity` keyed by hook name with the guard only, and `opencode` as the plugin file that
+  delegates the guard to the shared script and primes `session.created` sessions through
+  `session.prompt` with `noReply: true`. Script paths resolve at the repository root two ways:
+  Claude and Codex quote `$(git rev-parse --show-toplevel)`, which both harnesses run through a
+  shell, and Antigravity uses the workspace-relative `./.agents/…` its own examples use — its
+  command execution is not documented to expand `$(…)`, so nothing there depends on it. Either way
+  the definitions carry literal commands and nothing rewrites paths.
+  The extension step copies everything except those four definition directories — it is handed the
+  same list the hook step reads — so `.claude/` gets `hooks/shared/` and `.agents/` gets the same,
+  and a definition file lands only where the harness actually reads it. A copied script is made
+  executable where it lands: the embedded tree carries no modes to copy, and a hook command names
+  the script by path. The step's table
+  (`hookSpecs`) holds each harness's source path, destination, and one of two formats: merge or
+  copy. The merge is one recursive fold — objects in, arrays appended, scalars the destination
+  already says kept — so Claude's `settings.json` keeps its permissions and Codex's `hooks.json`
+  keeps its `description`, an Antigravity hook the project disabled stays disabled, and a key
+  holding null says nothing the same as an absent key. Arrays
+  dedupe per entry on the matcher together with the command string, the command found recursively
+  because the formats keep it at different depths: the same command under another matcher still
+  leaves the event unguarded, so it joins rather than counting as present. The harness's entry
+  joins the project's under the same event key. OpenCode
+  copies its plugin instead and skips when the bytes match; a harness with no table entry is
+  skipped rather than errored. `domain.BeadsHookEvent`/`BeadsHookCommand` went away: what init
+  installs is a property of the definition files now, and the format each file wants lives nowhere
+  but the embedded tree. The `ExtensionFetcher` interface is renamed `ExtensionSource`: one
+  gateway role for the embedded payload, fetched whole for the extension step, read one file at a
+  time for the hook step.
+  What an upgrade deliberately does not do is remove files the tree no longer ships. A project
+  installed by the previous version keeps `.claude/hooks/hooks.json` and the un-namespaced
+  `.claude/hooks/block-merge-to-main.sh`; the flat `hooks.json` was never a location Claude Code
+  reads, so the leftover is inert, and the new registration is the only one that runs. Pruning
+  manifest-recorded files the tree has since dropped is a separate change with its own rules —
+  a manifest that means "mine to delete" is a stronger claim than one that means "mine to have
+  written" — and is not made here.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
