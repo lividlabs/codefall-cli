@@ -3,7 +3,7 @@
 BIN := bin/codefall
 
 build:
-	go build -o $(BIN) ./cmd/codefall
+	go build -o $(BIN) ./cli/cmd/codefall
 
 vet:
 	go vet ./...
@@ -19,7 +19,7 @@ test:
 check: build vet lint test
 
 run:
-	go run ./cmd/codefall
+	go run ./cli/cmd/codefall
 
 clean:
 	rm -rf bin

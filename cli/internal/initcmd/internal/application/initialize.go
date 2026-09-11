@@ -8,7 +8,7 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 )
 
 // FileSystem is initcmd's view of the working directory (one gateway role). It reads what is already

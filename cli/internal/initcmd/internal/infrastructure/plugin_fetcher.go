@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
-	"github.com/lividlabs/codefall-cli/internal/shared/process"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/process"
 )
 
 // CodeloadPluginFetcher retrieves the plugin's release from GitHub's tarball service and mirrors

@@ -13,23 +13,23 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version-file: cli/go.mod
+          go-version-file: go.mod
 
       - name: Build
-        working-directory: cli
+        
         run: go build ./...
 
       - name: Vet
-        working-directory: cli
+        
         run: go vet ./...
 
       - name: Lint
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.2
-          working-directory: cli
+          
           args: --timeout 5m
 
       - name: Test
-        working-directory: cli
+        
         run: go test ./...

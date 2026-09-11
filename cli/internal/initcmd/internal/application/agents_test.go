@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 )
 
 var (

@@ -12,7 +12,7 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/shared/settings"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
 // GitHubSettings is the tracker block for GitHub Issues. The project number is absent when the

@@ -4,9 +4,9 @@ import (
 	"context"
 	"io"
 
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
-	"github.com/lividlabs/codefall-cli/internal/shared/ui"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/application"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/ui"
 )
 
 // openingLabel is what the spinner says before the first step reports itself.

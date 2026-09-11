@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/application"
 )
 
 var _ application.PluginFetcher = (*CodeloadPluginFetcher)(nil)

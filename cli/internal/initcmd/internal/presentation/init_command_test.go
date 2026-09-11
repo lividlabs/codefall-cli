@@ -10,10 +10,10 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/application"
-	"github.com/lividlabs/codefall-cli/internal/initcmd/internal/domain"
-	"github.com/lividlabs/codefall-cli/internal/shared/settings"
-	"github.com/lividlabs/codefall-cli/internal/shared/ui"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/application"
+	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/ui"
 )
 
 type fakeInitialize struct {
