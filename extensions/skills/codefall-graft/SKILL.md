@@ -240,7 +240,7 @@ the record here — the documents are.
   touches two files: add an entry for the successor, which is what future runs compare against,
   and recompute the superseded file's hash after its Status flip. Add
   `"lastGraft": { "pluginVersion": "<version or unknown>", "date": "<date>" }` at the top level.
-  version from `../../.claude-plugin/plugin.json` — do not guess it. Where the file didn't exist,
+  version from `.codefall/manifest.json` — do not guess it. Where the file didn't exist,
   write it fresh: this extension version, today's date, the profiles and decisions as established, and
   an `amended` per ADR — `false` only for files that now hash-match a current template, `true` for
   anything kept that differs.
