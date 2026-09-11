@@ -1,6 +1,6 @@
 # Worker prompt
 
-Rendered by `implement` for each background worker — plain string substitution of every `{{…}}`
+Rendered by `codefall-implement` for each background worker — plain string substitution of every `{{…}}`
 placeholder, nothing else. The worker is strategy-blind: stacked or epic branch is fully encoded in
 `{{BASE_REF}}` and `{{PR_TARGET}}`, and this prompt never names which is in play.
 

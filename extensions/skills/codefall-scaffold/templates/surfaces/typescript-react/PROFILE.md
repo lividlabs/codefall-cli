@@ -35,7 +35,7 @@ implicit resolution cannot work **under any toolchain, `tsc` included**. It is n
 
 Toolchain differences make it worse rather than causing it. Next.js detects `emitDecoratorMetadata`
 in tsconfig and turns on SWC's transform, while Metro strips types with Babel and emits nothing
-unless `babel-plugin-transform-typescript-metadata` is added. So a class-typed parameter with a
+unless `babel-extension-transform-typescript-metadata` is added. So a class-typed parameter with a
 forgotten `@inject` resolves on Next and fails on React Native — the same code, two behaviours.
 
 ADR-TS-01 makes `@inject(TYPES.Thing)` mandatory on every constructor parameter, which needs no
@@ -142,7 +142,7 @@ example: the compiler covers the facade rules outright, and only the layer rule 
 | Server state | TanStack Query | ADR-TS-02 |
 | Shared client state | Zustand | ADR-TS-02 |
 | Local UI state | `useState` / `useReducer` | ADR-TS-02 |
-| Boundary enforcement | `eslint-plugin-boundaries`, `dependency-cruiser` optional | ADR-TS-03 |
+| Boundary enforcement | `eslint-extension-boundaries`, `dependency-cruiser` optional | ADR-TS-03 |
 
 ## ADRs this profile supplies
 
@@ -157,12 +157,12 @@ a desktop or mobile app, a library — not for one that merely has no current pl
 ## Depth notes
 
 Beyond docs, this profile's **project files** tier owes: `package.json`, a `tsconfig` with
-`experimentalDecorators`, ESLint including the `eslint-plugin-boundaries` rules, formatter, test
+`experimentalDecorators`, ESLint including the `eslint-extension-boundaries` rules, formatter, test
 runner, and CI running all of it.
 
 **Do not set `emitDecoratorMetadata`.** Nothing here needs it, and enabling it lets a forgotten
 `@inject` on a class-typed parameter resolve on some toolchains and not others — a portability bug
-that the explicit-token rule exists to make impossible. No metadata plugin is needed on any target
+that the explicit-token rule exists to make impossible. No metadata extension is needed on any target
 for the same reason.
 
 On the **Next.js topology**, add `next.config.ts`, the `app/` tree with at least one
@@ -180,7 +180,7 @@ Clean layers, plus one Inversify composition root per app that boots with no fea
 Copy this file's shape. A profile is complete when it states: an **ADR prefix**, what it fits, what it
 explicitly does not, its **visibility model** (which determines how much its boundary-enforcement ADR
 has to do), its toolchain choices, the ADRs it supplies, an `AGENTS.md.skeleton`, and its depth notes.
-Until all of that exists, the surface stays `planned` in the catalog and `scaffold` refuses projects
+Until all of that exists, the surface stays `planned` in the catalog and `codefall-scaffold` refuses projects
 that need it.
 
 **Pick a short uppercase ADR prefix** — `TS`, `GO` — and check that no existing profile has claimed

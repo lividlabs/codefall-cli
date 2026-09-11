@@ -1,5 +1,5 @@
 ---
-name: implement
+name: codefall-implement
 description: Execute the work design put into the graph — claim ready beads, build each task in its own worktree with tests as part of done, verify against the bead's acceptance criteria and the project's own checks, open pull requests, and walk the dependency graph in parallel waves until the frontier is empty. Never merges to main.
 argument-hint: "[a bead, an epic, a design, or nothing to pick from ready work]"
 disable-model-invocation: true
@@ -16,7 +16,7 @@ allowed-tools:
 
 # Implement
 
-Walk the graph `design` created. Claim what is ready, build it, verify it, open a pull request, and
+Walk the graph `codefall-design` created. Claim what is ready, build it, verify it, open a pull request, and
 let each close unblock the next task until the frontier is empty.
 
 Implementing is not merging. A run ends at open pull requests and a reported merge order — **a human
@@ -32,23 +32,23 @@ relative to the user's project.
 
 | In scope | Out of scope | Whose |
 | --- | --- | --- |
-| Executing tasks from the graph | What the tasks are, or their edges | `design` |
+| Executing tasks from the graph | What the tasks are, or their edges | `codefall-design` |
 | Branches, worktrees, commits, PRs | Merging anything to `main` | the user |
 | Every test the current work needs | Regression campaigns and fresh-context retesting | `test` |
 | Harness checks on its own diffs | Independent review and verdicts | `review` |
-| Bead lifecycle: claim, close, discovered work | Creating or re-cutting the task graph | `design` |
+| Bead lifecycle: claim, close, discovered work | Creating or re-cutting the task graph | `codefall-design` |
 | The concept's `Active` transition | Any other document transition | the owning verb |
-| Mirroring work state to the spec's tracker issue | The mirror's lifecycle and labels | `specify` |
+| Mirroring work state to the spec's tracker issue | The mirror's lifecycle and labels | `codefall-specify` |
 
 The line that matters most is the top one. **A task that turns out to be wrong is reported, not
 redesigned.** When the design's cut does not survive contact with the code, say what you found and
-hand the graph back to `design` — quietly building something else leaves a graph that lies.
+hand the graph back to `codefall-design` — quietly building something else leaves a graph that lies.
 
 Two boundaries inside testing, decided deliberately:
 
 - **Implement writes every test the current work needs** — planned by the design's Testing Strategy
   or discovered mid-task, unit, integration, and end-to-end alike. Discovering a missing test is not
-  a reason to reopen `design`; write it.
+  a reason to reopen `codefall-design`; write it.
 - **The `test` verb owns what comes after the work lands**: regression passes, coverage campaigns,
   agentic testing in a fresh context. Implement's tests prove this change; `test` re-proves the
   system.
@@ -79,21 +79,21 @@ go gate.
 Per bead, in order, before any plan is formed:
 
 1. **The bead** — `bd show <id> --json`: the description, the Design ref, the acceptance criteria,
-   and `spec_id`, which `design` set to the design document's path.
+   and `spec_id`, which `codefall-design` set to the design document's path.
 2. **The design document** — Overview and Architecture always; the specific section the Design ref
    names (that column exists so this skill reads the relevant fifteen lines, not the whole
    document); Hard Constraints; Technical Context and Testing Strategy when present.
 3. **The spec**, one hop up the design's `Related` line — its acceptance criteria are the
    externally observable contract. The concept only when there is no spec.
 4. **ADRs** — the ones on the design's `Related` line plus the project's `docs/adrs/` baseline.
-   Never rewritten; a conflict between a task and an ADR goes back to `design` as a superseding-ADR
+   Never rewritten; a conflict between a task and an ADR goes back to `codefall-design` as a superseding-ADR
    conversation, never a quiet exception.
 5. **The project's `AGENTS.md`**, root and scoped — workflow rules, verify commands, conventions.
 6. **Mockups** under `docs/mockups/` when referenced. A working mockup is still a drawing: it
    proves an interaction and gets rebuilt in the app's stack. Never copy its markup.
 
 A tier-0 bead has no document behind it; the list collapses to bead + `AGENTS.md` + ADRs, which is
-why `design` writes tier-0 beads self-sufficient.
+why `codefall-design` writes tier-0 beads self-sufficient.
 
 ## Landing strategies
 
@@ -177,7 +177,7 @@ test plan, one branch. Approve, then it builds.
 **After go, waves proceed on their own.** Failures are the only mid-run stop. That absence is
 deliberate — it is what makes an overnight run possible — and the user can always interrupt.
 
-Model choice is the root's, made at the gate, not `design`'s: task understanding and the model
+Model choice is the root's, made at the gate, not `codefall-design`'s: task understanding and the model
 lineup both shift between design day and implement day. A bead already carrying execution metadata
 is taken as a recommendation and shown in the table; **implement never writes or edits bead
 metadata** — what actually ran is recorded in a `bd comment`, beside the PR link.
@@ -238,7 +238,7 @@ green, and its PR is open.** Done is not merged — [Beads](#beads) covers that 
 
 ### Where the commands come from
 
-This plugin is project-agnostic; implement hardcodes no build, lint, or test invocation. Resolution
+This extension is project-agnostic; implement hardcodes no build, lint, or test invocation. Resolution
 order:
 
 1. `.codefall/skills/implement/CUSTOMIZE.md` — verb-specific tuning, such as a fast subset per bead
@@ -263,7 +263,7 @@ The resolved list is passed into worker prompts. Workers re-derive nothing.
 
 **Tests are part of done, not a follow-up.** The tests the design planned, and the tests the work
 turned out to need — a gap found mid-task is written now, not filed for later and not sent back to
-`design`.
+`codefall-design`.
 
 ## Beads
 
@@ -308,7 +308,7 @@ bd dolt push
 ```
 
 **The close is the engine.** Closing a bead is what removes it as a blocker, so `--suggest-next`
-prints the next wave straight from the graph — the edges `design` wired are the sequencer, and this
+prints the next wave straight from the graph — the edges `codefall-design` wired are the sequencer, and this
 skill keeps no schedule of its own.
 
 **Closed means done, not merged.** That is beads' own semantics — "closing a beads issue means
@@ -355,7 +355,7 @@ exactly where this one stopped.
 
 ## Merges and the mirror
 
-**The root never merges to `main`.** The plugin ships a `PreToolUse` hook that denies it
+**The root never merges to `main`.** The extension ships a `PreToolUse` hook that denies it
 mechanically — a denial from that hook is the system working as designed, not an obstacle to route
 around. What the root does merge: worker PRs into the **epic branch**, one at a time, at wave
 boundaries — the epic branch exists to fan waves back in.
@@ -387,7 +387,7 @@ difference, and ask before updating the file.
 
 ## The concept transition
 
-`conceptualize` reserves one transition for this skill: `Status: Active — <date>`, meaning work has
+`codefall-conceptualize` reserves one transition for this skill: `Status: Active — <date>`, meaning work has
 started. At the run's first claim, resolve the concept — the design's `Related` line to the spec,
 the spec's `**Concept:**` row to the concept, or the design's `concept` label when there is no
 spec — and flip its Status line. Automatically, no ceremony: this records an observable fact, which
@@ -514,7 +514,7 @@ Do not merge. Do not wait for merges. The next session's `bd gate check` finishe
 
 What this took from elsewhere, and what it deliberately did not, so nobody re-adds it.
 
-**From the dev-implement skill pair** that preceded this plugin: the worker-prompt pattern with
+**From the dev-implement skill pair** that preceded this extension: the worker-prompt pattern with
 strategy encoded in `BASE_REF`/`PR_TARGET`, the go-block, wave execution with verified worker
 results, the recovery table, and the humans-merge-`main` rule with its hook. **Dropped:**
 `MAX_STACK_DEPTH = 4` — the depth cap solved a cosmetic problem and a 12-PR stack works; the
@@ -559,7 +559,7 @@ embedded database is single-writer besides.
   and offers single-task mode when it fails.
 - **Tests are part of done.** Planned or discovered, written now, never deferred to `test`.
 - **Implement never writes bead metadata and never redesigns the graph.** Metadata is read as a
-  recommendation; a wrong task goes back to `design`.
+  recommendation; a wrong task goes back to `codefall-design`.
 - **The mirror never guesses.** The spec's parent issue carries the ladder; requirement children
   close with it, not by inference.
 - **`Active` is a fact, recorded once.** Only the concept's Status line, only at first claim, only

@@ -1,6 +1,6 @@
 # Importing a mockup
 
-Shared procedure. `specify` follows it when a user brings a mockup mid-interview; `mock-up` follows it
+Shared procedure. `codefall-specify` follows it when a user brings a mockup mid-interview; `codefall-mock-up` follows it
 for its import mode. Defined once so the two never drift.
 
 The job is narrow: get the user's existing mockup into the repository at a stable path, and hand back
@@ -50,7 +50,7 @@ them is no longer in the conversation.
 ### The directory's rules file
 
 `docs/mockups/AGENTS.md` is written when the directory is created, and added on a later run if it is
-missing. `mock-up` writes the same file, so a directory reached from either verb carries it.
+missing. `codefall-mock-up` writes the same file, so a directory reached from either verb carries it.
 
 **Never overwrite a file that has drifted.** When one exists and its content differs from what is
 below, show the user the difference and ask. The difference is a hand edit until they say otherwise.
@@ -70,11 +70,11 @@ Replace it only on a yes; on a no, leave it and say nothing further about it.
 ## Rules
 
 - **Never edit the assets.** An imported mockup is a record of what the user decided. Redrawing it is
-  `mock-up`'s creation mode, and it is a different act with different consent.
+  `codefall-mock-up`'s creation mode, and it is a different act with different consent.
 - **Keep the original filenames** where they are legible. Rename only what is meaningless (`image.png`,
   `Untitled-1.svg`), and say in the README what the original was called.
 - **Do not interpret the design.** No component names, no annotations about which existing widget to
-  reuse, no notes about what should be built differently. That reading is `design`'s, and doing it
+  reuse, no notes about what should be built differently. That reading is `codefall-design`'s, and doing it
   here puts solution decisions into a requirements artifact.
 - **Ask before overwriting.** If `docs/mockups/<slug>/` already has contents, show the user what is
   there and let them choose: replace, add alongside, or use a different slug.
@@ -90,7 +90,7 @@ When issues carried `requires-mockup`, a successful import clears it:
 gh issue edit <number> --remove-label "requires-mockup"
 ```
 
-`specify` applies that label per requirement, so a feature can have several issues carrying it. Clear
+`codefall-specify` applies that label per requirement, so a feature can have several issues carrying it. Clear
 it on the ones this mockup covers and leave the rest, and clear it only when files actually landed. A
 recorded URL with no export is a judgement call — ask the user whether the link is enough to design
 against, and leave the label on if they are unsure.

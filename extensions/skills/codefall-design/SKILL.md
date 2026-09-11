@@ -1,5 +1,5 @@
 ---
-name: design
+name: codefall-design
 description: Decide how a feature gets built and put the work into the graph — read the docs and the code, judge whether the change warrants a design document at all, write one scaled to the work at docs/designs/, record hard-to-reverse choices as ADRs, and create the task graph in Beads from the document's staged task plan.
 argument-hint: "[the spec, the concept, or what you want built]"
 disable-model-invocation: true
@@ -17,12 +17,12 @@ allowed-tools:
 
 # Design
 
-Decide how a feature gets built, and put the work into the dependency graph so `implement` can pick
+Decide how a feature gets built, and put the work into the dependency graph so `codefall-implement` can pick
 it up.
 
 There are two outputs and the second is the one that always exists. The first is a **design document**
 at `docs/designs/DESIGN-NNN-slug.md`, holding the approach, the architecture, and a staged task plan.
-The second is **the tasks in Beads**, with their dependency edges — the graph `implement` walks.
+The second is **the tasks in Beads**, with their dependency edges — the graph `codefall-implement` walks.
 
 Not every change earns a document. A one-component bug fix with two tasks gets beads and nothing
 else. The document is scaled to the work, and the work decides the tier — see
@@ -38,18 +38,18 @@ relative to the user's project.
 
 | In scope | Out of scope | Whose |
 | --- | --- | --- |
-| The approach, and the decisions inside it | Whether this is worth building | `conceptualize` |
-| Components, their relationships, and data flow | What a consumer observes when it works | `specify` |
-| Contracts, types, schemas, storage, failure modes | What the screen looks like | `mock-up` |
-| Which existing code changes and which is new | The project's architecture stance | `scaffold` |
-| The task breakdown and its dependency edges | Writing the code | `implement` |
+| The approach, and the decisions inside it | Whether this is worth building | `codefall-conceptualize` |
+| Components, their relationships, and data flow | What a consumer observes when it works | `codefall-specify` |
+| Contracts, types, schemas, storage, failure modes | What the screen looks like | `codefall-mock-up` |
+| Which existing code changes and which is new | The project's architecture stance | `codefall-scaffold` |
+| The task breakdown and its dependency edges | Writing the code | `codefall-implement` |
 | Hard-to-reverse choices, recorded as ADRs | Estimates and assignment | the team |
 
-The line that matters most is the one above `specify`. **A design does not restate the
+The line that matters most is the one above `codefall-specify`. **A design does not restate the
 specification.** If you find yourself writing what a user will observe, you are copying a document
 that already exists — cite it and move on.
 
-The line below `scaffold` matters nearly as much. **The project's layering, its component
+The line below `codefall-scaffold` matters nearly as much. **The project's layering, its component
 boundaries, and how they are enforced are already decided**, in `docs/adrs/` and the scoped
 `AGENTS.md` files. Read them and design within them. A design that needs the stance changed is
 saying so out loud, once, and then either following the ADR or writing a project ADR that supersedes
@@ -57,7 +57,7 @@ it — never quietly ignoring it.
 
 ## Scale the artifact to the work
 
-The same philosophy `conceptualize` applies to concepts: a small required core, everything else
+The same philosophy `codefall-conceptualize` applies to concepts: a small required core, everything else
 conditional, and **no empty or placeholder sections — omit them.**
 
 Three tiers. The work picks the tier; the user can overrule it.
@@ -69,7 +69,7 @@ Three tiers. The work picks the tier; the user can overrule it.
 | **2 — full document** | The same, plus any conditional section whose trigger fires | Required three plus what triggered |
 
 **Simple bug fixes land at tier 0.** Create the bead directly with the reproduction and the cause,
-and let `implement` pick it up. Writing a design document for a null check is the ceremony this tier
+and let `codefall-implement` pick it up. Writing a design document for a null check is the ceremony this tier
 exists to avoid.
 
 **Tier 1 and tier 2 are not a decision you make separately.** Write the required three, then walk
@@ -90,7 +90,7 @@ disagreeing about size is not a refusal.
 
 ## The document
 
-`docs/designs/DESIGN-NNN-slug.md`. Git-tracked, so it diffs in a pull request and a later `design`
+`docs/designs/DESIGN-NNN-slug.md`. Git-tracked, so it diffs in a pull request and a later `codefall-design`
 run can grep it.
 
 Three digits, zero-padded, taken as the highest existing number plus one. **A design is never
@@ -112,7 +112,7 @@ A title heading and two rows, the same shape `CONCEPT` and `SPEC` documents use.
 
 `Status` is always present. `Related` appears only when there is something to relate.
 
-**`Related` is a labeled list, not a set of rows.** That is `conceptualize`'s convention, and it is
+**`Related` is a labeled list, not a set of rows.** That is `codefall-conceptualize`'s convention, and it is
 taken here for one reason: a new kind of upstream artifact costs a label rather than an edit to this
 template and this skill. When a bug-report verb lands, its designs carry `bug: BUG-012` and nothing
 else moves.
@@ -185,7 +185,7 @@ integrity, security boundaries. Not the whole document, just the ones worth test
 - THE SYSTEM SHALL reject a context payload whose signature does not verify, before parsing it.
 ```
 
-`specify` writes acceptance criteria in full EARS, and this is deliberately not that. A criterion is
+`codefall-specify` writes acceptance criteria in full EARS, and this is deliberately not that. A criterion is
 what a consumer observes; a hard constraint is an invariant of the implementation, which the
 specification cannot state because it does not know how the thing is built.
 
@@ -213,7 +213,7 @@ whole purpose. A flat list of tasks with no edges does not catch the thing revie
 ordering, or a missing prerequisite — and by the time the beads exist the graph is already wired.
 
 **The Design ref column is the traceability link.** It names the section of this design that
-motivated the task, so `implement` gets a pointer to the relevant fifteen lines rather than the
+motivated the task, so `codefall-implement` gets a pointer to the relevant fifteen lines rather than the
 whole document. Kiro's `tasks.md` cites requirement identifiers here; this cites the design section,
 because the requirement is one link further out and the section is what the implementer actually
 needs open.
@@ -230,7 +230,7 @@ Epic: bd-a2g · T1→bd-unz · T2→bd-s58 · T3→bd-cj4 · T4→bd-p71
 **Why it collapses.** Beads is the source of truth the moment the issues exist. A duplicate task
 list left behind in a git-tracked document will diverge from the graph, and nobody will update it.
 
-**Why the mapping survives.** A later `design` run on a changed document needs to know which beads
+**Why the mapping survives.** A later `codefall-design` run on a changed document needs to know which beads
 this design already produced, so it can update them rather than duplicating the graph. The mapping
 line is how it knows.
 
@@ -253,7 +253,7 @@ already uses — Status, Context, Decision, Consequences, Related. Write it from
 **The number continues the project's own sequence.** Read `docs/adrs/`, take the highest bare
 `ADR-NNN` plus one, starting at `ADR-001`. The prefixed sequences — `ADR-BASE-NN` from the
 stack-agnostic core, `ADR-<PREFIX>-NN` from a surface profile — are inherited stance and are never
-continued here. `scaffold` writes ADR-001 when a project has a client-server seam, so a scaffolded
+continued here. `codefall-scaffold` writes ADR-001 when a project has a client-server seam, so a scaffolded
 project may already have one.
 
 **The trigger** is the design's **Alternatives Considered** section containing a choice that is
@@ -291,12 +291,12 @@ Three states, one word plus a date.
 | `Archived — <date>` | Superseded or dropped | `docs/designs/archive/` |
 
 **The design's status describes the document, never the work.** Whether the work is queued,
-underway, or done is Beads' to say, and it says it better than a status line can. This is `specify`'s
-rule, taken for `specify`'s reason: it diverges from `conceptualize`, which carries an `Active` state
+underway, or done is Beads' to say, and it says it better than a status line can. This is `codefall-specify`'s
+rule, taken for `codefall-specify`'s reason: it diverges from `codefall-conceptualize`, which carries an `Active` state
 precisely because a concept has no tracker representation to carry it. A design has one — the beads
 it created.
 
-So there is no `Active` here and nothing for `implement` to transition. `bd list` and `bd ready`
+So there is no `Active` here and nothing for `codefall-implement` to transition. `bd list` and `bd ready`
 answer the question a status line would only approximate.
 
 **`Ready` is the normal end of a session, not `Draft`.** A design the user worked through and agreed
@@ -316,7 +316,7 @@ on your own initiative.
 
 ## The designs directory
 
-`design` maintains `docs/designs/AGENTS.md`. It is written when the directory is created and added
+`codefall-design` maintains `docs/designs/AGENTS.md`. It is written when the directory is created and added
 on a later run if it is missing. A repo that has never run this skill has no `docs/designs/` to
 scope, so that is the whole retrofit story.
 
@@ -355,7 +355,7 @@ Beads holds the tasks and the graph. The design document holds the approach.
 **Every task bead carries acceptance criteria** — two to five checkable statements, drawn from the
 spec requirements the task serves and the Hard Constraints that bind it. A criterion that traces to
 a spec requirement cites it (`R3: context survives a restart`). They are the definition of done
-`implement` verifies before closing the bead, so write them as checks, not as restated task text.
+`codefall-implement` verifies before closing the bead, so write them as checks, not as restated task text.
 
 Tier 0 has no epic. One or two beads are created directly, with the reproduction, the cause, and
 acceptance criteria in the body — there is no document for them to point at, so the bead must be
@@ -450,7 +450,7 @@ Then, row by row:
 | The row is gone | Its local ID retires. **Report the bead and let the user choose** — close it, or leave it open because work already happened against it |
 
 **A removed row is never closed silently.** Somebody may be holding that ticket, and a design edit
-is not evidence that its work stopped mattering. This is the same rule `specify` applies when a
+is not evidence that its work stopped mattering. This is the same rule `codefall-specify` applies when a
 requirement leaves a spec, for the same reason.
 
 ### When a task row changes
@@ -514,7 +514,7 @@ block in `AGENTS.md` and `CLAUDE.md`, then commits all of it. That is the user's
 repair a skill makes on its way to somewhere else.
 
 Beads is a hard gate here, unlike the design document: the graph is this skill's output, and a
-design document with no tasks behind it hands `implement` nothing.
+design document with no tasks behind it hands `codefall-implement` nothing.
 
 ### 2. Take the input
 
@@ -531,7 +531,7 @@ re-derive it, and a design written without one is designing against a target nob
 that once if there is no spec and the work is more than a fix, and offer `/specify`. On no,
 continue — this is a requirement the user can break.
 
-**A spec that is not ready is a stop.** Two gates, both declared by `specify` and its tracker
+**A spec that is not ready is a stop.** Two gates, both declared by `codefall-specify` and its tracker
 profile:
 
 - The spec document says `Status: Draft`. It is still being written; designing against it wastes the
@@ -616,7 +616,7 @@ built. When a question is interesting but changes nothing, do not ask it.
 Cut the design into tasks and wire the edges.
 
 **Tasks decompose by what can be built and verified on its own**, against the design. That is a
-different cut from `specify`'s: requirements decompose by what a consumer can observe, and one
+different cut from `codefall-specify`'s: requirements decompose by what a consumer can observe, and one
 requirement routinely becomes several tasks.
 
 The sizing question is whether one person could pick the task up, finish it, and have something
@@ -682,7 +682,7 @@ Report:
 - the design's path, identifier, and status, or that this was tier 0 and why;
 - any ADR written, and what it decided;
 - every bead created, with its local ID and its title;
-- the ready set — which tasks `implement` can start on today;
+- the ready set — which tasks `codefall-implement` can start on today;
 - anything left unresolved, and any concern the user overruled.
 
 Do not commit. Do not start implementing.
@@ -731,7 +731,7 @@ machine-parseable.
   the beads.
 - **Scale the artifact to the work.** Tier 0 is a real outcome, not a failure to write a document.
 - **Never fill a heading.** A conditional section with nothing behind it is deleted, heading and all.
-- **The design says how, never what.** What a consumer observes belongs to `specify`, and a design
+- **The design says how, never what.** What a consumer observes belongs to `codefall-specify`, and a design
   that restates it is duplicating a document that will change without it.
 - **Design within the project's ADRs.** Changing the stance is a superseding ADR, said out loud,
   never a quiet exception.
@@ -742,7 +742,7 @@ machine-parseable.
 - **Beads is authoritative once the tasks exist.** The Task Plan collapses to a mapping and never
   grows a duplicate table.
 - **Every task bead carries acceptance criteria** — checkable, citing spec requirement IDs where
-  they trace. They are what `implement` verifies before closing the bead.
+  they trace. They are what `codefall-implement` verifies before closing the bead.
 - **Verify the graph before collapsing the table.** `bd ready` and `bd dep cycles`, against the
   staging table's roots.
 - **A removed task's bead is reported, never closed silently.** Work may already have happened

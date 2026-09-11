@@ -1,5 +1,5 @@
 ---
-name: mock-up
+name: codefall-mock-up
 description: Get the visual surface of a feature into the repository under docs/mockups/ — import what a design tool exported, or make the mockup here, matching the application's own design system so it looks like it belongs, static or working depending on what the open question is.
 argument-hint: "[the screen or surface, or a path to a mockup you already have]"
 disable-model-invocation: true
@@ -15,15 +15,15 @@ allowed-tools:
 
 # Mock-up
 
-Show what a feature looks like, so that `design` and `implement` are not guessing at it.
+Show what a feature looks like, so that `codefall-design` and `codefall-implement` are not guessing at it.
 
 Two ways in. Either the user has a mockup and this **imports** it, or they do not and this **makes**
-one. Making one is the interesting half, and the one place in this plugin where inventing something
+one. Making one is the interesting half, and the one place in this extension where inventing something
 is the job rather than the failure.
 
 The output is `docs/mockups/<slug>/` — the files, and a `README.md` saying what each one shows.
 
-This skill runs before or after `specify`, and neither order is wrong. A mockup can be what makes the
+This skill runs before or after `codefall-specify`, and neither order is wrong. A mockup can be what makes the
 requirements obvious, or it can be drawn once they are settled.
 
 Plugin paths in this document — the ones that start with `../` — are relative to this skill's
@@ -32,7 +32,7 @@ relative to the user's project.
 
 ## What it decides, and what it leaves alone
 
-| This skill | `design` |
+| This skill | `codefall-design` |
 | --- | --- |
 | What is on the screen, and its hierarchy | Which component or module renders it |
 | The states the surface has | Where the data comes from |
@@ -58,7 +58,7 @@ meantime, make it.
 
 ### Import
 
-`../../shared/import-mockup.md` is the whole procedure, and it is shared with `specify` so the two
+`../../shared/import-mockup.md` is the whole procedure, and it is shared with `codefall-specify` so the two
 never drift. Follow it as written: what to accept, where the files land, the `README.md`, and the
 rules about never editing or interpreting what the user brought. Then go to
 [step 8](#8-clear-the-requires-mockup-label).
@@ -72,7 +72,7 @@ docs/mockups/<slug>/
 `<slug>` names the **surface** — `booking-history`, `trip-share` — never the spec or the concept that
 prompted it. One screen gets touched by several specs over its life and outlives all of them, so
 filing it under whichever spec arrived first makes the second one either duplicate it or reach into
-another spec's directory. `specify`'s SKILL.md carries the same rule for the same reason.
+another spec's directory. `codefall-specify`'s SKILL.md carries the same rule for the same reason.
 
 A run that covers several surfaces writes several directories. Reuse a surface's existing slug when
 it has one; adding a state to a surface that has a directory is an amendment to that directory.
@@ -302,14 +302,14 @@ Do not commit.
 ### 8. Clear the `requires-mockup` label
 
 Follow the **Hand back** section of `../../shared/import-mockup.md` — it works the same for a mockup
-made here as for an imported one. `specify` applies the label per requirement, so clear the issues
+made here as for an imported one. `codefall-specify` applies the label per requirement, so clear the issues
 this mockup covers, leave the rest, and clear none of them unless files actually landed.
 
 ### 9. Link it back
 
 When a spec prompted this run, offer to add the directory path to its **Design notes**. When a
 concept did, offer to add it to the concept's `Related` line. Add the path and change nothing else in
-either document — they belong to `specify` and `conceptualize`.
+either document — they belong to `codefall-specify` and `codefall-conceptualize`.
 
 ### 10. Wrap up
 
@@ -329,6 +329,6 @@ Do not commit. Do not create issues. Do not start a design.
 - **A mockup is a reference, never source.** Working ones included.
 - **Mockups are keyed by surface**, never filed under a spec or a concept.
 - **Say what it looks like, not how it is built.** Naming a component, a route, or a data source is
-  `design`'s work happening in the wrong document.
+  `codefall-design`'s work happening in the wrong document.
 - **Clear `requires-mockup` only when files landed**, and only on the issues this mockup covers.
 - **Nothing lands outside `docs/mockups/`.** No application code, no styles, no components.

@@ -1,5 +1,5 @@
 ---
-name: scaffold
+name: codefall-scaffold
 description: Start a new project on the Clean + package-by-component stance — interview for the calls a template can't make (bounded contexts, app topology, per-surface architecture), then emit ratified ADRs, scoped AGENTS.md files, and optionally the project files and boundary-lint wiring.
 argument-hint: "[project-name] [path]"
 disable-model-invocation: true
@@ -21,7 +21,7 @@ Scaffold's minimum output is **documentation** — the ADRs that fix the archite
 `AGENTS.md` files that make them operative. Code is optional and additive on top of that.
 
 Scaffolding is not implementing. Once the decisions are recorded and the project is green and empty,
-stop. Features go through `specify` → `design` → `implement`.
+stop. Features go through `codefall-specify` → `codefall-design` → `codefall-implement`.
 
 ## Scope — how, not what
 
@@ -50,12 +50,12 @@ the first time it is said, and move on.
 framework a project uses and will not steer toward one — see the stack question. It does not bend on
 the architecture. The ADRs ship Accepted because installing them is the entire point of this skill,
 so a user who wants different layering, package-by-layer, or no boundary enforcement is asking for
-something `scaffold` does not do. Say so plainly rather than compromising the stance to fit.
+something `codefall-scaffold` does not do. Say so plainly rather than compromising the stance to fit.
 
 **Keep the session short.** Stop asking the moment you have enough to emit the docs, and prefer a
 default over a question wherever the answer doesn't change what gets emitted. A scaffold that takes
 four exchanges is working correctly. If you find yourself on a long thread about how the thing will
-work, you are in `specify` and `design` territory — say so, and finish scaffolding.
+work, you are in `codefall-specify` and `codefall-design` territory — say so, and finish scaffolding.
 
 **The concept this skill requires is what makes that possible.** Guessing a default in the absence of
 information is not the same as not needing the information — it is this skill's worst failure mode, and
@@ -98,7 +98,7 @@ Stack-agnostic — every project gets these:
 
 Per surface, under `templates/surfaces/<name>/` — a `PROFILE.md`, an `AGENTS.md.skeleton`, and the
 profile's own ADRs. `typescript-react` supplies DI (Inversify), frontend state (TanStack Query /
-Zustand / `useState`), and boundary enforcement (`eslint-plugin-boundaries`). `go` supplies DI
+Zustand / `useState`), and boundary enforcement (`eslint-extension-boundaries`). `go` supplies DI
 (`samber/do`), boundary enforcement (`internal/` packages plus `depguard`), and optional values
 (`samber/mo`'s `Option`).
 
@@ -221,7 +221,7 @@ What is not fine: asking a follow-up about a feature, proposing entities or a sc
 how something will behave, or letting product detail reach the ADRs. Those turn a description into a
 design session, which is the most common way this skill fails.
 
-If something in the description will genuinely matter to `specify` or `design`, put it in the
+If something in the description will genuinely matter to `codefall-specify` or `codefall-design`, put it in the
 decision-log's **Parking lot** and say you did. Recorded, not acted on.
 
 Decompose the answer into surfaces, then confirm each one with the stack question below. Carry the
@@ -354,7 +354,7 @@ Where the two meet, settle:
 
 Record the answers as a project-specific ADR — `ADR-001`, the first in this project's own sequence,
 from `_TEMPLATE.md`. This is the one place
-`scaffold` writes a genuinely new decision rather than instantiating a template — so draft it, then
+`codefall-scaffold` writes a genuinely new decision rather than instantiating a template — so draft it, then
 have the user confirm it before writing.
 
 ### 3. Interview
@@ -458,7 +458,7 @@ Anything else in the directory still gets the warning.
   }
   ```
 
-  Read `pluginVersion` from `../../.claude-plugin/plugin.json` — do not guess it.
+  Read `pluginVersion` from release-please's PR title if there's one, else write `unknown`; do not guess it.
   `shape` is one of `one-cohesive-domain`, `several-capabilities`, `unclear`; `depth` is
   `docs-only`, `project-files`, or `runnable-skeleton`; `topology` has one entry per React surface
   and is omitted where a profile has no topologies.
@@ -483,7 +483,7 @@ Anything else in the directory still gets the warning.
   without a concept on `<date>`; shape judged from a one-sentence description." That belongs in the
   docs and nowhere else — it is a decision made without enough information, which is what this section
   is for, and not a setting. Seed `Parking lot` with the product detail step 1 heard but deliberately did
-  not act on. Parking it is how that input reaches `specify` and `design` instead of being lost.
+  not act on. Parking it is how that input reaches `codefall-specify` and `codefall-design` instead of being lost.
 - A scoped `AGENTS.md` per app/package, from the skeleton: fill the name, the one-line description,
   fix the ADR links to the right relative path, delete the `<frontend only>` blocks on backend
   surfaces, delete the `<never-splittable>` block and its ADR-BASE-03 link on a surface that can never
@@ -547,8 +547,8 @@ that every ADR cross-link and every `AGENTS.md` link resolves.
 ## Conventions
 
 Repo-wide rules — verb naming, one skill per directory, template lineage upkeep, ADR immutability
-— live in the plugin repo's root `AGENTS.md`. Specific to this skill:
+— live in the extension repo's root `AGENTS.md`. Specific to this skill:
 
 - The doc workflow this seeds: **discuss → decision-log → ADR → scoped AGENTS.md → code.** The
   decision-log holds detail while a decision is moving; the ADR holds the settled decision *and its
-  why*; `AGENTS.md` holds the terse operative rules and links back. `design` picks up from here.
+  why*; `AGENTS.md` holds the terse operative rules and links back. `codefall-design` picks up from here.

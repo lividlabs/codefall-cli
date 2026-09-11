@@ -3,7 +3,7 @@
 **Status:** supported.
 
 GitHub Issues, in a single repository, optionally placed on a GitHub Project. This is the profile
-`specify` uses when the mirror's home is the same forge as the code.
+`codefall-specify` uses when the mirror's home is the same forge as the code.
 
 **The spec document is canonical.** This profile creates and refreshes a mirror of it. Nothing here
 holds a fact the document does not, and a hand-edited issue body is overwritten on the next run.
@@ -20,7 +20,7 @@ the project: they have no issue number, carry no repository labels, and cannot b
 
 ## Capabilities
 
-| Capability | GitHub | What `specify` does |
+| Capability | GitHub | What `codefall-specify` does |
 | --- | --- | --- |
 | Hierarchy | Native sub-issues | Spec issue is the parent; one child per requirement |
 | Rich markup | GitHub-flavored Markdown | Body is written as plain Markdown, no translation |
@@ -28,7 +28,7 @@ the project: they have no issue number, carry no repository labels, and cannot b
 | Draft state | **Absent** | A `draft` label mirrors the spec's `Draft` status |
 | Custom fields | Only via a Project, and per-installation | Optional; see "Project boards" |
 | Image attachment from CLI | **Absent** | Mockups are referenced by repository path |
-| Dependency links | Present, unused | `design` owns dependency edges, not `specify` |
+| Dependency links | Present, unused | `codefall-design` owns dependency edges, not `codefall-specify` |
 
 Two of those are absences worth stating plainly. **GitHub issues have no draft state** — the Projects
 feature named "draft" is the unrelated card described above. And **`gh` cannot upload images**, which
@@ -118,7 +118,7 @@ gh label create "requires-mockup" --color "D93F0B" \
   --description "Blocked from design until a mockup exists" --force
 ```
 
-Both are gates `design` reads, and it refuses an issue carrying either.
+Both are gates `codefall-design` reads, and it refuses an issue carrying either.
 
 `draft` **mirrors the spec's status** — present while the document says `Draft`, removed when it says
 `Ready`. It is not an independent state, and it is applied to the spec issue and every requirement
@@ -127,7 +127,7 @@ issue alike.
 `requires-mockup` is independent, applied per requirement to those with an unspecified visual surface,
 and cleared when a mockup arrives rather than by this profile.
 
-**`specify` does not impose a label taxonomy.** Type, domain, and component labels are the project's
+**`codefall-specify` does not impose a label taxonomy.** Type, domain, and component labels are the project's
 own business, and a curated set baked into this profile would be wrong for every project that did not
 choose it. Apply labels the repository already uses when the fit is obvious; invent none.
 
@@ -187,13 +187,13 @@ gh api graphql -f query='
 Then write the spec issue's number into the document's `**Issue:**` line. That line is how the next
 run finds the mirror.
 
-**`specify` writes no dependency links between issues.** GitHub supports them; ordering work is
-`design`'s decision, made against the build graph, and a guess recorded here would be a guess `design`
+**`codefall-specify` writes no dependency links between issues.** GitHub supports them; ordering work is
+`codefall-design`'s decision, made against the build graph, and a guess recorded here would be a guess `codefall-design`
 has to unpick.
 
 ## Refreshing
 
-When `specify` runs again on an existing spec, the mirror is regenerated rather than edited around.
+When `codefall-specify` runs again on an existing spec, the mirror is regenerated rather than edited around.
 
 1. Read the spec issue number from the document's `**Issue:**` line.
 2. List its sub-issues and match each to a requirement by the identifier in the title.
@@ -268,10 +268,10 @@ does not define.
 Requirement issues are the ones worth boarding, because they are the unit of work. Ask before adding
 the spec issue as well; on most boards a parent row is noise.
 
-## Work-state transitions — `implement`'s
+## Work-state transitions — `codefall-implement`'s
 
 The mirror's lifecycle and labels are this profile's; the **work-state ladder on the spec's parent
-issue** belongs to `implement`, which is the only verb that can observe the moments. It performs
+issue** belongs to `codefall-implement`, which is the only verb that can observe the moments. It performs
 exactly these transitions and no others:
 
 | Moment | With a Project board | Without one |
@@ -282,7 +282,7 @@ exactly these transitions and no others:
 
 Requirement sub-issues **never move individually** — beads carry design refs, not requirement IDs,
 so per-requirement status would be a guess, and a mirror that guesses is worse than one that is
-coarse. The running trail is the `Relates to #<spec-issue>` line `implement` puts in every PR body.
+coarse. The running trail is the `Relates to #<spec-issue>` line `codefall-implement` puts in every PR body.
 
 Board IDs follow the rule above: discovered at run time, or read from the project's
 `.codefall/skills/implement/CUSTOMIZE.md` when pinned there.
@@ -294,5 +294,5 @@ graph. Reading `internal/github/mapping.go` at `main`, the GitHub-to-beads conve
 dependency list unconditionally, and the beads-to-GitHub direction sends only title, body, labels, and
 state. Sub-issue relations and dependency links are invisible to it in both directions.
 
-So the spec-to-requirement structure written here does not reach Beads through sync. `design` reads
+So the spec-to-requirement structure written here does not reach Beads through sync. `codefall-design` reads
 hierarchy from GitHub directly, and from the spec document, which holds it in a form sync cannot lose.

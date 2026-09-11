@@ -1,5 +1,5 @@
 ---
-name: specify
+name: codefall-specify
 description: Turn a feature idea into a specification another session can implement — interview for what the user will observe, push back on vague answers, audit what already exists, then write requirements with EARS acceptance criteria into a spec document in the repository, mirrored to the issue tracker.
 argument-hint: "[what you want to build]"
 disable-model-invocation: true
@@ -29,7 +29,7 @@ Everything else this skill does — the interview, the push-back, the audit of w
 is in service of making those criteria correct.
 
 Specifying is not designing. Once the criteria are written and confirmed, stop. How the thing gets
-built is `design`'s work, and `implement`'s after that.
+built is `codefall-design`'s work, and `codefall-implement`'s after that.
 
 ## Scope — what, not how
 
@@ -53,7 +53,7 @@ specification cannot describe an itinerary without the word. Saying what the nou
 See [Key entities](#key-entities).
 
 **You may read the codebase, but only to answer two questions**: does this already exist, and what
-would this change silently break? Reading code to decide *how* to build the thing is `design`'s job
+would this change silently break? Reading code to decide *how* to build the thing is `codefall-design`'s job
 and is out of bounds here, even when the answer seems obvious.
 
 Plugin paths in this document — `trackers/…` and the ones that start with `../` — are relative to
@@ -254,7 +254,7 @@ Optional, per spec. The domain nouns the specification uses, and what each one m
 
 **Names and meanings only.** No fields, no types, no relations, no identifiers, no storage. `Trip`
 has a meaning; `Trip has a departureDate: Date and belongs to a User` is a data model, and a data
-model is `design`'s output, not this skill's input.
+model is `codefall-design`'s output, not this skill's input.
 
 Include the section when the feature involves data and the vocabulary needs settling. Omit it when
 the nouns are ordinary English that nobody could misread.
@@ -372,7 +372,7 @@ Three states, one word plus a date.
 
 **The spec's status describes the document, never the work.** Whether the work is queued, underway,
 or done is the tracker's to say, and it says it better than a status line can. This is the one place
-`specify` deliberately diverges from `conceptualize`, which carries an `Active` state precisely
+`codefall-specify` deliberately diverges from `codefall-conceptualize`, which carries an `Active` state precisely
 because a concept has no tracker representation to carry it.
 
 **`Ready` is the normal end of a session, not `Draft`.** A spec the user worked through and agreed
@@ -390,7 +390,7 @@ your own initiative.
 
 ## The specs directory
 
-`specify` maintains `docs/specs/AGENTS.md`. It is written when the directory is created and added on
+`codefall-specify` maintains `docs/specs/AGENTS.md`. It is written when the directory is created and added on
 a later run if it is missing. A repo that has never run this skill has no `docs/specs/` to scope, so
 that is the whole retrofit story.
 
@@ -447,11 +447,11 @@ looks like two features from outside is often one from inside. You may simply be
 a concept's `Related` line holds every spec that came out of it. Do not invent a parent spec — the
 grouping already exists, and a second one has to be kept current.
 
-When a sibling is large enough to deserve its own interview, say so and suggest a separate `specify`
+When a sibling is large enough to deserve its own interview, say so and suggest a separate `codefall-specify`
 session for it rather than writing a thin document now.
 
 Record the concern in the spec **only** when the user did not engage with it — glossed over it, or
-moved on without answering. Phrase it as an observation for `design` to weigh, not a warning. If they
+moved on without answering. Phrase it as an observation for `codefall-design` to weigh, not a warning. If they
 considered it and disagreed, the matter is closed and nothing goes in the document.
 
 ## Project customizations
@@ -499,7 +499,7 @@ criteria: a concept's **Proposed shape** is a rough direction, not a specificati
 interviews for everything below. Do not lift criteria out of a concept and do not treat its **Open
 questions** as settled.
 
-Do not change the concept's `Status`. Work starting is `implement`'s transition to record, not this
+Do not change the concept's `Status`. Work starting is `codefall-implement`'s transition to record, not this
 skill's.
 
 ### 3. Check whether it already exists
@@ -615,7 +615,7 @@ Audit the surface the feature touches, not the whole application.
 Cut what the user described into requirements. Each one is a capability a consumer can use and a
 ticket someone can pick up.
 
-**Requirements decompose by what a consumer can observe.** `design` decomposes by what can be built,
+**Requirements decompose by what a consumer can observe.** `codefall-design` decomposes by what can be built,
 against the build graph, and one requirement may well become several of its tickets. Do not do that
 cut here.
 
@@ -634,7 +634,7 @@ under `docs/mockups/<slug>/`, keyed by surface, and the spec references that pat
 notes**.
 
 **If the user wants one but does not have it**, or has no design tool, the specification proceeds
-without it and the tracker issue is marked `requires-mockup`. `design` refuses to act on an issue
+without it and the tracker issue is marked `requires-mockup`. `codefall-design` refuses to act on an issue
 carrying that label, which is what keeps the gap from being forgotten.
 
 **Do not draw a mockup inside this skill.** Producing one is separate work with its own concerns.
@@ -713,7 +713,7 @@ own initiative.
 ## Tracker profiles
 
 The specification is tracker-neutral. Where the mirror lands, and in what shape, is a **tracker
-profile** — one directory per tracker, exactly as `scaffold` handles surfaces.
+profile** — one directory per tracker, exactly as `codefall-scaffold` handles surfaces.
 
 | Tracker profile | Covers | Status |
 | --- | --- | --- |
@@ -723,7 +723,7 @@ profile** — one directory per tracker, exactly as `scaffold` handles surfaces.
 
 A tracker is **supported** only when `trackers/<name>/PROFILE.md` is complete. Nothing else
 counts. A planned profile is an exit, not a menu choice — if the user's tracker is Jira, say plainly
-that `specify` does not mirror to it yet and stop.
+that `codefall-specify` does not mirror to it yet and stop.
 
 **Resolution.** GitHub is currently the only supported profile, so there is no question to ask. State
 that the mirror will land in GitHub Issues and confirm the repository. When more profiles exist, this
