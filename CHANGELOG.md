@@ -6,6 +6,32 @@ below were written by hand, before that was wired up.
 Tags are bare version numbers (`0.1.2`), not `v`-prefixed, so they match the `ref` the marketplace
 pins. A `v0.1.1` tag also exists from before that convention was settled.
 
+## [0.8.0](https://github.com/lividlabs/codefall-cli/compare/v0.7.0...v0.8.0) (2026-09-11)
+
+
+### Features
+
+* **cli:** teal trail palette for doctor and Fang ([#5](https://github.com/lividlabs/codefall-cli/issues/5)) ([5acd7f4](https://github.com/lividlabs/codefall-cli/commit/5acd7f49b79986648cf8f5edcfc060055bc8a451))
+* **init:** add codefall init with the settings survey ([#7](https://github.com/lividlabs/codefall-cli/issues/7)) ([a8173e9](https://github.com/lividlabs/codefall-cli/commit/a8173e9c92dad378f6d20b8bb28987c6c6ddb5df))
+* **init:** copy the plugin tree from the binary's embedded FS ([#28](https://github.com/lividlabs/codefall-cli/issues/28)) ([5335786](https://github.com/lividlabs/codefall-cli/commit/5335786d80dba90cdeaf4a2544b09775a4b9705e))
+* **init:** fall back to the origin remote for the GitHub repository ([#22](https://github.com/lividlabs/codefall-cli/issues/22)) ([27b323f](https://github.com/lividlabs/codefall-cli/commit/27b323f63c665a9c3023632a51f457a5a3c9a1ff))
+* **init:** install the codefall plugin for Claude Code ([#8](https://github.com/lividlabs/codefall-cli/issues/8)) ([4be37e8](https://github.com/lividlabs/codefall-cli/commit/4be37e8d6736dfcef7984fcc97c3d8718c9f6a2d))
+* **init:** install the codefall plugin on .agents/skills harnesses ([#23](https://github.com/lividlabs/codefall-cli/issues/23)) ([4769fd0](https://github.com/lividlabs/codefall-cli/commit/4769fd0934534ca01cd58747371b0d41aad91d40))
+* **release:** cross-platform binaries via GoReleaser on tag push ([#30](https://github.com/lividlabs/codefall-cli/issues/30)) ([785bf42](https://github.com/lividlabs/codefall-cli/commit/785bf424298b5451e1c17bb201a4240506951055))
+* **settings:** add beads as a tracker ([#6](https://github.com/lividlabs/codefall-cli/issues/6)) ([816832d](https://github.com/lividlabs/codefall-cli/commit/816832d061b71dba674d968b5ab5f392f60ffdd5))
+
+
+### Documentation
+
+* record CLI library choices as ADR-002 ([#4](https://github.com/lividlabs/codefall-cli/issues/4)) ([259dd8e](https://github.com/lividlabs/codefall-cli/commit/259dd8ec4f0251650ee3939ec058d8809dd925a0))
+* repo cleanup after the plugin merge ([#27](https://github.com/lividlabs/codefall-cli/issues/27)) ([ec834e3](https://github.com/lividlabs/codefall-cli/commit/ec834e32bd6cc7a0019fa3e43d6c8359eeb3f152))
+
+
+### Refactoring
+
+* bring in the codefall-plugin repository ([#25](https://github.com/lividlabs/codefall-cli/issues/25)) ([71b5a15](https://github.com/lividlabs/codefall-cli/commit/71b5a15b74c79fd4015764bc375cd5e090e3d7f7))
+* move the CLI tree under cli/ (root cleanup for the plugin merge) ([#24](https://github.com/lividlabs/codefall-cli/issues/24)) ([b3b20a5](https://github.com/lividlabs/codefall-cli/commit/b3b20a573d8b79778b940f8ee1fed9224c003662))
+
 ## [0.7.0](https://github.com/lividlabs/codefall-plugin/compare/v0.6.0...v0.7.0) (2026-09-09)
 
 
