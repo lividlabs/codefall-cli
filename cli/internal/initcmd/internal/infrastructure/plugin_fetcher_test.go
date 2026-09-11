@@ -1,167 +1,93 @@
 package infrastructure
 
 import (
-	"archive/tar"
-	"bytes"
-	"compress/gzip"
-	"net/http"
-	"net/http/httptest"
+	"context"
+	"errors"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
-
-	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/application"
+	"testing/fstest"
 )
 
-var _ application.PluginFetcher = (*CodeloadPluginFetcher)(nil)
+// The walk mirrors the whole source tree and reports the manifest's version. The promise
+// "everything that is in the source, nothing else" is checked with the names read from the source
+// itself rather than a second list of literals a reader could not compare anyway.
+func TestEmbeddedPluginFetcherCopiesTheTreeAndReportsTheVersion(t *testing.T) {
+	src := fstest.MapFS{
+		pluginManifest:      &fstest.MapFile{Data: []byte(`{"version": "1.2.3"}`)},
+		"hooks/hooks.json":  &fstest.MapFile{Data: []byte(`{"event": "PreToolUse"}`)},
+		"skills/x/SKILL.md": &fstest.MapFile{Data: []byte("---\nname: x\n---\n")},
+		"shared/preflight.sh": &fstest.MapFile{
+			Data: []byte("#!/bin/sh\n"),
+		},
+		"README.md":       &fstest.MapFile{Data: []byte("# plugin\n")},
+		"docs/ROADMAP.md": &fstest.MapFile{Data: []byte("road")},
+	}
+	fetcher := NewEmbeddedPluginFetcher(src)
 
-// archiveServer answers with a tar.gz built from the test's entries, and remembers the path it
-// was asked for.
-type archiveServer struct {
-	*httptest.Server
-	requested []string
+	version, err := fetcher.Version()
+	if err != nil {
+		t.Fatalf("Version: %v", err)
+	}
+
+	if version != "1.2.3" {
+		t.Errorf("version = %q, want 1.2.3", version)
+	}
+
+	dest := t.TempDir()
+	if err := fetcher.Fetch(context.Background(), dest); err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+
+	got := readAllFiles(t, dest)
+	if len(got) != len(src) {
+		t.Fatalf("dest holds %d files, want all %d source files copied (%q)", len(got), len(src), got)
+	}
 }
 
-// serveArchive hands the repository back to the fetcher, from a running server. The name shape
-// mirrors what codeload gives back: a root directory wrapped around the repository.
-func serveArchive(t *testing.T, entries []archiveEntry) *archiveServer {
+// readAllFiles returns the relative name of every file under dir; for the copy promise above.
+func readAllFiles(t *testing.T, dir string) []string {
 	t.Helper()
 
-	var body bytes.Buffer
-
-	gzipped := gzip.NewWriter(&body)
-	writer := tar.NewWriter(gzipped)
-
-	for _, entry := range entries {
-		header := &tar.Header{
-			Name:     entry.path,
-			Mode:     0o644,
-			Size:     int64(len(entry.content)),
-			Typeflag: entry.typeflag,
-		}
-		if err := writer.WriteHeader(header); err != nil {
-			t.Fatalf("WriteHeader: %v", err)
-		}
-		if entry.typeflag == tar.TypeReg {
-			if _, err := writer.Write([]byte(entry.content)); err != nil {
-				t.Fatalf("Write: %v", err)
-			}
-		}
-	}
-
-	if err := writer.Close(); err != nil {
-		t.Fatalf("Close: %v", err)
-	}
-	if err := gzipped.Close(); err != nil {
-		t.Fatalf("Close: %v", err)
-	}
-
-	server := &archiveServer{}
-
-	server.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		server.requested = append(server.requested, r.URL.Path)
-		if _, err := w.Write(body.Bytes()); err != nil {
-			t.Errorf("server write: %v", err)
-		}
-	}))
-	t.Cleanup(server.Close)
-
-	return server
-}
-
-// archiveEntry is one file serveArchive puts into its tarball.
-type archiveEntry struct {
-	path     string
-	content  string
-	typeflag byte
-}
-
-func testFetcher(host string) *CodeloadPluginFetcher {
-	fetcher := NewCodeloadPluginFetcher()
-	fetcher.host = host
-
-	return fetcher
-}
-
-// The tarball is rebased file by file: the codeload root is stripped, the plugins/codefall/ prefix
-// is confirmed, and every regular file lands under the destination with the rest of its path. A
-// repository file above the plugin tree, and a directory entry beneath it, are left behind.
-func TestFetchInstallsThePluginTree(t *testing.T) {
-	server := serveArchive(t, []archiveEntry{
-		{"codefall-plugin-0.7.0/", "", tar.TypeDir},
-		{"codefall-plugin-0.7.0/README.md", "# the plugin repo\n", tar.TypeReg},
-		{"codefall-plugin-0.7.0/plugins/codefall/skills/design/SKILL.md", "---\nname: design\n---\n", tar.TypeReg},
-		{"codefall-plugin-0.7.0/plugins/codefall/shared/preflight.sh", "#!/bin/sh\nexit 0\n", tar.TypeReg},
-	})
-
-	dir := t.TempDir()
-
-	if err := testFetcher(server.URL).Fetch(t.Context(), "0.7.0", dir); err != nil {
-		t.Fatalf("Fetch: %v", err)
-	}
-
-	if len(server.requested) != 1 ||
-		server.requested[0] != "/lividlabs/codefall-plugin/tar.gz/refs/tags/v0.7.0" {
-		t.Errorf("requested %v, want one GET of the pinned tag's tarball", server.requested)
-	}
-
-	for path, want := range map[string]string{
-		"skills/design/SKILL.md": "---\nname: design\n---\n",
-		"shared/preflight.sh":    "#!/bin/sh\nexit 0\n",
-	} {
-		data, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(path)))
+	var names []string
+	if err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			t.Errorf("read %s: %v", path, err)
-			continue
+			return err
 		}
-		if string(data) != want {
-			t.Errorf("%s = %q, want %q", path, data, want)
+		if !d.IsDir() {
+			rel, rerr := filepath.Rel(dir, path)
+			if rerr != nil {
+				return rerr
+			}
+
+			names = append(names, rel)
 		}
+		return nil
+	}); err != nil {
+		t.Fatalf("walk dest: %v", err)
 	}
 
-	// Nothing above the plugin tree is mirrored, and the prefix itself is gone.
-	if _, err := os.Stat(filepath.Join(dir, "README.md")); err == nil {
-		t.Errorf("README.md present under dest, want only the plugin's tree")
+	return names
+}
+
+// A manifest that is not a manifest makes the version check noisy rather than trust the walk.
+func TestEmbeddedPluginFetcherReportsAManifestItCannotParse(t *testing.T) {
+	src := fstest.MapFS{
+		pluginManifest: &fstest.MapFile{Data: []byte("{ not json")},
 	}
 
-	if _, err := os.Stat(filepath.Join(dir, "plugins")); err == nil {
-		t.Errorf("plugins/ present under dest, want the tree rooted at it")
+	if _, err := NewEmbeddedPluginFetcher(src).Version(); err == nil {
+		t.Error("Version err = nil, want a decode failure")
 	}
 }
 
-// A version that is not a release is reported as what the server answered.
-func TestFetchReportedANonSuccessStatus(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	t.Cleanup(server.Close)
+// A cancelled context ends the walk rather than halting mid-directory.
+func TestEmbeddedPluginFetcherHonoursTheContext(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
 
-	err := testFetcher(server.URL).Fetch(t.Context(), "9.9.9", t.TempDir())
-	if err == nil || !strings.Contains(err.Error(), "GET v9.9.9: HTTP 404") {
-		t.Errorf("Fetch = %v, want it to name the tag and the status", err)
-	}
-}
-
-// An entry that would walk out of the tree is not one of the plugin's files, whatever its root
-// prefix says.
-func TestFetchSkipsAnEntryOutsideTheTree(t *testing.T) {
-	server := serveArchive(t, []archiveEntry{
-		{"codefall-plugin-0.7.0/plugins/codefall/../../evil.sh", "evil\n", tar.TypeReg},
-		{"codefall-plugin-0.7.0/plugins/codefall/skills/ok.md", "ok\n", tar.TypeReg},
-	})
-
-	dir := t.TempDir()
-
-	if err := testFetcher(server.URL).Fetch(t.Context(), "0.7.0", dir); err != nil {
-		t.Fatalf("Fetch: %v", err)
-	}
-
-	if _, err := os.Stat(filepath.Join(dir, "evil.sh")); err == nil {
-		t.Errorf("evil.sh present, want it refused")
-	}
-
-	if _, err := os.Stat(filepath.Join(dir, "skills", "ok.md")); err != nil {
-		t.Errorf("skills/ok.md missing after a clean entry: %v", err)
+	err := NewEmbeddedPluginFetcher(fstest.MapFS{"one.txt": &fstest.MapFile{}}).Fetch(ctx, t.TempDir())
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("Fetch err = %v, want context.Canceled", err)
 	}
 }

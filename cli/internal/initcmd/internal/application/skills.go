@@ -23,12 +23,15 @@ const (
 	pluginManifest = ".claude-plugin/plugin.json"
 )
 
-// skillsDirPlugin is the plugin step for every harness that reads the .agents/skills convention: it
-// fetches the plugin's release from the plugin repository and mirrors its tree under the project's
-// .agents/. A run that already has the release it is pointed at is skipped: the tree it would
-// write is the tree that is already there.
+// skillsDirPlugin is the plugin step for every harness that reads the .agents/skills convention:
+// it copies the plugin tree out of the embedded FS under the project's .agents/. A run whose
+// installed manifest matches the embedded version is skipped: the tree it would write is the tree
+// that is already there.
 func (i *Initialize) skillsDirPlugin(ctx context.Context, request Request) (domain.StepResult, error) {
-	version := request.PluginVersion.OrElse(domain.PluginVersion)
+	version, err := i.fetcher.Version()
+	if err != nil {
+		return domain.StepResult{}, fmt.Errorf("read the embedded plugin version: %w", err)
+	}
 
 	installed, err := i.installedPluginVersion(request.Dir)
 	if err != nil {
@@ -40,8 +43,8 @@ func (i *Initialize) skillsDirPlugin(ctx context.Context, request Request) (doma
 			"codefall's skills are already at %s in %s", version, agentsFullName)), nil
 	}
 
-	if err := i.fetcher.Fetch(ctx, version, filepath.Join(request.Dir, agentsDir)); err != nil {
-		return domain.StepResult{}, fmt.Errorf("fetch the plugin at %s: %w", version, err)
+	if err := i.fetcher.Fetch(ctx, filepath.Join(request.Dir, agentsDir)); err != nil {
+		return domain.StepResult{}, fmt.Errorf("install the embedded plugin: %w", err)
 	}
 
 	return domain.PluginStep.Done(fmt.Sprintf(

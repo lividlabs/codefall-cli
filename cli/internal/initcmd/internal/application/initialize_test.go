@@ -166,25 +166,29 @@ func (o *recordingObserver) StepFinished(result domain.StepResult) {
 
 // fetchCall is one Fetch the use case asked for.
 type fetchCall struct {
-	version string
-	dir     string
+	dir string
 }
 
-// fakePluginFetcher remembers each Fetch and answers success unless the test gave it an error,
-// the way the fake runner answers the zero CommandResult for the command it was not asked about.
+// fakePluginFetcher remembers each Fetch and answers success unless the test gave it an error;
+// Version reports the test's version, as the embedded tree reports its own.
 type fakePluginFetcher struct {
-	calls []fetchCall
-	err   error
+	calls   []fetchCall
+	err     error
+	version string
 }
 
 func newFakePluginFetcher() *fakePluginFetcher {
-	return &fakePluginFetcher{}
+	return &fakePluginFetcher{version: "0.0.0-test"}
 }
 
-func (f *fakePluginFetcher) Fetch(_ context.Context, version, destDir string) error {
-	f.calls = append(f.calls, fetchCall{version: version, dir: destDir})
+func (f *fakePluginFetcher) Fetch(_ context.Context, destDir string) error {
+	f.calls = append(f.calls, fetchCall{dir: destDir})
 
 	return f.err
+}
+
+func (f *fakePluginFetcher) Version() (string, error) {
+	return f.version, nil
 }
 
 // --- the run -----------------------------------------------------------------------------------

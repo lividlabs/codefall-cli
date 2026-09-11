@@ -18,6 +18,7 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/application"
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/infrastructure"
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/presentation"
+	"github.com/lividlabs/codefall-cli/extensions"
 )
 
 // Register wires initcmd's object graph into the app's injector. This is the only place the
@@ -35,7 +36,7 @@ func Register(injector do.Injector) {
 	})
 
 	do.Provide(injector, func(do.Injector) (application.PluginFetcher, error) {
-		return infrastructure.NewCodeloadPluginFetcher(), nil
+		return infrastructure.NewEmbeddedPluginFetcher(extensions.Files()), nil
 	})
 
 	do.Provide(injector, func(i do.Injector) (presentation.InitializeUseCase, error) {
