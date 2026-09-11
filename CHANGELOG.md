@@ -6,6 +6,26 @@ below were written by hand, before that was wired up.
 Tags are bare version numbers (`0.1.2`), not `v`-prefixed, so they match the `ref` the marketplace
 pins. A `v0.1.1` tag also exists from before that convention was settled.
 
+## [0.9.0](https://github.com/lividlabs/codefall-cli/compare/v0.8.1...v0.9.0) (2026-09-11)
+
+
+### Features
+
+* **init:** alias upgrade, record and compare version ([#39](https://github.com/lividlabs/codefall-cli/issues/39)) ([da8e0d4](https://github.com/lividlabs/codefall-cli/commit/da8e0d4b9331832c7c84b0c6321798968cab4c6a))
+* **init:** drop the Claude marketplace mechanism for the embedded copy ([#36](https://github.com/lividlabs/codefall-cli/issues/36)) ([f162c6f](https://github.com/lividlabs/codefall-cli/commit/f162c6fd27da6b7ccbff2e4e59a799ca4b150d73))
+* **init:** write .codefall/manifest.json during a skills install ([#34](https://github.com/lividlabs/codefall-cli/issues/34)) ([fc65dcc](https://github.com/lividlabs/codefall-cli/commit/fc65dcc81f2dbea2eb5b88265c2afd0983530765))
+* namespace skills as codefall-&lt;verb&gt; ([#38](https://github.com/lividlabs/codefall-cli/issues/38)) ([35b59a2](https://github.com/lividlabs/codefall-cli/commit/35b59a2e5a1939c945fec43caf4592792910ab5a))
+
+
+### Bug Fixes
+
+* **ci:** actually skip release-please PRs ([#40](https://github.com/lividlabs/codefall-cli/issues/40)) ([b6507a2](https://github.com/lividlabs/codefall-cli/commit/b6507a28a066e0ff9a150f2d114f65503967b51e))
+
+
+### Refactoring
+
+* rename plugin to extension throughout ([#37](https://github.com/lividlabs/codefall-cli/issues/37)) ([40981ff](https://github.com/lividlabs/codefall-cli/commit/40981ff709b31e6b24008c1614bfd87804b47bb6))
+
 ## [0.8.1](https://github.com/lividlabs/codefall-cli/compare/v0.8.0...v0.8.1) (2026-09-11)
 
 
