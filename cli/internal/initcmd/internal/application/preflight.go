@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/text"
 )
 
@@ -234,21 +233,12 @@ func commandLine(name string, args []string) string {
 	return strings.Join(append([]string{name}, args...), " ")
 }
 
-// requiredTools is what this particular run needs, which depends on the answers it was given: the
-// harness decides whose CLI installs the plugin. bd and git are needed by every run, because every
-// run initialises Beads and Beads is initialised inside a git repository.
+// requiredTools is what this particular run needs, and all it ever needs are bd and git, because
+// every run initialises Beads and Beads sits inside a git repository. The plugin step copies the
+// embedded tree to the harness's own skills directory, so no foreign CLI is needed.
 func requiredTools(request Request) []requiredTool {
-	var tools []requiredTool
-
-	if request.Harness == domain.HarnessClaudeCode {
-		tools = append(tools, requiredTool{
-			name:   claudeCommand,
-			remedy: "install Claude Code: https://docs.anthropic.com/en/docs/claude-code/setup",
-		})
+	return []requiredTool{
+		{name: beadsCommand, remedy: "brew install beads"},
+		{name: gitCommand},
 	}
-
-	return append(tools,
-		requiredTool{name: beadsCommand, remedy: "brew install beads"},
-		requiredTool{name: gitCommand},
-	)
 }

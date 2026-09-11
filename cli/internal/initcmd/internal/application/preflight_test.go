@@ -26,8 +26,7 @@ func TestRunChecksItsToolsBeforeTheFirstStep(t *testing.T) {
 
 	_, err := NewInitialize(files, newFakeCommandRunner(), newFakePluginFetcher()).Run(t.Context(), beadsRequest(), observer)
 
-	want := "claude is not on PATH (install Claude Code: https://docs.anthropic.com/en/docs/claude-code/setup); " +
-		"bd is not on PATH (brew install beads); " +
+	want := "bd is not on PATH (brew install beads); " +
 		"git is not on PATH"
 	if err == nil || err.Error() != want {
 		t.Errorf("Run error = %v, want %q", err, want)

@@ -29,12 +29,11 @@ const (
 // .beads/. A harness that takes codefall's skills as files has no session hook for them yet, so its
 // report is a skip rather than an error that would leave the project half set up.
 func (i *Initialize) hook(_ context.Context, request Request) (domain.StepResult, error) {
-	mechanism, known := harnessMechanisms[request.Harness]
-	if !known {
+	if _, known := pluginDestDirs[request.Harness]; !known {
 		return domain.StepResult{}, fmt.Errorf("harness %q has no plugin mechanism", request.Harness)
 	}
 
-	if mechanism != claudeMarketplace {
+	if request.Harness != domain.HarnessClaudeCode {
 		return domain.HookStep.Skipped(fmt.Sprintf(
 			"codefall has no session hook for %s yet", request.Harness)), nil
 	}
