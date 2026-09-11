@@ -42,11 +42,13 @@ type CommandResult struct {
 	ExitCode int
 }
 
-// PluginFetcher copies the plugin's files (one gateway role); the tree is embedded in the binary,
-// so fetching is a local copy and the role holds no version to check against.
+// PluginFetcher copies the plugin's files and records what it copied (one gateway role): the
+// embedded tree in the binary, so Fetch is a local copy, and the relative paths it wrote are
+// what init uses for the install manifest.
 type PluginFetcher interface {
-	// Fetch mirrors the plugin's tree onto destDir.
-	Fetch(ctx context.Context, destDir string) error
+	// Fetch mirrors the plugin's tree onto destDir and returns every path it wrote, relative to
+	// destDir, so the caller can put it on record.
+	Fetch(ctx context.Context, destDir string) ([]string, error)
 }
 
 // Request is what presentation hands the use case: every answer a survey or a set of flags could

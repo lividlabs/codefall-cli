@@ -170,6 +170,7 @@ type fetchCall struct {
 }
 
 // fakePluginFetcher remembers each Fetch and answers success unless the test gave it an error.
+// Its one-file list is what a manifest would record, so the detail string mentions it.
 type fakePluginFetcher struct {
 	calls []fetchCall
 	err   error
@@ -179,10 +180,10 @@ func newFakePluginFetcher() *fakePluginFetcher {
 	return &fakePluginFetcher{}
 }
 
-func (f *fakePluginFetcher) Fetch(_ context.Context, destDir string) error {
+func (f *fakePluginFetcher) Fetch(_ context.Context, destDir string) ([]string, error) {
 	f.calls = append(f.calls, fetchCall{dir: destDir})
 
-	return f.err
+	return []string{"skills/design/SKILL.md"}, f.err
 }
 
 // --- the run -----------------------------------------------------------------------------------

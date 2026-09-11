@@ -31,7 +31,7 @@ func TestSkillsStepCopiesTheEmbeddedTree(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	want := "installed codefall's skills into .agents/"
+	want := "installed codefall's skills into .agents/ and recorded them to .codefall/manifest.json"
 	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}

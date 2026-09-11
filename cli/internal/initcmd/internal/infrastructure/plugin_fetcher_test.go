@@ -24,13 +24,18 @@ func TestEmbeddedPluginFetcherCopiesTheTree(t *testing.T) {
 	fetcher := NewEmbeddedPluginFetcher(src)
 	dest := t.TempDir()
 
-	if err := fetcher.Fetch(context.Background(), dest); err != nil {
+	installed, err := fetcher.Fetch(context.Background(), dest)
+	if err != nil {
 		t.Fatalf("Fetch: %v", err)
 	}
 
 	got := readAllFiles(t, dest)
 	if len(got) != len(src) {
 		t.Fatalf("dest holds %d files, want all %d source files copied (%q)", len(got), len(src), got)
+	}
+
+	if len(installed) != len(got) {
+		t.Fatalf("installed = %d paths, want one per copied file (%v)", len(installed), installed)
 	}
 }
 
@@ -64,7 +69,7 @@ func TestEmbeddedPluginFetcherHonoursTheContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := NewEmbeddedPluginFetcher(fstest.MapFS{"one.txt": &fstest.MapFile{}}).Fetch(ctx, t.TempDir())
+	_, err := NewEmbeddedPluginFetcher(fstest.MapFS{"one.txt": &fstest.MapFile{}}).Fetch(ctx, t.TempDir())
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("Fetch err = %v, want context.Canceled", err)
 	}

@@ -32,6 +32,10 @@ const (
 	PluginID          = "codefall@codefall"
 	MarketplaceName   = "codefall"
 	MarketplaceSource = "lividlabs/codefall-plugin"
+
+	// ManifestName is the install record the plugin step writes, so upgrade and drift checks can
+	// know exactly which files belong to it. It lives in .codefall/, next to the settings.
+	ManifestName = ".codefall/manifest.json"
 )
 
 // The session hook codefall installs so that a harness session starts knowing about the project's
