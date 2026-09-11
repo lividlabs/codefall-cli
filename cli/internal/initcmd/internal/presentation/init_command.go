@@ -31,6 +31,10 @@ type InitializeUseCase interface {
 	Run(ctx context.Context, request application.Request, observer application.Observer) (domain.Report, error)
 	SettingsExist(dir string) (bool, error)
 	SuggestGitHubRepo(ctx context.Context, dir string) mo.Option[string]
+	// InstalledVersion reads the version the previous run recorded in .codefall/manifest.json,
+	// or None when there is no manifest or it names nothing. The upgrade gate compares it with
+	// the binary's version.
+	InstalledVersion(dir string) (mo.Option[string], error)
 }
 
 // The trackers the survey shows but does not accept. Huh has no disabled option, so they are offered
@@ -56,8 +60,9 @@ func NewInitCommand(initialize InitializeUseCase) *cobra.Command {
 	flags := &initFlags{}
 
 	cmd := &cobra.Command{
-		Use:   "init",
-		Short: "Set this directory up for codefall",
+		Use:     "init",
+		Aliases: []string{"upgrade"},
+		Short:   "Set this directory up for codefall",
 		Long: "Creates .codefall/settings.json from your answers. Every question is also a flag, so " +
 			"a scripted run passes them and is never prompted. The codefall extension is installed for " +
 			"the harness: Claude Code gets it at project scope into .claude/settings.json, and a " +
@@ -81,6 +86,7 @@ type initFlags struct {
 	githubProject int
 	harness       string
 	force         bool
+	yes           bool
 }
 
 func (f *initFlags) register(cmd *cobra.Command) {
@@ -95,6 +101,8 @@ func (f *initFlags) register(cmd *cobra.Command) {
 		"coding harness to set up ("+strings.Join(domain.Harnesses(), ", ")+")")
 	cmd.Flags().BoolVar(&f.force, "force", false,
 		"rewrite .codefall/settings.json if it is already there")
+	cmd.Flags().BoolVarP(&f.yes, "yes", "y", false,
+		"answer yes to the upgrade check without prompting")
 }
 
 // runInit is the command's body: collect the answers, run the steps, say what happened.
@@ -116,6 +124,11 @@ func runInit(cmd *cobra.Command, initialize InitializeUseCase, flags *initFlags)
 	// One colour-profile writer for the whole run.
 	out := ui.NewWriter(cmd.OutOrStdout())
 
+	if request.NoOp {
+		return ui.WriteLine(out, ui.Style(ui.ToneFaint).Render(
+			"already up to date with "+request.CLIVersion))
+	}
+
 	if _, err := runInitialize(cmd.Context(), initialize, request, out); err != nil {
 		if errors.Is(err, errCancelled) {
 			return err
@@ -136,7 +149,8 @@ func buildRequest(
 		return application.Request{}, err
 	}
 
-	request := application.Request{Dir: dir, Harness: harness, Force: flags.force}
+	request := application.Request{Dir: dir, Harness: harness, Force: flags.force,
+		CLIVersion: cliVersion()}
 
 	if flags.tracker != "" {
 		tracker, err := settings.ParseTracker(flags.tracker)
@@ -169,10 +183,29 @@ func buildRequest(
 	}
 
 	// Settings that are already there and are not being rewritten are not worth surveying for: the
-	// step will skip whatever the answers are.
+	// extension-copy is the same answer on a no-Fiorc run. Where a run is a no-op only because the
+	// version matches, that's what the comparison reports.
 	settled, err := initialize.SettingsExist(dir)
 	if err != nil {
 		return application.Request{}, fmt.Errorf("init: %w", err)
+	}
+
+	if settled && !request.Force {
+		previous, err := initialize.InstalledVersion(dir)
+		if err != nil {
+			return application.Request{}, fmt.Errorf("init: %w", err)
+		}
+
+		if recorded, ok := previous.Get(); ok && recorded == request.CLIVersion {
+			request.NoOp = true
+			return request, nil
+		}
+
+		if previous.IsPresent() && !flags.yes {
+			if err := confirmUpgrade(cmd.Context(), request.CLIVersion); err != nil {
+				return application.Request{}, err
+			}
+		}
 	}
 
 	if !settled || request.Force {
@@ -350,6 +383,33 @@ func runForm(ctx context.Context, groups []*huh.Group) error {
 		return fmt.Errorf("init: %w", err)
 	}
 }
+
+// confirmUpgrade is the one prompt a re-run asks before it files its own changes: upgrade to the
+// binary's tag. The user's "no" is not a cancellation of the run — it is a decline to move a version.
+func confirmUpgrade(ctx context.Context, version string) error {
+	var goForIt bool
+
+	err := huh.NewForm(huh.NewGroup(
+		huh.NewConfirm().
+			Title("Upgrade the installed extension to " + version + "?").
+			Value(&goForIt),
+	)).WithAccessible(os.Getenv("ACCESSIBLE") != "").RunWithContext(ctx)
+
+	switch {
+	case err == nil:
+		if !goForIt {
+			return errCancelled
+		}
+
+		return nil
+	case errors.Is(err, huh.ErrUserAborted):
+		return errCancelled
+	default:
+		return fmt.Errorf("init: %w", err)
+	}
+}
+
+// runForm runs the after-upgrade survey, if one is needed.
 
 // answered folds the survey's strings back into the contract. Everything here has already been
 // validated by the field that collected it.

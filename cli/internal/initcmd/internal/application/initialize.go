@@ -57,12 +57,20 @@ type ExtensionFetcher interface {
 // false, because then nothing is built from it — so a step that comes to depend on which tracker the
 // project uses must read it out of the settings file that is already there, not out of this field.
 type Request struct {
-	Dir           string
-	Tracker       string
-	GitHubRepo    mo.Option[string]
+	Dir        string
+	Tracker    string
+	GitHubRepo mo.Option[string]
+	// CLIVersion is the binary version that will get stamped into .codefall/manifest.json when
+	// this run writes one. Presentation reads it from the build's own info.
+	CLIVersion string
+
 	GitHubProject mo.Option[int]
 	Harness       string
-	Force         bool
+	// NoOp is true when everything the run would write matches what is already installed: same
+	// version recorded in the manifest, nothing the survey would need to ask. The use case is not
+	// asked at all. A Force run resets it.
+	NoOp  bool
+	Force bool
 }
 
 // Observer watches a run step by step, so a terminal can show what is happening while it happens.

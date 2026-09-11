@@ -45,6 +45,13 @@ func (f *fakeInitialize) SettingsExist(string) (bool, error) {
 	return f.exists, f.existsErr
 }
 
+// InstalledVersion on the fake always reports nothing applied before — to the gate it reads
+// first install, so the upgrade confirmation is skipped in el.move tests, and the survey is
+// reached only through the settings-exists logic.
+func (f *fakeInitialize) InstalledVersion(string) (mo.Option[string], error) {
+	return mo.None[string](), nil
+}
+
 func (f *fakeInitialize) SuggestGitHubRepo(context.Context, string) mo.Option[string] {
 	f.suggested = true
 
@@ -121,6 +128,7 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 		GitHubRepo:    mo.Some("lividlabs/codefall-cli"),
 		GitHubProject: mo.Some(3),
 		Harness:       domain.HarnessClaudeCode,
+		CLIVersion:    cliVersion(),
 		Force:         true,
 	}
 
