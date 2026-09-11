@@ -9,15 +9,15 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 )
 
-// skillsDirPlugin is the plugin step for every harness — each own directory comes from
-// pluginDestDirs. It copies the embedded plugin tree, and records the file list in the install
+// skillsDirExtension is the extension step for every harness — each own directory comes from
+// extensionDestDirs. It copies the embedded extension tree, and records the file list in the install
 // manifest, which later commands (upgrade, drift checks) can trust to state ownership.
-func (i *Initialize) skillsDirPlugin(ctx context.Context, request Request) (domain.StepResult, error) {
-	dest := pluginDestDirs[request.Harness]
+func (i *Initialize) skillsDirExtension(ctx context.Context, request Request) (domain.StepResult, error) {
+	dest := extensionDestDirs[request.Harness]
 
 	installed, err := i.fetcher.Fetch(ctx, filepath.Join(request.Dir, dest))
 	if err != nil {
-		return domain.StepResult{}, fmt.Errorf("install the embedded plugin: %w", err)
+		return domain.StepResult{}, fmt.Errorf("install the embedded extension: %w", err)
 	}
 
 	if err := i.writeManifest(request.Dir, request.Harness, installed); err != nil {
@@ -25,7 +25,7 @@ func (i *Initialize) skillsDirPlugin(ctx context.Context, request Request) (doma
 			domain.ManifestName, err)
 	}
 
-	return domain.PluginStep.Done(fmt.Sprintf(
+	return domain.ExtensionStep.Done(fmt.Sprintf(
 		"installed codefall's skills into %s/ and recorded them to %s",
 		dest, domain.ManifestName)), nil
 }

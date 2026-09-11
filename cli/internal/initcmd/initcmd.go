@@ -1,6 +1,6 @@
 // Package initcmd is the facade for `codefall init`, the command that makes a directory ready for
 // codefall: it writes the .codefall/settings.json that doctor checks and installs the codefall
-// plugin for the harness, and the step that initialises the tracker is added to the same run.
+// extension for the harness, and the step that initialises the tracker is added to the same run.
 //
 // The package is named initcmd rather than init because a package called init cannot be imported
 // without an alias — `import ".../internal/init"` does not compile, since init must be a func.
@@ -35,15 +35,15 @@ func Register(injector do.Injector) {
 		return infrastructure.NewExecCommandRunner(), nil
 	})
 
-	do.Provide(injector, func(do.Injector) (application.PluginFetcher, error) {
-		return infrastructure.NewEmbeddedPluginFetcher(extensions.Files()), nil
+	do.Provide(injector, func(do.Injector) (application.ExtensionFetcher, error) {
+		return infrastructure.NewEmbeddedExtensionFetcher(extensions.Files()), nil
 	})
 
 	do.Provide(injector, func(i do.Injector) (presentation.InitializeUseCase, error) {
 		return application.NewInitialize(
 			do.MustInvoke[application.FileSystem](i),
 			do.MustInvoke[application.CommandRunner](i),
-			do.MustInvoke[application.PluginFetcher](i),
+			do.MustInvoke[application.ExtensionFetcher](i),
 		), nil
 	})
 }

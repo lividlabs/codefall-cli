@@ -29,8 +29,8 @@ const (
 // .beads/. A harness that takes codefall's skills as files has no session hook for them yet, so its
 // report is a skip rather than an error that would leave the project half set up.
 func (i *Initialize) hook(_ context.Context, request Request) (domain.StepResult, error) {
-	if _, known := pluginDestDirs[request.Harness]; !known {
-		return domain.StepResult{}, fmt.Errorf("harness %q has no plugin mechanism", request.Harness)
+	if _, known := extensionDestDirs[request.Harness]; !known {
+		return domain.StepResult{}, fmt.Errorf("harness %q has no extension mechanism", request.Harness)
 	}
 
 	if request.Harness != domain.HarnessClaudeCode {
@@ -41,11 +41,11 @@ func (i *Initialize) hook(_ context.Context, request Request) (domain.StepResult
 	return i.claudeCodeHook(request.Dir)
 }
 
-// claudeCodeHook appends codefall's SessionStart hook to .claude/settings.json, which the plugin
+// claudeCodeHook appends codefall's SessionStart hook to .claude/settings.json, which the extension
 // step's CLI has already created by the time this runs.
 //
 // The file is read as a plain object rather than into a struct, so that every key it has — the
-// plugin declarations next to this one, and whatever else the project keeps there — survives being
+// extension declarations next to this one, and whatever else the project keeps there — survives being
 // written back out. Key order is the one thing that does not: encoding/json sorts an object's keys,
 // so a hand-edited file comes back sorted. That is a diff once, and the alternative is a JSON
 // editor.

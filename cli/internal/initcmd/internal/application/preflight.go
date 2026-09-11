@@ -161,7 +161,7 @@ func (i *Initialize) stagedChangesProblem(ctx context.Context, dir string) error
 // change to any of them — staged, unstaged, or untracked — would be committed under bd's message
 // rather than the author's, which is a change of authorship nobody asked for.
 //
-// The plugin step's own write to .claude/settings.json is not one of these. It happens after
+// The extension step's own write to .claude/settings.json is not one of these. It happens after
 // preflight, and bd committing it is what should happen: the file is codefall's to write. What this
 // guard is for is somebody else's edit to the same file, made before init ran.
 var beadsCommitPaths = []string{
@@ -217,7 +217,7 @@ func changedPaths(stdout string) []string {
 }
 
 // probe asks a tool a question in the project's directory. A non-zero exit is the answer, not a
-// failure; a tool that could not be started at all is the error, phrased the way plugin.go phrases
+// failure; a tool that could not be started at all is the error, phrased the way extension.go phrases
 // the same thing.
 func (i *Initialize) probe(ctx context.Context, dir, name string, args ...string) (CommandResult, error) {
 	result, err := i.runner.Run(ctx, dir, name, args...)
@@ -234,7 +234,7 @@ func commandLine(name string, args []string) string {
 }
 
 // requiredTools is what this particular run needs, and all it ever needs are bd and git, because
-// every run initialises Beads and Beads sits inside a git repository. The plugin step copies the
+// every run initialises Beads and Beads sits inside a git repository. The extension step copies the
 // embedded tree to the harness's own skills directory, so no foreign CLI is needed.
 func requiredTools(request Request) []requiredTool {
 	return []requiredTool{

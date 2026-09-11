@@ -312,7 +312,7 @@ func TestInitCommandPrintsALineForEachFinishedStepAndWhatToRunNext(t *testing.T)
 	initialize := newFakeInitialize()
 	initialize.report = domain.NewReport(
 		domain.SettingsStep.Done("wrote .codefall/settings.json (tracker: beads)"),
-		domain.PluginStep.Skipped(
+		domain.ExtensionStep.Skipped(
 			"the codefall marketplace is declared and codefall@codefall enabled in .claude/settings.json"),
 	)
 

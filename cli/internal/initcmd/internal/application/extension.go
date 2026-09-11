@@ -25,7 +25,7 @@ const (
 // where each harness's skills live, the convention each of those directories carries being the
 // same to the little letters of the job. Claude Code's own is .claude/; an agent that reads the
 // .agents/skills convention takes .agents/, and adding one of those is one row.
-var pluginDestDirs = map[string]string{
+var extensionDestDirs = map[string]string{
 	domain.HarnessAntigravity: agentsDir,
 	domain.HarnessClaudeCode:  claudeDir,
 	domain.HarnessCodex:       agentsDir,
@@ -33,14 +33,14 @@ var pluginDestDirs = map[string]string{
 	domain.HarnessOpenCode:    agentsDir,
 }
 
-// plugin is the second step of a run: it mirrors the embedded plugin tree where the harness the
+// extension is the second step of a run: it mirrors the embedded extension tree where the harness the
 // project uses reads skills, so it never touches a network or a foreign CLI.
-func (i *Initialize) plugin(ctx context.Context, request Request) (domain.StepResult, error) {
-	if _, known := pluginDestDirs[request.Harness]; !known {
-		return domain.StepResult{}, fmt.Errorf("harness %q has no plugin mechanism", request.Harness)
+func (i *Initialize) extension(ctx context.Context, request Request) (domain.StepResult, error) {
+	if _, known := extensionDestDirs[request.Harness]; !known {
+		return domain.StepResult{}, fmt.Errorf("harness %q has no extension mechanism", request.Harness)
 	}
 
-	return i.skillsDirPlugin(ctx, request)
+	return i.skillsDirExtension(ctx, request)
 }
 
 // claudePath is the one read of the harness's settings file, shared by the steps that merge into

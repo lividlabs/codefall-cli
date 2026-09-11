@@ -11,21 +11,21 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/process"
 )
 
-// EmbeddedPluginFetcher copies the plugin tree out of the embedded extensions FS.
-type EmbeddedPluginFetcher struct {
+// EmbeddedExtensionFetcher copies the extension tree out of the embedded extensions FS.
+type EmbeddedExtensionFetcher struct {
 	src   fs.FS
 	files *process.FileSystem
 }
 
-// NewEmbeddedPluginFetcher builds the fetch gateway over the tree the binary was compiled with.
+// NewEmbeddedExtensionFetcher builds the fetch gateway over the tree the binary was compiled with.
 // The source fs is injected so tests can drive an in-memory tree instead of the real one.
-func NewEmbeddedPluginFetcher(src fs.FS) *EmbeddedPluginFetcher {
-	return &EmbeddedPluginFetcher{src: src, files: process.NewFileSystem()}
+func NewEmbeddedExtensionFetcher(src fs.FS) *EmbeddedExtensionFetcher {
+	return &EmbeddedExtensionFetcher{src: src, files: process.NewFileSystem()}
 }
 
 // Fetch mirrors every file in the embedded tree onto destDir, and returns the relative paths it
 // wrote (a manifest-of-one-copy) sorted so two sequential runs produce the same record.
-func (f *EmbeddedPluginFetcher) Fetch(ctx context.Context, destDir string) ([]string, error) {
+func (f *EmbeddedExtensionFetcher) Fetch(ctx context.Context, destDir string) ([]string, error) {
 	var installed []string
 
 	err := fs.WalkDir(f.src, ".", func(path string, d fs.DirEntry, err error) error {

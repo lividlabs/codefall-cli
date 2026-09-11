@@ -59,9 +59,9 @@ func NewInitCommand(initialize InitializeUseCase) *cobra.Command {
 		Use:   "init",
 		Short: "Set this directory up for codefall",
 		Long: "Creates .codefall/settings.json from your answers. Every question is also a flag, so " +
-			"a scripted run passes them and is never prompted. The codefall plugin is installed for " +
+			"a scripted run passes them and is never prompted. The codefall extension is installed for " +
 			"the harness: Claude Code gets it at project scope into .claude/settings.json, and a " +
-			"harness that reads the .agents/skills convention gets the plugin's tree under .agents/.",
+			"harness that reads the .agents/skills convention gets the extension's tree under .agents/.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runInit(cmd, initialize, flags)
