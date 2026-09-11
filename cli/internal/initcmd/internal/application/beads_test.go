@@ -26,7 +26,7 @@ func beadsResult(t *testing.T, report domain.Report) domain.StepResult {
 func TestBeadsStepSkipsARepositoryThatAlreadyHasBeads(t *testing.T) {
 	runner := toolsInstalled()
 
-	report, err := NewInitialize(settled("{}"), runner, newFakeExtensionFetcher()).Run(t.Context(), beadsRequest(), nil)
+	report, err := NewInitialize(settled("{}"), runner, newFakeExtensionSource()).Run(t.Context(), beadsRequest(), nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestBeadsStepInitializesBeads(t *testing.T) {
 			runner := uninitialized()
 			runner.runs[beadsInit] = tc.result
 
-			report, err := NewInitialize(settled("{}"), runner, newFakeExtensionFetcher()).Run(t.Context(), beadsRequest(), nil)
+			report, err := NewInitialize(settled("{}"), runner, newFakeExtensionSource()).Run(t.Context(), beadsRequest(), nil)
 			if err != nil {
 				t.Fatalf("Run: %v", err)
 			}
@@ -111,7 +111,7 @@ func TestBeadsStepStopsTheRunWhenBeadsRefuses(t *testing.T) {
 	files := settled("{}")
 	observer := &recordingObserver{}
 
-	report, err := NewInitialize(files, runner, newFakeExtensionFetcher()).Run(t.Context(), beadsRequest(), observer)
+	report, err := NewInitialize(files, runner, newFakeExtensionSource()).Run(t.Context(), beadsRequest(), observer)
 	if err == nil {
 		t.Fatalf("Run = %+v, want an error", report)
 	}
@@ -141,7 +141,7 @@ func TestBeadsStepStopsTheRunWhenBeadsCannotBeStarted(t *testing.T) {
 	runner := uninitialized()
 	runner.errs[beadsInit] = errors.New("broken pipe")
 
-	_, err := NewInitialize(settled("{}"), runner, newFakeExtensionFetcher()).Run(t.Context(), beadsRequest(), nil)
+	_, err := NewInitialize(settled("{}"), runner, newFakeExtensionSource()).Run(t.Context(), beadsRequest(), nil)
 	if err == nil || !strings.Contains(err.Error(), "run bd init --non-interactive --skip-agents") {
 		t.Errorf("Run error = %v, want it to say the command could not be run", err)
 	}

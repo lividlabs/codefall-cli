@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
-# PreToolUse guard: deny any Bash command that would merge or push to the default branch.
+# PreToolUse guard: deny any shell command that would merge or push to the default branch.
 #
 # A human performs every merge to main; no codefall verb ever does. A denial from this
-# hook is the system working as designed. Exit 2 blocks the tool call; stderr is shown
-# to the model. Exit 0 raises no objection; the normal permission flow still applies.
+# hook is the system working as designed. For Claude Code and Codex a deny is exit 2 with
+# the reason on stderr, shown to the model. Antigravity needs a JSON decision on stdout,
+# which --antigravity selects. Exit 0 raises no objection; the normal permission flow
+# still applies.
+#
+# The input shape differs by harness: Claude Code and Codex put the command in
+# .tool_input.command, Antigravity in .toolCall.args.CommandLine. The deny shape is the
+# only other difference, so one script serves all three.
 #
 # Deliberate limits: this inspects the command string plus, for `gh pr merge`, the PR's
 # actual base branch. It prefers a rare false denial over a false allow, and it is a
@@ -11,14 +17,31 @@
 # the backstop.
 set -u
 
+antigravity=
+if [ "${1:-}" = "--antigravity" ]; then
+  antigravity=yes
+fi
+
 input=$(cat)
-cmd=$(printf '%s' "$input" | python3 -c \
-  'import json,sys; print(json.load(sys.stdin).get("tool_input",{}).get("command",""))' \
-  2>/dev/null) || exit 0
+
+if [ -n "$antigravity" ]; then
+  cmd=$(printf '%s' "$input" | python3 -c \
+    'import json,sys; print(json.load(sys.stdin).get("toolCall",{}).get("args",{}).get("CommandLine",""))' \
+    2>/dev/null) || exit 0
+else
+  cmd=$(printf '%s' "$input" | python3 -c \
+    'import json,sys; print(json.load(sys.stdin).get("tool_input",{}).get("command",""))' \
+    2>/dev/null) || exit 0
+fi
 [ -z "$cmd" ] && exit 0
 
 deny() {
-  echo "codefall: $1 A human performs every merge to '$2' — report the merge order and stop." >&2
+  reason="codefall: $1 A human performs every merge to '$2' — report the merge order and stop."
+  if [ -n "$antigravity" ]; then
+    python3 -c 'import json,sys; print(json.dumps({"decision": "deny", "reason": sys.argv[1]}))' "$reason"
+    exit 0
+  fi
+  echo "$reason" >&2
   exit 2
 }
 
@@ -33,7 +56,14 @@ if printf '%s' "$cmd" | grep -qE '(^|[;&|[:space:]])gh[[:space:]]+pr[[:space:]]+
        if ($(i-1) == "pr" && $i == "merge") {
          for (j = i + 1; j <= NF; j++) if ($j !~ /^-/) { print $j; exit }
        }}')
-  base=$(gh pr view $ref --json baseRefName --jq .baseRefName 2>/dev/null)
+  # A bare `gh pr merge` names no PR and means the current branch's: gh answers that
+  # question only when asked without a branch, because `gh pr view ""` looks up a branch
+  # called nothing and always fails.
+  if [ -z "$ref" ]; then
+    base=$(gh pr view --json baseRefName --jq .baseRefName 2>/dev/null)
+  else
+    base=$(gh pr view "$ref" --json baseRefName --jq .baseRefName 2>/dev/null)
+  fi
   if [ -z "$base" ] || [ "$base" = "$protected" ]; then
     deny "denied: 'gh pr merge' into '$protected' (or into a base this hook could not determine)." "$protected"
   fi
@@ -49,8 +79,10 @@ if printf '%s' "$cmd" | grep -qE '(^|[;&|[:space:]])git[[:space:]]+merge([[:spac
 fi
 
 # --- git push with a refspec naming the protected branch (origin main, HEAD:main). ---
+# The name is regex-escaped first: a branch with a dot in it must not match what isn't there.
 if printf '%s' "$cmd" | grep -qE '(^|[;&|[:space:]])git[[:space:]]+push([[:space:]]|$)'; then
-  if printf '%s' "$cmd" | grep -qE "[[:space:]:]${protected}([[:space:]]|\$)"; then
+  escaped=$(printf '%s' "$protected" | sed 's/[][\\.*^$/]/\\&/g')
+  if printf '%s' "$cmd" | grep -qE "[[:space:]:]${escaped}([[:space:]]|\$)"; then
     deny "denied: 'git push' targeting '$protected'." "$protected"
   fi
   # A bare push (no refspec) while standing on the protected branch pushes it.

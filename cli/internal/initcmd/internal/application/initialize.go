@@ -42,13 +42,15 @@ type CommandResult struct {
 	ExitCode int
 }
 
-// ExtensionFetcher copies the extension's files and records what it copied (one gateway role): the
-// embedded tree in the binary, so Fetch is a local copy, and the relative paths it wrote are
-// what init uses for the install manifest.
-type ExtensionFetcher interface {
-	// Fetch mirrors the extension's tree onto destDir and returns every path it wrote, relative to
-	// destDir, so the caller can put it on record.
-	Fetch(ctx context.Context, destDir string) ([]string, error)
+// ExtensionSource is the extension's embedded payload (one gateway role): a tree in the binary, so
+// both operations are local reads. Fetch mirrors it for the extension step; Read takes one file, for
+// the hook step's per-harness definitions.
+type ExtensionSource interface {
+	// Fetch mirrors the extension's tree onto destDir, skipping paths under exclude, and returns
+	// every path it wrote, relative to destDir, so the caller can put it on record.
+	Fetch(ctx context.Context, destDir string, exclude []string) ([]string, error)
+	// Read returns one file from the tree.
+	Read(path string) ([]byte, error)
 }
 
 // Request is what presentation hands the use case: every answer a survey or a set of flags could
@@ -84,17 +86,17 @@ type Observer interface {
 }
 
 // Initialize sets a project up for codefall: it writes .codefall/settings.json, installs the harness
-// extension, initialises Beads, gives the harness the session hook that primes a session with what
-// Beads knows, and writes the section of AGENTS.md that says how the project uses it.
+// extension, initialises Beads, registers codefall's hooks with the harness, and writes the section
+// of AGENTS.md that says how the project uses it.
 type Initialize struct {
-	files   FileSystem
-	runner  CommandRunner
-	fetcher ExtensionFetcher
+	files  FileSystem
+	runner CommandRunner
+	source ExtensionSource
 }
 
 // NewInitialize builds the use case over its gateways.
-func NewInitialize(files FileSystem, runner CommandRunner, fetcher ExtensionFetcher) *Initialize {
-	return &Initialize{files: files, runner: runner, fetcher: fetcher}
+func NewInitialize(files FileSystem, runner CommandRunner, source ExtensionSource) *Initialize {
+	return &Initialize{files: files, runner: runner, source: source}
 }
 
 // step is one unit of work in a run. It returns what it did, or an error that stops the run: a step

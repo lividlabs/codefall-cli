@@ -2,19 +2,13 @@ package application
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io/fs"
-	"path/filepath"
-	"strings"
-
-	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 )
 
-// Where Claude Code keeps a project's settings, relative to the directory init is run in. The
-// display form is what a person reads in a report; the path form is what the file system is given.
+// Where each harness's files go, relative to the directory init is run in. The display form is
+// what a person reads in a report; the path form is what the file system is given.
 const (
 	claudeDir      = ".claude"
 	agentsDir      = ".agents"
@@ -41,33 +35,4 @@ func (i *Initialize) extension(ctx context.Context, request Request) (domain.Ste
 	}
 
 	return i.skillsDirExtension(ctx, request)
-}
-
-// claudePath is the one read of the harness's settings file, shared by the steps that merge into
-// it — the hook step encodes the plain object with this at both ends.
-//
-// Three files say the same nothing: one that is not there, one that is empty or only whitespace,
-// and one holding the JSON literal null. They are one answer here rather than three behaviours
-// further down, because json.Unmarshal accepts null into anything and leaves it as it was while
-// rejecting the other two (ADR-GO-03). Anything else is handed back for the caller to make sense
-// of.
-func (i *Initialize) readClaudeFile(dir string) (mo.Option[[]byte], error) {
-	data, err := i.files.ReadFile(claudePath(dir))
-
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-		return mo.None[[]byte](), nil
-	case err != nil:
-		return mo.None[[]byte](), fmt.Errorf("read %s: %w", claudeFullName, err)
-	}
-
-	if trimmed := strings.TrimSpace(string(data)); trimmed == "" || trimmed == "null" {
-		return mo.None[[]byte](), nil
-	}
-
-	return mo.Some(data), nil
-}
-
-func claudePath(dir string) string {
-	return filepath.Join(dir, claudeDir, claudeFile)
 }

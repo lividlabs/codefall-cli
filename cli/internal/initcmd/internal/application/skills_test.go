@@ -19,7 +19,7 @@ func skillsRequest() Request {
 // The step copies the embedded extension tree into the project's .agents/, one Fetch call, one
 // destination.
 func TestSkillsStepCopiesTheEmbeddedTree(t *testing.T) {
-	fetcher := newFakeExtensionFetcher()
+	fetcher := newFakeExtensionSource()
 
 	report, err := NewInitialize(settled(""), toolsInstalled(), fetcher).Run(t.Context(), skillsRequest(), nil)
 	if err != nil {
@@ -45,7 +45,7 @@ func TestSkillsStepCopiesTheEmbeddedTree(t *testing.T) {
 // The fetcher failing stops the run in the extension step, which is the second step of five, so the
 // report carries the one step that is already done.
 func TestSkillsStepStopsTheRunWhenTheCopyFails(t *testing.T) {
-	fetcher := newFakeExtensionFetcher()
+	fetcher := newFakeExtensionSource()
 	fetcher.err = errors.New("disk full")
 
 	_, err := NewInitialize(settled(""), toolsInstalled(), fetcher).Run(t.Context(), skillsRequest(), nil)
@@ -57,9 +57,9 @@ func TestSkillsStepStopsTheRunWhenTheCopyFails(t *testing.T) {
 }
 
 // A skills-directory harness runs all five steps: the extension step installs where the mechanism
-// installs, the hook step skips, and the rest are untouched.
+// installs, the hook step registers there too, and the rest are untouched.
 func TestSkillsRunStillRunsEveryStep(t *testing.T) {
-	report, err := NewInitialize(settled(""), toolsInstalled(), newFakeExtensionFetcher()).Run(
+	report, err := NewInitialize(settled(""), toolsInstalled(), newFakeExtensionSource()).Run(
 		t.Context(), skillsRequest(), nil,
 	)
 	if err != nil {
@@ -71,11 +71,11 @@ func TestSkillsRunStillRunsEveryStep(t *testing.T) {
 		t.Fatalf("Results() = %+v, want a result for each of the five steps", results)
 	}
 
-	if got := results[3].Outcome; got != domain.OutcomeSkipped {
-		t.Errorf("the hook step = %v, want SKIPPED", got)
+	if got := results[3].Outcome; got != domain.OutcomeDone {
+		t.Errorf("the hook step = %v, want DONE", got)
 	}
 
-	want := "codefall has no session hook for codex yet"
+	want := "merged codefall's hooks into .codex/hooks.json"
 	if got := results[3].Detail; got != want {
 		t.Errorf("the hook step's detail = %q, want %q", got, want)
 	}

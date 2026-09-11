@@ -14,12 +14,13 @@ import (
 )
 
 // skillsDirExtension is the extension step for every harness — each own directory comes from
-// extensionDestDirs. It copies the embedded extension tree, and records the file list and the
-// version into the install manifest, the from/to narrative upgrade compares.
+// extensionDestDirs. It copies the embedded extension tree, minus the per-harness hook definitions
+// the hook step consumes, and records the file list and the version into the install manifest, the
+// from/to narrative upgrade compares.
 func (i *Initialize) skillsDirExtension(ctx context.Context, request Request) (domain.StepResult, error) {
 	dest := extensionDestDirs[request.Harness]
 
-	installed, err := i.fetcher.Fetch(ctx, filepath.Join(request.Dir, dest))
+	installed, err := i.source.Fetch(ctx, filepath.Join(request.Dir, dest), hookSourceDirs)
 	if err != nil {
 		return domain.StepResult{}, fmt.Errorf("install the embedded extension: %w", err)
 	}
