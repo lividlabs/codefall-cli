@@ -1,6 +1,6 @@
 ---
-name: graft
-description: Bring a project's codefall documents up to date with the current templates — compare what the plugin ships now against what the project has, report every difference with its provenance, and apply only the pieces the user takes, one at a time. Works on projects scaffolded before provenance existed, and on repos adopting the stance for the first time.
+name: codefall-graft
+description: Bring a project's codefall documents up to date with the current templates — compare what the extension ships now against what the project has, report every difference with its provenance, and apply only the pieces the user takes, one at a time. Works on projects scaffolded before provenance existed, and on repos adopting the stance for the first time.
 argument-hint: "[path]"
 disable-model-invocation: true
 allowed-tools:
@@ -16,8 +16,8 @@ allowed-tools:
 # Graft
 
 A project scaffolded at codefall 0.2.1 never receives anything the templates gained since — new
-ADRs, revised rules, renamed files all live in the plugin, not in the project. Graft closes that
-gap: it reads what the project has, compares it against what the plugin ships now, reports every
+ADRs, revised rules, renamed files all live in the extension, not in the project. Graft closes that
+gap: it reads what the project has, compares it against what the extension ships now, reports every
 difference, and applies exactly the pieces the user takes.
 
 The name is the contract. You graft onto **rootstock** — an existing, living project that is not
@@ -25,13 +25,13 @@ being replaced. You graft one **scion** at a time — application is per-item, n
 graft either **takes or is rejected** — a revised template meets a project that amended its
 ancestor, and the amendment wins.
 
-This skill is **only ever invoked explicitly**, and more firmly than the others: `scaffold` runs on
+This skill is **only ever invoked explicitly**, and more firmly than the others: `codefall-scaffold` runs on
 an empty directory, but graft runs on a project people depend on. Never suggest it, never fire it
 from a passing remark, never chain into it from another skill. Someone types `/graft` on purpose or
 it does not run.
 
 Template paths in this document are relative to `../scaffold/templates/`, resolved from this skill's
-directory — the one holding this `SKILL.md` — because graft reasons about `scaffold`'s templates and
+directory — the one holding this `SKILL.md` — because graft reasons about `codefall-scaffold`'s templates and
 has none of its own. Its one bundled reference is `lineage.md` beside this file, the record of what
 every current template used to be called. Neither path is relative to the user's project.
 
@@ -60,7 +60,7 @@ decision the project wrote.
 ## Provenance states
 
 `.codefall/scaffold.json` records, per inherited ADR, an `amended` flag and a `sha256` (see
-`scaffold` step 4). Together they separate four states, and the state decides everything graft may
+`codefall-scaffold` step 4). Together they separate four states, and the state decides everything graft may
 do:
 
 | State | Meaning | Graft may |
@@ -91,7 +91,7 @@ existed, and there the answer is a ladder — take the first rung that works:
 
 1. **The local plugin cache** — `~/.claude/plugins/cache/<marketplace>/codefall/<version>/`. Exact
    snapshots, offline, but only of versions this machine actually installed.
-2. **Git history** — if the plugin root, two levels up from this skill's directory, sits inside a
+2. **Git history** — if the extension root, two levels up from this skill's directory, sits inside a
    clone that can reach the release tag, `git show <tag>:<path>` works. Installed marketplace
    clones are usually **shallow** with few or no tags, so try `git fetch --depth=1 origin tag <tag>`
    before concluding the tag is missing. Tags come in two forms and old paths differ from current
@@ -105,7 +105,7 @@ reconstruction poisons every classification built on it: it marks edited files u
 untouched files edited. The ladder or nothing.
 
 When comparing a project file against the template that emitted it, normalize the one thing
-`scaffold` changes on emission: the date on the `## Status` line (`Accepted — <date>` became
+`codefall-scaffold` changes on emission: the date on the `## Status` line (`Accepted — <date>` became
 `Accepted — 2026-08-12`). Everything else compares verbatim. Equal after that means untouched;
 different means edited — without provenance you cannot distinguish *amended at the interview* from
 *edited since*, and edited is the safe reading, so collapse to it.
@@ -130,8 +130,8 @@ all three — they differ only in how much step 2 must reconstruct:
 - **Never scaffolded** — no codefall docs at all. This is **first-time adoption**: every applicable
   template is simply missing, and the same report-then-take flow installs the stance. Detect the
   surfaces from the repo (`package.json`/`tsconfig` suggests `typescript-react`, `go.mod` suggests
-  `go`) and confirm rather than assume — the profile catalog and its refusal rule are `scaffold`'s.
-  If a surface has no supported profile, refuse the same way `scaffold` does: say plainly that the
+  `go`) and confirm rather than assume — the profile catalog and its refusal rule are `codefall-scaffold`'s.
+  If a surface has no supported profile, refuse the same way `codefall-scaffold` does: say plainly that the
   stack isn't supported yet, name what is, offer to record the request, and stop. Do not improvise.
 
 Adoption installs documents describing a stance the existing code does not yet follow, and does not
@@ -151,7 +151,7 @@ edited. A listed file missing from disk was deleted by the project — report it
 the entry alone. Never "correct" the file to make drift disappear; it records history, not
 configuration.
 
-A hand-backfilled `scaffold.json` — one written after the fact rather than by `scaffold` — is only
+A hand-backfilled `scaffold.json` — one written after the fact rather than by `codefall-scaffold` — is only
 as safe as its `amended` flags. The hashes are re-verified right here, but `amended` is taken as
 recorded, and a flag wrongly set to `false` marks a customized file as safe to supersede. Nothing
 downstream can catch that lie; a backfill unsure about a file should say `true`, whose worst case
@@ -167,7 +167,7 @@ unverifiable, and unverifiable is edited. Do not guess a version, and never inve
 
 First fix the **applicable set** — which templates this project should have at all. Profiles and
 decisions come from `scaffold.json` when present, from which profile's ADRs are on disk otherwise,
-and from step 1's detection for adoption. Apply `scaffold`'s gates, not your own: a surface that
+and from step 1's detection for adoption. Apply `codefall-scaffold`'s gates, not your own: a surface that
 can never be split skips ADR-BASE-03, a backend-only project has no use for ADR-TS-02. If a gate
 genuinely can't be answered from the project, ask — once, batched with anything else step 4 needs.
 
@@ -183,7 +183,7 @@ Then classify every difference:
   both facts about the one file. A rename also implies stale references wherever other docs cite
   the old identifier — find them with Grep, list them with the item.
 - **Retired** — a project doc whose template no longer ships. The decision didn't evaporate because
-  the plugin moved on; report it, leave the file alone.
+  the extension moved on; report it, leave the file alone.
 - **Skeleton drift** — the profile's `AGENTS.md.skeleton` changed. An `AGENTS.md` is filled in per
   project at scaffold time, so it is *always* effectively amended: skeleton changes are reported as
   advisory, never applied wholesale.
@@ -198,7 +198,7 @@ amended or edited, because there the diff is the deliverable — and whether it 
 automatically or is the user's to merge. Say what taking means: a revision lands as a superseding
 ADR, never as a rewrite of the one the project ratified.
 
-When the plugin's changelog is reachable (a repo checkout, or GitHub — the installed plugin subtree
+When the extension's changelog is reachable (a repo checkout, or GitHub — the installed extension subtree
 does not carry it), use it to say *why* things changed, grouped by release since the project's
 baseline. When it isn't, say the report comes from template comparison alone. Either way the
 comparison, not the changelog, is the source of truth for *what* changed.
@@ -215,7 +215,7 @@ the record; the only in-place edit graft ever makes to an existing ADR is flippi
 to `Superseded by <id> — <date>`, which is the edit the discipline prescribes. Git history is not
 the record here — the documents are.
 
-- **Missing** — instantiate from the current template, exactly as `scaffold` step 4 emits it:
+- **Missing** — instantiate from the current template, exactly as `codefall-scaffold` step 4 emits it:
   stamp today's real date (`date +%F`, not memory) on the Status line, keep the flat `docs/adrs/`
   layout.
 - **Untouched, revised** — write the current template as a **new, superseding ADR** stamped with
@@ -239,9 +239,9 @@ the record here — the documents are.
   `sha256` computed with `shasum -a 256` on the file as written — never invented. A supersession
   touches two files: add an entry for the successor, which is what future runs compare against,
   and recompute the superseded file's hash after its Status flip. Add
-  `"lastGraft": { "pluginVersion": "<version>", "date": "<date>" }` at the top level, reading the
+  `"lastGraft": { "pluginVersion": "<version or unknown>", "date": "<date>" }` at the top level.
   version from `../../.claude-plugin/plugin.json` — do not guess it. Where the file didn't exist,
-  write it fresh: this plugin version, today's date, the profiles and decisions as established, and
+  write it fresh: this extension version, today's date, the profiles and decisions as established, and
   an `amended` per ADR — `false` only for files that now hash-match a current template, `true` for
   anything kept that differs.
 - **`docs/decision-log.md`** — one line under `Locked`: *grafted codefall `<version>` on `<date>` —
@@ -266,15 +266,15 @@ the graft should be reviewable as one coherent change.
 - What was **left**, and why — amended, edited, retired, or declined.
 - Stale references the user chose to keep, so they aren't rediscovered as a surprise.
 - What the user still owes the project: the hand-merges they said they'd do, and — after an
-  adoption — the boundary-enforcement obligation, named exactly as `scaffold` names it after a
+  adoption — the boundary-enforcement obligation, named exactly as `codefall-scaffold` names it after a
   docs-only run.
 
 ## Conventions
 
-Repo-wide rules — verb naming, template lineage upkeep, ADR immutability — live in the plugin
+Repo-wide rules — verb naming, template lineage upkeep, ADR immutability — live in the extension
 repo's root `AGENTS.md`. Specific to this skill:
 
 - `lineage.md` is required: any change that renames, moves, or retires a template ships a row
   in it, in the same PR. Graft can only tell a rename from a deletion because that record exists.
-- Graft writes nothing outside the target project. The plugin's own files — templates, lineage,
+- Graft writes nothing outside the target project. The extension's own files — templates, lineage,
   this skill — are maintained through PRs, not by a run of graft.

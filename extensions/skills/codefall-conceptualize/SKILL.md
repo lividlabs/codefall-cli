@@ -1,5 +1,5 @@
 ---
-name: conceptualize
+name: codefall-conceptualize
 description: Get an idea onto paper before anyone specifies or scaffolds it — take whatever the user arrived with, from a sentence to a folder of mockups, organize it into one or more numbered concept documents under docs/concepts/, and record what is still unknown rather than inventing answers.
 argument-hint: "[the idea, or a path to a document you already have]"
 disable-model-invocation: true
@@ -25,7 +25,7 @@ informal. A concept carries the *why* — the problem, the reason it matters now
 answer — and it stops well short of the detail a specification needs.
 
 Conceptualizing is not specifying. The moment the document starts saying what a user will observe
-when the thing works, it has become `specify`'s job. See [The specify off-ramp](#the-specify-off-ramp).
+when the thing works, it has become `codefall-specify`'s job. See [The specify off-ramp](#the-specify-off-ramp).
 
 Plugin paths in this document — the ones that start with `../` — are relative to this skill's
 directory, the one holding this `SKILL.md`. Resolve them from where the file lives; they are not
@@ -55,8 +55,8 @@ accounting system is broadly broken" is a concept, because the problem is large 
 has to think before anyone specifies.
 
 One bug, one screen, one endpoint, one field is usually smaller than this document is worth, and
-`specify` or the work itself is the better destination. **That is advice, not a gate.** Say what you
-think and why — "this looks like one field, which `specify` handles in a couple of questions" — and
+`codefall-specify` or the work itself is the better destination. **That is advice, not a gate.** Say what you
+think and why — "this looks like one field, which `codefall-specify` handles in a couple of questions" — and
 then write the concept if that is what they want. The user knows things about the work that you do
 not, and a concept nobody needed costs a file.
 
@@ -87,7 +87,7 @@ run is several confirmations, not one approval covering the set.
 When what the user describes is really a specification, say so once, say why, and offer to switch.
 These are the tells:
 
-| Tell | Why it means `specify` |
+| Tell | Why it means `codefall-specify` |
 | --- | --- |
 | One capability, described end to end | A concept frames a problem; this already answers it |
 | The *why* is inseparable from the *what* | A concept exists to carry a *why* that outlives any one feature |
@@ -197,8 +197,8 @@ concept this one revises or replaces.
 
 **The `specs` field holds a list**, because one concept can produce several specifications —
 `SPEC-003, SPEC-004, SPEC-005`. A concept large enough to need more than one spec is normal, and the
-concept is what groups them: `specify` writes siblings rather than a parent spec, precisely because
-this line already does that job. `specify` appends each identifier as it creates one, and changes
+concept is what groups them: `codefall-specify` writes siblings rather than a parent spec, precisely because
+this line already does that job. `codefall-specify` appends each identifier as it creates one, and changes
 nothing else in the file.
 
 ## Status and lifecycle
@@ -211,7 +211,7 @@ both.
 | --- | --- | --- | --- | --- |
 | `Status: Draft — <date>` | The user said, or clearly implied, that they are stopping and coming back | this skill, only on that signal | yes | `docs/concepts/` |
 | `Status: Ready — <date>` | Written and agreed. The normal end of a session | this skill | yes | `docs/concepts/` |
-| `Status: Active — <date>` | Work has started against it | `implement` | no, except the Status line | `docs/concepts/` |
+| `Status: Active — <date>` | Work has started against it | `codefall-implement` | no, except the Status line | `docs/concepts/` |
 | `Status: Archived — <date>` | Wholly replaced, or dropped | this skill | no | `docs/concepts/archive/` |
 | `Revised by: CONCEPT-NNN — <date>` | Part of it was replaced; this concept is still live. Optional, repeatable | this skill | — | — |
 | `Replaced by: CONCEPT-NNN — <date>` | Accompanies `Archived` when something took its place. Omitted when the concept was simply dropped | this skill | — | — |
@@ -221,9 +221,9 @@ with is finished, whatever they called it when they started. Set `Draft` only wh
 stopping and will come back — "let's leave it there for now", "I want to think about this more". They
 will rarely use the word.
 
-**`Active` is set by `implement`**, automatically, at the first claim of work that traces back to
+**`Active` is set by `codefall-implement`**, automatically, at the first claim of work that traces back to
 the concept — it records the observable fact that work has started. Do not set it yourself; a
-concept still at `Ready` means `implement` has not run against it.
+concept still at `Ready` means `codefall-implement` has not run against it.
 
 **A concept is never renumbered and its identifier is never reused.** A spec citing `CONCEPT-003`
 must always mean the same document, including after it is archived — the file moves, the identifier
@@ -234,7 +234,7 @@ does not change.
 Archiving moves the file to `docs/concepts/archive/` under the same name. The identifier stays valid
 and citations still resolve, to the new path.
 
-`conceptualize` maintains `docs/concepts/AGENTS.md`. It is written when the directory is created and
+`codefall-conceptualize` maintains `docs/concepts/AGENTS.md`. It is written when the directory is created and
 added on a later run if it is missing. That is the whole retrofit story — every repo gets the file the
 first time the skill runs, and a repo that has never run this skill has no `docs/concepts/` for it to
 scope. It says one thing, that `archive/` is history and is not read unless asked, which is the closest
@@ -276,9 +276,9 @@ Two destinations, decided by what the material is rather than by how it arrived.
 | A picture of a surface someone will build — exports, screenshots of a design tool, a mockup set | `docs/mockups/<slug>/`, following `../../shared/import-mockup.md` |
 | Everything else — notes, transcripts, vision documents, sketches of the problem, a diagram of how something works today | `docs/concepts/sources/CONCEPT-NNN-<original-filename>` |
 
-Mockups go to `docs/mockups/` because that is where `design` and `implement` look for them, and
+Mockups go to `docs/mockups/` because that is where `codefall-design` and `codefall-implement` look for them, and
 because a surface outlives the concept that prompted it. `../../shared/import-mockup.md` is the same
-procedure `specify` and `mock-up` use, so the three never drift — follow it as written, including its
+procedure `codefall-specify` and `codefall-mock-up` use, so the three never drift — follow it as written, including its
 rules about never editing or interpreting what the user brought.
 
 **When it is unclear which a thing is, ask.** A whiteboard photo of boxes and arrows is thinking; a
@@ -413,5 +413,5 @@ own initiative.
   `docs/mockups/`.
 - **Identifiers are append-only.** A retired number is never reused, and archiving moves a file without
   renumbering it.
-- **`Active` is not yours to set.** `implement` owns that transition.
+- **`Active` is not yours to set.** `codefall-implement` owns that transition.
 - **Do not draw, specify, design, or estimate.** Every one of those is another verb's work.

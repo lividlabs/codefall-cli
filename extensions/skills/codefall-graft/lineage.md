@@ -1,12 +1,24 @@
 # Template lineage
 
-What every current template used to be called, where it lived, and when it first shipped. `graft`
+What every current template used to be called, where it lived, and when it first shipped. `codefall-graft`
 reads this to recognise a rename as a rename — a project on 0.2.x holding
 `ADR-003-dependency-injection.md` has `ADR-TS-01`, not a stray file — and to know which historical
 paths and tags to ask git or GitHub for.
 
 **Maintenance rule:** any PR that renames, moves, or retires a template adds a row here, in the
 same PR. Without the row, graft sees a deletion plus an addition and reports nonsense.
+
+## Skill renames
+
+| Former identity (0.x-0.9.0) | Current |
+| --- | --- |
+| `skills/conceptualize/` | `skills/codefall-conceptualize/` |
+| `skills/design/` | `skills/codefall-design/` |
+| `skills/graft/` | `skills/codefall-graft/` |
+| `skills/implement/` | `skills/codefall-implement/` |
+| `skills/mock-up/` | `skills/codefall-mock-up/` |
+| `skills/scaffold/` | `skills/codefall-scaffold/` |
+| `skills/specify/` | `skills/codefall-specify/` |
 
 ## Repo layout epochs
 
