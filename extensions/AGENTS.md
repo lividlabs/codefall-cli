@@ -34,8 +34,9 @@ never restates the reasoning.
 - Extension paths inside a skill are relative to the skill's own directory — `../../shared/…`,
   `../scaffold/templates/…` — never `${CLAUDE_PLUGIN_ROOT}`.
   Harnesses that mirror the tree under `.agents/skills/` do not define that variable, and the
-  relative form resolves under them and under Claude Code alike. `hooks/hooks.json` is the
-  exception: hooks run only under Claude Code.
+  relative form resolves under them and under Claude Code alike. Hooks are the exception, and the
+  rules for them live in `hooks/`: `hooks/shared/` holds the script every harness's guard runs,
+  and `hooks/<harness>/` holds the definition `codefall init` registers — never copied as files.
 - **Whose document is it** decides who repairs it. A file the extension ships that nobody amends — the
   operative rules a verb installs alongside a directory it owns, like `docs/concepts/AGENTS.md` — is
   repaired by the verb that owns it, on run. A template that becomes the project's own document, one

@@ -16,8 +16,10 @@ This directory is the extension. Everything above it is packaging.
 | [`codefall-implement`](skills/implement/SKILL.md) | Execute the graph: claim ready beads, build each in an isolated worker worktree with tests as part of done, verify against acceptance criteria, open PRs, and walk the waves until the frontier is empty. Never merges to `main`. |
 
 Skills are explicitly invoked and carry `disable-model-invocation: true`, so none fire on their own.
-The extension also ships one hook: a `PreToolUse` guard that denies merges and pushes to the default
-branch, because a human performs every merge to `main`.
+The extension also ships hooks per harness, defined under [`hooks/`](hooks/): a `PreToolUse` guard
+that denies merges and pushes to the default branch everywhere, plus a `SessionStart` prime on what
+Beads knows for the harnesses that have the event (Claude Code and Codex). The shared script the
+guards run lives in `hooks/shared/`; `codefall init` merges the definitions or copies the plugin.
 
 See the [repository README](../../README.md) for the architectural stance, the surface catalog, and
 installation instructions.

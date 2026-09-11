@@ -35,7 +35,7 @@ func Register(injector do.Injector) {
 		return infrastructure.NewExecCommandRunner(), nil
 	})
 
-	do.Provide(injector, func(do.Injector) (application.ExtensionFetcher, error) {
+	do.Provide(injector, func(do.Injector) (application.ExtensionSource, error) {
 		return infrastructure.NewEmbeddedExtensionFetcher(extensions.Files()), nil
 	})
 
@@ -43,7 +43,7 @@ func Register(injector do.Injector) {
 		return application.NewInitialize(
 			do.MustInvoke[application.FileSystem](i),
 			do.MustInvoke[application.CommandRunner](i),
-			do.MustInvoke[application.ExtensionFetcher](i),
+			do.MustInvoke[application.ExtensionSource](i),
 		), nil
 	})
 }

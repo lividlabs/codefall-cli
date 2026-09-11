@@ -8,16 +8,16 @@ type Step struct {
 }
 
 // The steps an init run performs, in the order it performs them. The settings file comes first, the
-// harness extension second, Beads third, the session hook that tells the harness about Beads fourth,
-// and the section that tells an agent how to use it last. The hook step follows the extension step
-// because both of them write the harness's settings file, and the harness CLI's own merge runs
-// first. The agents step follows Beads because bd init commits what it staged, and codefall's edit
-// to AGENTS.md belongs in the author's own commit rather than bd's.
+// harness extension second, Beads third, the hooks that tell the harness about Beads and guard the
+// default branch fourth, and the section that tells an agent how to use it last. The hook step
+// follows the extension step because the scripts the hooks run are what the extension step copies.
+// The agents step follows Beads because bd init commits what it staged, and codefall's edit to
+// AGENTS.md belongs in the author's own commit rather than bd's.
 var (
 	SettingsStep  = Step{ID: "settings", Title: "Writing .codefall/settings.json"}
 	ExtensionStep = Step{ID: "extension", Title: "Installing the codefall extension"}
 	BeadsStep     = Step{ID: "beads", Title: "Initializing Beads"}
-	HookStep      = Step{ID: "hook", Title: "Adding the Beads session hook"}
+	HookStep      = Step{ID: "hook", Title: "Registering codefall's hooks"}
 	AgentsStep    = Step{ID: "agents", Title: "Writing the Beads section to AGENTS.md"}
 )
 
@@ -28,14 +28,6 @@ const (
 	// ManifestName is the install record the extension step writes, so upgrade and drift checks can
 	// know exactly which files belong to it. It lives in .codefall/, next to settings.json.
 	ManifestName = ".codefall/manifest.json"
-)
-
-// The session hook codefall installs so that a harness session starts knowing about the project's
-// Beads database. These are facts about what codefall installs, like the extension's identifiers above;
-// the file the hook is written into, and the shape that file wants, belong to the application layer.
-const (
-	BeadsHookEvent   = "SessionStart"
-	BeadsHookCommand = "bd prime --hook-json"
 )
 
 // Outcome is what a step did. A step that could not do its work returns an error instead: there is

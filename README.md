@@ -87,13 +87,12 @@ The full skills table, the status lifecycle of each document, and the hook inven
 ```
 cli/            # the Go installer; make check is the gate
 extensions/     # the installable plugin — skills/, hooks/, shared/
-  .claude-plugin/
-    plugin.json # version manifest
 ```
 
 Skill detail: `extensions/skills/<verb>/SKILL.md`, `disable-model-invocation: true` on every one —
-running a skill is a deliberate act. The plugin ships one hook: a `PreToolUse` guard
-(`block-merge-to-main.sh`) that denies merges and pushes to the default branch.
+running a skill is a deliberate act. The extension ships hooks per harness
+(definitions under `extensions/hooks/`): a `PreToolUse` guard that denies merges and pushes to the
+default branch, and a `SessionStart` prime on what Beads knows where the harness has the event.
 
 ## Install
 

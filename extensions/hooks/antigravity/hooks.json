@@ -1,0 +1,14 @@
+{
+  "codefall-merge-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "command": "./.agents/hooks/shared/codefall-block-merge-to-main.sh --antigravity"
+          }
+        ]
+      }
+    ]
+  }
+}

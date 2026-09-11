@@ -56,3 +56,10 @@ func (*FileSystem) MkdirAll(path string) error {
 func (*FileSystem) WriteFile(path string, data []byte) error {
 	return os.WriteFile(path, data, fileMode)
 }
+
+// MakeExecutable marks a copied script runnable. WriteFile's mode is deliberately not executable —
+// most of what codefall writes is configuration — so the step that installs a script says so here,
+// rather than the use case choosing modes it was promised not to think about.
+func (*FileSystem) MakeExecutable(path string) error {
+	return os.Chmod(path, dirMode)
+}
