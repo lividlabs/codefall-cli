@@ -25,8 +25,8 @@ installation instructions.
 
 ## License
 
-[MIT](LICENSE) — Copyright (c) 2026 Livid Labs, LLC, authored by Dave Jensen.
+[MIT](../LICENSE) — Copyright (c) 2026 Livid Labs, LLC, authored by Dave Jensen.
 
 The templates under `skills/scaffold/templates/`, and everything `scaffold` copies from them into
-your project, are additionally available under [0BSD](LICENSE): no attribution, no notice, no
+your project, are additionally available under [0BSD](../LICENSE): no attribution, no notice, no
 obligation. Your architecture documents are yours.
