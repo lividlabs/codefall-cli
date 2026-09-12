@@ -342,6 +342,34 @@ Decided at scaffold, 2026-08-16.
   Recording a harness per install is a larger change to what the file is for, and the from/to
   comparison an upgrade reports does not need it.
 
+- **What the hook merge calls the same entry, 2026-09-11.** The merge knew an entry by its matcher
+  together with the literal command strings it ran, and appended anything else. Four things follow
+  from that, and all four are fixed together because they are one question: what makes a
+  registration codefall's own.
+  A shipped command that changes read as an unrelated registration, so an upgrade appended the new
+  one and left the old one running beside it — and no code path could ever remove it, since nothing
+  recorded which entries were codefall's. The subdirectory install above makes this concrete: a
+  project registered before it carries a guard naming the repository root, and the upgrade would add
+  the corrected command without taking the broken one away. **An entry naming a codefall script
+  now replaces the destination's entry naming that same script under the same matcher.** The
+  script's file name is the identity, which is what the `codefall-` prefix is for; the rule is
+  stated in `extensions/AGENTS.md`, beside the tree it governs. The alternative was recording every
+  registered entry in `.codefall/manifest.json`, which would have made that file mean "mine to
+  delete" — a stronger claim than "mine to have written", and one the **Unified hooks** entry had
+  already set aside as its own change. It stays set aside.
+  A project that primes Beads under a narrower `SessionStart` matcher had codefall's match-all entry
+  appended beside it, which primed on every other session source and twice on the one the project
+  chose. **A match-all entry is now covered by any entry running its commands under any matcher.**
+  This restores what the pre-`623b53d` `hasBeadsHook` did, in terms that hold for any harness rather
+  than for one command. A narrower incoming matcher still joins: the guard registered for `Edit`
+  leaves `Bash` unguarded, and that is what the test with both matchers pins.
+  An entry whose commands were only partly registered was appended whole, running the command the
+  destination already had twice. **It now joins with only its unregistered handlers**, and an entry
+  that keeps its command on itself rather than in a handler list joins whole or not at all, because
+  there is nothing to split.
+  **A destination holding an object or an array where the definition has a scalar is now reported**
+  rather than quietly kept, which is what the same disagreement in the other direction already did.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
