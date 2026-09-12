@@ -6,6 +6,20 @@ below were written by hand, before that was wired up.
 Tags are bare version numbers (`0.1.2`), not `v`-prefixed, so they match the `ref` the marketplace
 pins. A `v0.1.1` tag also exists from before that convention was settled.
 
+## [0.11.0](https://github.com/lividlabs/codefall-cli/compare/v0.10.0...v0.11.0) (2026-09-12)
+
+
+### Features
+
+* **init:** install below the repository root ([#44](https://github.com/lividlabs/codefall-cli/issues/44)) ([74c9610](https://github.com/lividlabs/codefall-cli/commit/74c961069fca78316d53ab96d00eaf9e0535634b))
+
+
+### Bug Fixes
+
+* **init:** know codefall's own hook entry by the script it names ([#46](https://github.com/lividlabs/codefall-cli/issues/46)) ([702f02c](https://github.com/lividlabs/codefall-cli/commit/702f02ce4b1ab14ac04690e1f2be476cdfe95041))
+* **init:** make the upgrade gate tell the truth ([#45](https://github.com/lividlabs/codefall-cli/issues/45)) ([5c1c245](https://github.com/lividlabs/codefall-cli/commit/5c1c2451d22ec001f7ef9b5941396d09f250f4e1))
+* **process:** add the execute bit instead of setting the mode ([#47](https://github.com/lividlabs/codefall-cli/issues/47)) ([4f53fae](https://github.com/lividlabs/codefall-cli/commit/4f53faed7730d803c85013998e3c9aa86a3de5fd))
+
 ## [0.10.0](https://github.com/lividlabs/codefall-cli/compare/v0.9.0...v0.10.0) (2026-09-12)
 
 
