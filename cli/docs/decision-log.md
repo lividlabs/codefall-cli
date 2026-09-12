@@ -320,6 +320,28 @@ Decided at scaffold, 2026-08-16.
   repository's own `core.hooksPath` is replaced by a path that does not exist, and with it the
   setting is left as it was. At the root the setting is bd's to make and the flag is not passed.
 
+- **What the manifest asserts, 2026-09-11.** `.codefall/manifest.json` now means one thing: a run
+  that finished, for the harness it names, at the version it names. It is written after the last
+  step rather than in the extension step, and the gate that reports "already up to date" compares
+  the harness as well as the version.
+  Both halves were wrong in the same way — the gate answered from a record that claimed more than
+  it knew. Written in step two, the manifest stamped the current version with the hook and
+  AGENTS.md steps still to come: a run that failed at either left a project half set up and a
+  record saying it was current, and the next run reported there was nothing to do. Reproduced
+  against a project whose `.claude/settings.json` held `"hooks"` as a string: the run failed at the
+  hook step, the rerun printed "already up to date", and the guard was never registered. Comparing
+  the version alone did the same to a second harness: a project installed for `claude-code` and
+  then run with `--harness antigravity` was skipped with no `.agents/` ever written, though the
+  manifest had recorded the harness all along.
+  The file list the manifest records is now carried out of the extension step as a local of the
+  run, not a field of the use case, which every run of the process shares. A failed run leaves no
+  manifest at all, so the next run repeats every step, which they are all built to tolerate — and
+  the upgrade question is asked only when the version moves, not when the harness differs.
+  What this does not do is record more than one harness. A project set up for two keeps the harness
+  of the most recent finished run, so installing for the other one always does its work again.
+  Recording a harness per install is a larger change to what the file is for, and the from/to
+  comparison an upgrade reports does not need it.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

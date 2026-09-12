@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/samber/mo"
+
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
@@ -133,4 +135,37 @@ func TestTheManifestRecordsOnlyARunThatFinished(t *testing.T) {
 			t.Error("a failed run recorded a manifest, want none until every step has succeeded")
 		}
 	})
+}
+
+// Installed is the record through the use-case boundary: what a finished run installed, and which
+// harness it installed for. Both are what the gate compares; neither is any use on its own.
+func TestInstalledReportsWhatAFinishedRunRecorded(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		body    string
+		missing bool
+		want    mo.Option[Installation]
+	}{
+		{name: "a manifest", body: `{"harness": "codex", "version": "v1.2.3"}`,
+			want: mo.Some(Installation{Harness: "codex", Version: "v1.2.3"})},
+		{name: "no manifest", missing: true, want: mo.None[Installation]()},
+		{name: "a manifest naming no version", body: `{"harness": "codex"}`,
+			want: mo.None[Installation]()},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			files := newFakeFileSystem()
+			if !tc.missing {
+				files.files[filepath.Join(workingDir, domain.ManifestName)] = []byte(tc.body)
+			}
+
+			got, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Installed(workingDir)
+			if err != nil {
+				t.Fatalf("Installed: %v", err)
+			}
+
+			if got != tc.want {
+				t.Errorf("Installed = %v, want %v", got, tc.want)
+			}
+		})
+	}
 }

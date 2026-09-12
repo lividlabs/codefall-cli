@@ -34,10 +34,10 @@ type InitializeUseCase interface {
 	// RepositoryRoot reports the root of the git work tree dir sits below, or None when dir is the
 	// root or not in a work tree. It is what decides whether there is a location to ask about.
 	RepositoryRoot(ctx context.Context, dir string) mo.Option[string]
-	// InstalledVersion reads the version the previous run recorded in .codefall/manifest.json,
-	// or None when there is no manifest or it names nothing. The upgrade gate compares it with
-	// the binary's version.
-	InstalledVersion(dir string) (mo.Option[string], error)
+	// Installed reads what the last finished run recorded in .codefall/manifest.json, or None when
+	// there is no manifest or it names no version. The gate compares both halves: the version with
+	// the binary's own, and the harness with the one this run is for.
+	Installed(dir string) (mo.Option[application.Installation], error)
 }
 
 // The trackers the survey shows but does not accept. Huh has no disabled option, so they are offered
@@ -215,19 +215,24 @@ func buildRequest(
 	}
 
 	if settled && !request.Force {
-		previous, err := initialize.InstalledVersion(dir)
+		previous, err := initialize.Installed(dir)
 		if err != nil {
 			return application.Request{}, fmt.Errorf("init: %w", err)
 		}
 
-		if recorded, ok := previous.Get(); ok && recorded == request.CLIVersion {
-			request.NoOp = true
-			return request, nil
-		}
+		if recorded, ok := previous.Get(); ok {
+			// A run for a harness the project has never been set up for is work to do, however
+			// current the version that installed the other one is.
+			if recorded.Version == request.CLIVersion && recorded.Harness == request.Harness {
+				request.NoOp = true
+				return request, nil
+			}
 
-		if previous.IsPresent() && !flags.yes {
-			if err := confirmUpgrade(cmd.Context(), request.CLIVersion); err != nil {
-				return application.Request{}, err
+			// The question is about moving a version, so it is asked only when the version moves.
+			if recorded.Version != request.CLIVersion && !flags.yes {
+				if err := confirmUpgrade(cmd.Context(), request.CLIVersion); err != nil {
+					return application.Request{}, err
+				}
 			}
 		}
 	}
