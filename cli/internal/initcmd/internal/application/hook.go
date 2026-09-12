@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"path"
 	"path/filepath"
 	"reflect"
@@ -21,6 +22,11 @@ import (
 // commandKey is the one key every harness's hook format shares: the shell command to run. The merge
 // dedupes on it, so a rerun does not repeat a registration.
 const commandKey = "command"
+
+// scriptPrefix is what every script the extension ships is named with, and what makes codefall's
+// own registration recognisable in a file it shares with the project's hooks. It is a rule about
+// the tree's file names, stated in extensions/AGENTS.md, and this is what depends on it.
+const scriptPrefix = "codefall-"
 
 // How a hook definition lands. The JSON harnesses get one recursive merge each — what differs
 // between them is the destination, not the algorithm — and OpenCode's plugin is a copied file.
@@ -230,27 +236,52 @@ func mergeValue(existing, incoming any, path, dest string) (any, bool, error) {
 		return merged, grew, nil
 	}
 
-	// A scalar the destination already set is the destination's own business.
+	// A scalar the destination already set is the destination's own business — but a destination
+	// holding an object or an array where the definition has a scalar is a file shaped against the
+	// harness, which is the same complaint the two cases above make from the other side.
+	switch existing.(type) {
+	case map[string]any, []any:
+		return nil, false, fmt.Errorf("%s: %s is not a scalar", dest, path)
+	}
+
 	return nil, false, nil
 }
 
-// appendEntries adds each source entry the destination array does not already run, and reports
-// whether the array grew. An entry is known by its matcher together with the commands it runs: the
-// same command registered under another matcher still leaves this event unguarded, so it joins
-// rather than being taken for present. The command is wherever the harness's format keeps it —
-// inside a nested handler list, as in Claude's and Codex's, or on the entry itself, as in
-// Antigravity's — so the search is recursive. An entry that declares no command is joined by
-// content instead: the same entry twice is one entry.
+// appendEntries lands each source entry the destination does not already run, and reports whether
+// the array changed. An entry is known by its matcher together with the commands it runs: the same
+// command registered under another matcher still leaves this event unguarded, so it joins rather
+// than being taken for present. The command is wherever the harness's format keeps it — inside a
+// nested handler list, as in Claude's and Codex's, or on the entry itself, as in Antigravity's — so
+// the search is recursive. An entry that declares no command is joined by content instead: the same
+// entry twice is one entry.
+//
+// Three things happen before an entry is appended, in this order.
+//
+// An entry naming a codefall script replaces the destination's entry naming that same script under
+// the same matcher, rather than joining it. The command string alone cannot say that: a renamed
+// script, a new flag, or a project that moved below the repository root all change it, and an
+// append would leave the old registration running beside the new one with nothing able to remove
+// it. The script's own name is the identity, which is what the codefall- prefix is for.
+//
+// An entry that matches everything is already covered by any entry running its commands under a
+// narrower matcher. A project that primes Beads on startup alone has said what it wants, and
+// adding the match-all entry beside it would prime on every other session source and twice on
+// that one.
+//
+// An entry whose commands are only partly new joins with only the new ones. Appending it whole
+// would run the command the destination already had twice over.
 func appendEntries(dst, src []any) ([]any, bool) {
 	known := map[string]bool{}
+	runs := map[string]bool{}
 
 	for _, entry := range dst {
 		for _, command := range commandsIn(entry) {
 			known[matcherOf(entry)+"\x00"+command] = true
+			runs[command] = true
 		}
 	}
 
-	grew := false
+	changed := false
 
 	for _, entry := range src {
 		commands := commandsIn(entry)
@@ -265,32 +296,168 @@ func appendEntries(dst, src []any) ([]any, bool) {
 			}
 			if !duplicate {
 				dst = append(dst, entry)
-				grew = true
+				changed = true
 			}
 			continue
 		}
 
 		matcher := matcherOf(entry)
 
-		duplicate := true
-		for _, command := range commands {
-			if !known[matcher+"\x00"+command] {
-				duplicate = false
-				break
+		if at, found := ownEntry(dst, entry, matcher); found {
+			if !reflect.DeepEqual(dst[at], entry) {
+				dst[at] = entry
+				changed = true
 			}
-		}
-		if duplicate {
+
+			record(known, runs, matcher, commands)
+
 			continue
 		}
 
-		dst = append(dst, entry)
-		grew = true
-		for _, command := range commands {
-			known[matcher+"\x00"+command] = true
+		if matcher == "" && coveredBy(runs, commands) {
+			continue
+		}
+
+		joining, fresh := newCommands(entry, known, matcher)
+		if len(fresh) == 0 {
+			continue
+		}
+
+		dst = append(dst, joining)
+		changed = true
+		record(known, runs, matcher, fresh)
+	}
+
+	return dst, changed
+}
+
+// record notes that a matcher now runs these commands, for the entries still to come.
+func record(known, runs map[string]bool, matcher string, commands []string) {
+	for _, command := range commands {
+		known[matcher+"\x00"+command] = true
+		runs[command] = true
+	}
+}
+
+// ownEntry finds the destination's own registration of the same codefall script under the same
+// matcher, which is the entry an upgrade replaces. An entry naming no codefall script is nobody's
+// to replace: the destination's other hooks are the project's.
+func ownEntry(dst []any, entry any, matcher string) (int, bool) {
+	scripts := scriptsIn(entry)
+	if len(scripts) == 0 {
+		return 0, false
+	}
+
+	for at, existing := range dst {
+		if matcherOf(existing) != matcher {
+			continue
+		}
+
+		for _, script := range scriptsIn(existing) {
+			if slices.Contains(scripts, script) {
+				return at, true
+			}
 		}
 	}
 
-	return dst, grew
+	return 0, false
+}
+
+// coveredBy reports whether every command is already run somewhere in this event, whatever matcher
+// it runs under.
+func coveredBy(runs map[string]bool, commands []string) bool {
+	for _, command := range commands {
+		if !runs[command] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// newCommands is the entry to append and the commands it brings: the whole entry when all of them
+// are new, and a copy holding only the handlers the destination does not run when some are. An
+// entry that keeps its command on itself rather than in a handler list cannot be split, so it
+// joins whole or not at all.
+func newCommands(entry any, known map[string]bool, matcher string) (any, []string) {
+	var fresh []string
+
+	for _, command := range commandsIn(entry) {
+		if !known[matcher+"\x00"+command] {
+			fresh = append(fresh, command)
+		}
+	}
+
+	object, ok := entry.(map[string]any)
+	if !ok || len(fresh) == 0 || len(fresh) == len(commandsIn(entry)) {
+		return entry, fresh
+	}
+
+	handlers, ok := object["hooks"].([]any)
+	if !ok {
+		return entry, fresh
+	}
+
+	joining := make([]any, 0, len(handlers))
+	for _, handler := range handlers {
+		for _, command := range commandsIn(handler) {
+			if !known[matcher+"\x00"+command] {
+				joining = append(joining, handler)
+				break
+			}
+		}
+	}
+
+	split := maps.Clone(object)
+	split["hooks"] = joining
+
+	return split, fresh
+}
+
+// scriptsIn is every codefall script an entry's commands name, by the script's own file name. A
+// command names one wherever the path it holds happens to point: the definitions reach the same
+// script through the repository root, through the workspace, and through the plugin's own
+// directory, and an upgrade changes which.
+func scriptsIn(entry any) []string {
+	var scripts []string
+
+	for _, command := range commandsIn(entry) {
+		if script, found := scriptIn(command); found {
+			scripts = append(scripts, script)
+		}
+	}
+
+	return scripts
+}
+
+// scriptIn takes the codefall script's file name out of one command, if it names one. What follows
+// the prefix is the file name's own characters, so the quote, the flag, and the rest of the command
+// line all end it.
+func scriptIn(command string) (string, bool) {
+	at := strings.Index(command, scriptPrefix)
+	if at < 0 {
+		return "", false
+	}
+
+	name := command[at:]
+	for offset, character := range name {
+		if !scriptNameCharacter(character) {
+			return name[:offset], true
+		}
+	}
+
+	return name, true
+}
+
+func scriptNameCharacter(character rune) bool {
+	switch {
+	case character >= 'a' && character <= 'z',
+		character >= 'A' && character <= 'Z',
+		character >= '0' && character <= '9':
+		return true
+	default:
+		return character == '-' || character == '_' || character == '.'
+	}
 }
 
 // matcherOf is the matcher's half of an entry's identity: the filter the harness applies before the

@@ -207,12 +207,18 @@ func TestHookMergeSkipsWhatIsAlreadyThere(t *testing.T) {
 }
 
 // The same command under another matcher is not the same entry: the harness would run it for other
-// tool calls, and this event would stay unguarded. It joins rather than counting as present.
+// tool calls, and this event would stay unguarded. It joins rather than counting as present. The
+// exception is codefall's own match-all entry, which a narrower one already covers.
 func TestHookMergeAddsTheSameCommandUnderADifferentMatcher(t *testing.T) {
-	files := settled(`{"hooks": {"SessionStart": [` +
-		`{"matcher": "startup", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}]}}`)
+	definitions := maps.Clone(hookDefinitions)
+	definitions["hooks/claude/hooks.json"] = []byte(`{"hooks": {
+  "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "guard"}]}]
+}}`)
 
-	report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Run(t.Context(), beadsRequest(), nil)
+	files := settled(`{"hooks": {"PreToolUse": [` +
+		`{"matcher": "Edit", "hooks": [{"type": "command", "command": "guard"}]}]}}`)
+
+	report, err := NewInitialize(files, toolsInstalled(), sourceOf(definitions)).Run(t.Context(), beadsRequest(), nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
@@ -221,26 +227,14 @@ func TestHookMergeAddsTheSameCommandUnderADifferentMatcher(t *testing.T) {
 		t.Fatalf("outcome = %v, want DONE", got)
 	}
 
-	var document struct {
-		Hooks map[string][]struct {
-			Matcher string `json:"matcher"`
-			Hooks   []struct {
-				Command string `json:"command"`
-			} `json:"hooks"`
-		} `json:"hooks"`
+	entries := eventEntries(t, files, "PreToolUse")
+	if len(entries) != 2 || matcherOf(entries[0]) != "Edit" || matcherOf(entries[1]) != "Bash" {
+		t.Errorf("PreToolUse = %v, want the Edit entry kept and the Bash one added", entries)
 	}
 
-	if err := json.Unmarshal(files.files[claudeFull], &document); err != nil {
-		t.Fatalf("decode what was written: %v", err)
-	}
-
-	sessions := document.Hooks["SessionStart"]
-	if len(sessions) != 2 || sessions[0].Matcher != "startup" || sessions[1].Matcher != "" {
-		t.Errorf("SessionStart = %+v, want the startup entry kept and the every-session one added", sessions)
-	}
-	for _, session := range sessions {
-		if session.Hooks[0].Command != "bd prime --hook-json" {
-			t.Errorf("SessionStart entry = %+v, want both running the prime command", session)
+	for _, entry := range entries {
+		if got := commandsOf(entry); !slices.Equal(got, []string{"guard"}) {
+			t.Errorf("entry commands = %q, want both running the guard", got)
 		}
 	}
 }
@@ -456,5 +450,157 @@ func TestHookRefusesAHarnessItDoesNotKnow(t *testing.T) {
 	_, err := NewInitialize(settled(""), toolsInstalled(), newFakeExtensionSource()).hook(t.Context(), request)
 	if err == nil || !strings.Contains(err.Error(), `harness "aider" has no extension mechanism`) {
 		t.Errorf("hook error = %v, want it to say the harness has no extension mechanism", err)
+	}
+}
+
+// claudeDefinition is the Claude definition with one guard and one prime, as the embedded tree
+// ships them. Tests that care what the merge does with a particular destination seed their own
+// source from it.
+func claudeDefinition(t *testing.T, guard string) map[string][]byte {
+	t.Helper()
+
+	quoted, err := json.Marshal(guard)
+	if err != nil {
+		t.Fatalf("encode %q: %v", guard, err)
+	}
+
+	definitions := maps.Clone(hookDefinitions)
+	definitions["hooks/claude/hooks.json"] = []byte(`{"hooks": {
+  "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": ` + string(quoted) + `}]}],
+  "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}]
+}}`)
+
+	return definitions
+}
+
+// sourceOf is an extension source serving one set of definitions.
+func sourceOf(definitions map[string][]byte) *fakeExtensionSource {
+	source := newFakeExtensionSource()
+	source.data = definitions
+
+	return source
+}
+
+// eventEntries is what one hook event holds in a written destination.
+func eventEntries(t *testing.T, files *fakeFileSystem, event string) []any {
+	t.Helper()
+
+	var written map[string]any
+	if err := json.Unmarshal(files.files[claudeFull], &written); err != nil {
+		t.Fatalf("decode %s: %v", claudeFull, err)
+	}
+
+	hooks, ok := written["hooks"].(map[string]any)
+	if !ok {
+		t.Fatalf("%s holds no hooks object: %v", claudeFull, written)
+	}
+
+	entries, _ := hooks[event].([]any)
+
+	return entries
+}
+
+// A shipped command that changes — a renamed script, a new flag, a project that moved below the
+// repository root — used to read as an unrelated registration, so the upgrade appended the new one
+// and left the old one running beside it with nothing able to remove it. codefall's own entry is
+// the one naming a codefall- script under the same matcher, and the upgrade replaces it.
+func TestHookMergeReplacesItsOwnEntryWhenTheCommandChanges(t *testing.T) {
+	const guard = `"$(git rev-parse --show-toplevel)/apps/web/.claude/hooks/shared/codefall-block-merge-to-main.sh"`
+
+	files := settled(`{"hooks": {
+  "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "\"$(git rev-parse --show-toplevel)/.claude/hooks/shared/codefall-block-merge-to-main.sh\""}]}]
+}}`)
+
+	report, err := NewInitialize(files, toolsInstalled(), sourceOf(claudeDefinition(t, guard))).
+		Run(t.Context(), beadsRequest(), nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if result := hookResult(t, report); result.Outcome != domain.OutcomeDone {
+		t.Errorf("outcome = %v, want DONE", result.Outcome)
+	}
+
+	entries := eventEntries(t, files, "PreToolUse")
+	if len(entries) != 1 {
+		t.Fatalf("PreToolUse = %v, want the stale registration replaced rather than joined", entries)
+	}
+
+	if got := commandsOf(entries[0]); !slices.Equal(got, []string{guard}) {
+		t.Errorf("commands = %q, want %q", got, guard)
+	}
+}
+
+// An entry whose commands are only partly registered used to be appended whole, so the command the
+// destination already ran ran twice. Only what is new joins.
+func TestHookMergeAppendsOnlyTheCommandsThatAreNew(t *testing.T) {
+	definitions := maps.Clone(hookDefinitions)
+	definitions["hooks/claude/hooks.json"] = []byte(`{"hooks": {
+  "PreToolUse": [{"matcher": "Bash", "hooks": [
+    {"type": "command", "command": "guard"},
+    {"type": "command", "command": "audit"}
+  ]}]
+}}`)
+
+	files := settled(`{"hooks": {
+  "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "guard"}]}]
+}}`)
+
+	report, err := NewInitialize(files, toolsInstalled(), sourceOf(definitions)).Run(t.Context(), beadsRequest(), nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if result := hookResult(t, report); result.Outcome != domain.OutcomeDone {
+		t.Errorf("outcome = %v, want DONE", result.Outcome)
+	}
+
+	var commands []string
+	for _, entry := range eventEntries(t, files, "PreToolUse") {
+		commands = append(commands, commandsOf(entry)...)
+	}
+
+	slices.Sort(commands)
+	if want := []string{"audit", "guard"}; !slices.Equal(commands, want) {
+		t.Errorf("commands = %q, want %q — guard runs once and audit joins", commands, want)
+	}
+}
+
+// A project that primes Beads under a narrower matcher has said what it wants. codefall's entry
+// matches everything, so the project's narrowing already covers it: adding it would prime on every
+// session source and twice on the one the project chose.
+func TestHookMergeLeavesANarrowedMatcherAlone(t *testing.T) {
+	const before = `{"hooks": {
+  "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "guard"}]}],
+  "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}]
+}}`
+
+	files := settled(before)
+
+	report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Run(t.Context(), beadsRequest(), nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if result := hookResult(t, report); result.Outcome != domain.OutcomeSkipped {
+		t.Errorf("outcome = %v, want SKIPPED", result.Outcome)
+	}
+
+	if got := string(files.files[claudeFull]); got != before {
+		t.Errorf(".claude/settings.json = %q, want it untouched", got)
+	}
+}
+
+// The mirror of the object and array cases: a file shaped against the harness is reported, not
+// quietly left as it is. Which side holds the scalar does not change whose file it is.
+func TestHookMergeReportsAValueWhereTheDefinitionHasAScalar(t *testing.T) {
+	definitions := maps.Clone(hookDefinitions)
+	definitions["hooks/claude/hooks.json"] = []byte(`{"description": "codefall"}`)
+
+	files := settled(`{"description": {"written": "by hand"}}`)
+
+	_, err := NewInitialize(files, toolsInstalled(), sourceOf(definitions)).Run(t.Context(), beadsRequest(), nil)
+	if err == nil || !strings.Contains(err.Error(), ".claude/settings.json: description is not a scalar") {
+		t.Fatalf("Run error = %v, want the file reported rather than left as it is", err)
 	}
 }
