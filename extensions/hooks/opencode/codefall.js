@@ -4,9 +4,12 @@
 //
 // The guard is delegated to hooks/shared/codefall-block-merge-to-main.sh — one logic
 // source for every harness; this file is only the adapter from OpenCode's shapes to it.
-export const CodefallPlugin = async ({ client, $, directory, worktree }) => {
-  const root = worktree || directory;
-  const guard = `${root}/.agents/hooks/shared/codefall-block-merge-to-main.sh`;
+//
+// The guard is found from this file's own directory, not from the worktree root: init installs
+// the plugin at <install>/.opencode/plugins/ and the script at <install>/.agents/, and the
+// install is the repository root only when init was run there.
+export const CodefallPlugin = async ({ client, $ }) => {
+  const guard = `${import.meta.dir}/../../.agents/hooks/shared/codefall-block-merge-to-main.sh`;
 
   return {
     // Deny merges and pushes to the default branch. The script answers exit 2 for an

@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
@@ -18,6 +19,14 @@ import (
 const beadsCommand = "bd"
 
 var beadsInitArgs = []string{"init", "--non-interactive", "--skip-agents"}
+
+// skipHooksArg is what an install below the repository root adds. bd init points the clone's
+// core.hooksPath at its own .beads/hooks, and that setting is one value for the whole repository:
+// claiming it from a subdirectory would take the repository's git hooks away from everyone working
+// in that clone, and bd points it at the root's .beads/hooks even when it wrote the database
+// somewhere below, so the path it names need not exist at all (bd 1.2.2). At the root, where Beads
+// is the whole project's tracker, the setting is bd's to make.
+const skipHooksArg = "--skip-hooks"
 
 // What bd says when it committed what it wrote, and the message it committed under. bd commits
 // unconditionally and has no flag to stop it, so the report says so rather than letting a commit
@@ -45,7 +54,20 @@ func (i *Initialize) beads(ctx context.Context, request Request) (domain.StepRes
 		return domain.BeadsStep.Skipped("Beads is already initialized here"), nil
 	}
 
-	result, err := i.probe(ctx, request.Dir, beadsCommand, beadsInitArgs...)
+	prefix, err := i.repositoryPrefix(ctx, request.Dir)
+	if err != nil {
+		return domain.StepResult{}, err
+	}
+
+	args := beadsInitArgs
+	done := "initialized Beads"
+
+	if prefix != "" {
+		args = append(slices.Clone(args), skipHooksArg)
+		done += " without its git hooks, which belong to the whole repository"
+	}
+
+	result, err := i.probe(ctx, request.Dir, beadsCommand, args...)
 	if err != nil {
 		return domain.StepResult{}, err
 	}
@@ -57,18 +79,18 @@ func (i *Initialize) beads(ctx context.Context, request Request) (domain.StepRes
 		}
 
 		return domain.StepResult{}, fmt.Errorf("%s exited %d: %s",
-			commandLine(beadsCommand, beadsInitArgs), result.ExitCode, detail)
+			commandLine(beadsCommand, args), result.ExitCode, detail)
 	}
 
 	// bd warns on stderr about things a fresh database has not got yet — no Dolt remote, for one —
 	// and it does that on a run that worked. A successful run has nothing to complain about, so what
 	// it said there is dropped.
 	if strings.Contains(result.Stdout, beadsCommitted) {
-		return domain.BeadsStep.Done(fmt.Sprintf(
-			"initialized Beads (bd init committed what it wrote as %q)", beadsCommitMessage)), nil
+		return domain.BeadsStep.Done(fmt.Sprintf("%s (bd init committed what it wrote as %q)",
+			done, beadsCommitMessage)), nil
 	}
 
-	return domain.BeadsStep.Done("initialized Beads"), nil
+	return domain.BeadsStep.Done(done), nil
 }
 
 // beadsInitialized asks bd whether this directory already has a database. `bd info` is the question

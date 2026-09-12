@@ -2,6 +2,7 @@ package application
 
 import (
 	"errors"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -144,5 +145,86 @@ func TestBeadsStepStopsTheRunWhenBeadsCannotBeStarted(t *testing.T) {
 	_, err := NewInitialize(settled("{}"), runner, newFakeExtensionSource()).Run(t.Context(), beadsRequest(), nil)
 	if err == nil || !strings.Contains(err.Error(), "run bd init --non-interactive --skip-agents") {
 		t.Errorf("Run error = %v, want it to say the command could not be run", err)
+	}
+}
+
+// A repository holds one Beads database: bd init initializes the directory it runs in, and the
+// multi-repo configuration that shares one is scoped to repositories rather than directories. So an
+// install below the root asks in its own directory and, when the answer is that Beads is already
+// there, leaves it alone rather than starting a second database beside it.
+func TestBeadsStepDoesNotStartASecondDatabaseBelowTheRoot(t *testing.T) {
+	runner := toolsInstalled()
+	request := beadsRequest()
+	request.Dir = filepath.Join(workingDir, "apps", "web")
+
+	report, err := NewInitialize(settled("{}"), runner, newFakeExtensionSource()).Run(t.Context(), request, nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if result := beadsResult(t, report); result.Outcome != domain.OutcomeSkipped {
+		t.Errorf("outcome = %v, want SKIPPED", result.Outcome)
+	}
+
+	for _, call := range runner.calls {
+		if strings.HasPrefix(call.command, beadsCommand+" init") {
+			t.Errorf("ran %q in %s, want no second database below the root", call.command, call.dir)
+		}
+
+		if call.command == beadsCommand+" info" && call.dir != request.Dir {
+			t.Errorf("asked %q in %s, want the install directory %s", call.command, call.dir, request.Dir)
+		}
+	}
+}
+
+// A repository has one git hook path, and bd init claims it for Beads' own hooks. At the root that
+// is Beads' business; below it, the path belongs to the whole repository and to everyone working in
+// it, so an install in one part of a larger repository leaves it alone and says that it did.
+func TestBeadsStepLeavesTheRepositoryGitHooksAloneBelowTheRoot(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		prefix  string
+		command string
+		detail  string
+	}{
+		{
+			name:    "at the root",
+			command: "bd init --non-interactive --skip-agents",
+			detail:  "initialized Beads",
+		},
+		{
+			name:    "below the root",
+			prefix:  "apps/web/",
+			command: "bd init --non-interactive --skip-agents --skip-hooks",
+			detail:  "initialized Beads without its git hooks, which belong to the whole repository",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			runner := uninitialized()
+			runner.runs[gitPrefix] = CommandResult{Stdout: tc.prefix + "\n"}
+
+			request := beadsRequest()
+			request.Dir = filepath.Join(workingDir, filepath.FromSlash(tc.prefix))
+
+			report, err := NewInitialize(settled("{}"), runner, newFakeExtensionSource()).Run(t.Context(), request, nil)
+			if err != nil {
+				t.Fatalf("Run: %v", err)
+			}
+
+			if result := beadsResult(t, report); result.Detail != tc.detail {
+				t.Errorf("detail = %q, want %q", result.Detail, tc.detail)
+			}
+
+			var initialized []string
+			for _, call := range runner.calls {
+				if strings.HasPrefix(call.command, beadsCommand+" init") {
+					initialized = append(initialized, call.command)
+				}
+			}
+
+			if !slices.Equal(initialized, []string{tc.command}) {
+				t.Errorf("bd init calls = %q, want %q", initialized, tc.command)
+			}
+		})
 	}
 }

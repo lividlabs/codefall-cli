@@ -290,6 +290,36 @@ Decided at scaffold, 2026-08-16.
   a manifest that means "mine to delete" is a stronger claim than one that means "mine to have
   written" — and is not made here.
 
+- **Installing below the repository root, 2026-09-11.** `codefall init` run below the root of a
+  git work tree asks, as its first question, whether to install in the working directory or at the
+  root; `--location here|root` answers without asking, and a run with neither and no terminal
+  fails naming the flag. At the root, and outside a work tree, there is no question. The case this
+  serves is a large monorepo where one team wants codefall in its own part of the tree without
+  setting it up for everyone else. Before this, a subdirectory run passed preflight, which asks only
+  whether the directory is inside a work tree, installed everything under the subdirectory, and
+  registered Claude and Codex guards naming the root's `.claude/` and `.agents/`, where nothing had
+  landed — so every Bash call raised a hook error and the guard never ran.
+  The **Unified hooks** entry's "nothing rewrites paths" no longer holds for those two: the hook
+  step asks git for the install directory's path below the root (`rev-parse --show-prefix`) and
+  writes it after `$(git rev-parse --show-toplevel)/` in every command that names the root. An
+  install at the root has an empty prefix, so it registers exactly the command the definition ships
+  and a rerun still recognises it. A prefix holding a character that keeps its meaning inside double
+  quotes (`"`, `$`, backtick, backslash) is refused by preflight rather than escaped. Antigravity's
+  `./.agents/…` is workspace-relative already and is unchanged; the OpenCode plugin now finds the
+  guard from its own directory (`import.meta.dir`) rather than from the worktree root. Which
+  directory each harness has to be started in to read a subdirectory install is that harness's own
+  configuration discovery, and is not verified here for any of them.
+  Beads needs no second database: `bd info` searches upward, so a subdirectory of a repository
+  whose root has one reports that root database and the beads step skips, as it does anywhere else
+  Beads is already initialised. A subdirectory that is the first install in its repository does get
+  a database of its own, and there the run adds `--skip-hooks`. `bd init` otherwise points the
+  clone's `core.hooksPath` at its own `.beads/hooks` — one setting for the whole repository, which a
+  subdirectory install has no business claiming from everyone working in that clone, and which bd
+  1.2.2 fills in with a path under the root even when it wrote the database below it, so the
+  directory it names need not exist. Verified both ways against bd 1.2.2: without the flag a
+  repository's own `core.hooksPath` is replaced by a path that does not exist, and with it the
+  setting is left as it was. At the root the setting is bd's to make and the flag is not passed.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
