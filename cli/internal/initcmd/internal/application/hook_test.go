@@ -1,6 +1,7 @@
 package application
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"maps"
@@ -324,11 +325,12 @@ func TestHookCopyReportsAFileItCannotRead(t *testing.T) {
 }
 
 // A file the step cannot make sense of stops the run rather than being written over: it is somebody
-// else's file, and init is not the thing that should decide what it meant.
+// else's file, and init is not the thing that should decide what it meant. Both halves are checked,
+// because the merge builds the merged document in place before a later key can fail it — so the
+// error alone would not say the file survived.
 //
-// The step is called directly rather than through a run, because the extension step reads the same
-// file first and refuses the same two bodies with the same words — so a run would prove nothing
-// about the branches here.
+// The step is called directly rather than through a run, so a failure here is the hook step's own
+// and not a step before it stopping first.
 func TestHookMergeReportsAFileItCannotWorkWith(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
@@ -380,9 +382,17 @@ func TestHookMergeReportsAFileItCannotWorkWith(t *testing.T) {
 				files.files[path] = body
 			}
 
+			before := maps.Clone(files.files)
+
 			_, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).hook(t.Context(), beadsRequestHarness(tc.harness))
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Errorf("hook error = %v, want it to mention %q", err, tc.want)
+			}
+
+			for path, body := range files.files {
+				if was, had := before[path]; !had || !bytes.Equal(was, body) {
+					t.Errorf("%s = %q, want it left as it was (%q)", path, body, was)
+				}
 			}
 		})
 	}
