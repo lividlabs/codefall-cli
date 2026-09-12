@@ -370,6 +370,24 @@ Decided at scaffold, 2026-08-16.
   **A destination holding an object or an array where the definition has a scalar is now reported**
   rather than quietly kept, which is what the same disagreement in the other direction already did.
 
+- **Adding the execute bit rather than setting the mode, 2026-09-11.** A copied script was chmodded
+  to `0755` on every run, which took a decision away from the project: a script tightened to its own
+  user came back world-readable and world-executable at the next upgrade, with no line in the report
+  to say so. `MakeExecutable` now adds execute wherever the file is already readable — `0600`
+  becomes `0700`, `0644` becomes `0755` — and does nothing at all when the mode already allows it,
+  so a rerun with nothing to change cannot fail on a directory that refuses `chmod`. The helper also
+  stops passing `dirMode` for a file, which was the right bits under the wrong name.
+  Which files get the bit does not change: every `.sh` in the tree, not only `hooks/shared/`. The
+  hook commands name the guard by path, and `codefall-implement`, `codefall-specify` and
+  `codefall-design` each invoke `shared/preflight.sh` by path — a script nobody can run is a skill
+  that fails halfway through.
+  Two tests were restored to pinning what they claim. The extension step's test now asserts the
+  exclude list it hands `Fetch`, so a fetch that stopped excluding the per-harness definitions
+  fails rather than silently shipping every harness's definition into every project. The refused
+  merge's error table now also asserts the destination is byte-for-byte untouched, because the merge
+  builds its document in place before a later key can fail it, and the error alone never said the
+  file survived. Both were proven against the mutation each describes.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
