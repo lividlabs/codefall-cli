@@ -143,3 +143,40 @@ func TestFileSystemWriteFileReportsAMissingDirectory(t *testing.T) {
 		t.Error("WriteFile into a missing directory = nil, want an error")
 	}
 }
+
+// A script has to be runnable where it lands, and that is all this says. A project that tightened a
+// copied script to its own user keeps that decision: init adds the execute bit wherever the file is
+// already readable rather than replacing the mode, so a rerun does not widen 0700 back to 0755 on
+// every upgrade.
+func TestMakeExecutableAddsTheExecuteBitWithoutWideningTheMode(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		mode fs.FileMode
+		want fs.FileMode
+	}{
+		{name: "a file as WriteFile leaves it", mode: 0o644, want: 0o755},
+		{name: "a file the project tightened", mode: 0o600, want: 0o700},
+		{name: "a file that is already runnable", mode: 0o755, want: 0o755},
+		{name: "a group-readable file", mode: 0o640, want: 0o750},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "codefall-script.sh")
+			if err := os.WriteFile(path, []byte("#!/bin/bash\n"), tc.mode); err != nil {
+				t.Fatalf("WriteFile: %v", err)
+			}
+
+			if err := NewFileSystem().MakeExecutable(path); err != nil {
+				t.Fatalf("MakeExecutable: %v", err)
+			}
+
+			info, err := os.Stat(path)
+			if err != nil {
+				t.Fatalf("Stat: %v", err)
+			}
+
+			if got := info.Mode().Perm(); got != tc.want {
+				t.Errorf("mode = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
