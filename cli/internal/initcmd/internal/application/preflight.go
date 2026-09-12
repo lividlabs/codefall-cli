@@ -49,6 +49,13 @@ func (i *Initialize) preflight(ctx context.Context, request Request) error {
 		worktree, problem := i.worktreeProblem(ctx, request.Dir)
 		add(problem)
 
+		// The hook step writes the install directory's path into the commands it registers, and a
+		// path it cannot quote is better refused before the first step than after the third.
+		if worktree {
+			_, problem := i.repositoryPrefix(ctx, request.Dir)
+			add(problem)
+		}
+
 		// bd init commits, so what it would sweep into that commit only matters when bd init is going
 		// to run — which needs bd itself to say whether Beads is already initialised, and needs a
 		// work tree to commit in.

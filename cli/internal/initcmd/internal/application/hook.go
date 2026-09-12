@@ -66,7 +66,7 @@ var hookSourceDirs = func() []string {
 // hook is the fourth step of a run: it takes the harness's entry in hookSpecs and lands it. The
 // extension step has already copied the shared scripts the hooks point at, so the destination of
 // any script path in a definition exists by the time this runs.
-func (i *Initialize) hook(_ context.Context, request Request) (domain.StepResult, error) {
+func (i *Initialize) hook(ctx context.Context, request Request) (domain.StepResult, error) {
 	if _, known := extensionDestDirs[request.Harness]; !known {
 		return domain.StepResult{}, fmt.Errorf("harness %q has no extension mechanism", request.Harness)
 	}
@@ -80,14 +80,23 @@ func (i *Initialize) hook(_ context.Context, request Request) (domain.StepResult
 		return i.copyHook(request.Dir, spec)
 	}
 
-	return i.mergeHook(request.Dir, spec)
+	prefix, err := i.repositoryPrefix(ctx, request.Dir)
+	if err != nil {
+		return domain.StepResult{}, err
+	}
+
+	return i.mergeHook(request.Dir, prefix, spec)
 }
 
 // mergeHook merges the harness's hook definitions into the file it reads them from. The
 // destination is decoded as a plain object so everything else it says — permissions, plugin
 // declarations, other hooks — survives the round trip; encoding/json sorts keys on the way out,
 // which is a one-time diff on hand-ordered files.
-func (i *Initialize) mergeHook(dir string, spec hookSpec) (domain.StepResult, error) {
+//
+// prefix is dir's path below the repository root, empty at the root. A definition that names the
+// root has it written in, so a subdirectory install points at the scripts it copied rather than at a
+// root that has none.
+func (i *Initialize) mergeHook(dir, prefix string, spec hookSpec) (domain.StepResult, error) {
 	source, err := i.source.Read(spec.source)
 	if err != nil {
 		return domain.StepResult{}, fmt.Errorf("read %s: %w", spec.source, err)
@@ -97,6 +106,8 @@ func (i *Initialize) mergeHook(dir string, spec hookSpec) (domain.StepResult, er
 	if err := json.Unmarshal(source, &addition); err != nil {
 		return domain.StepResult{}, fmt.Errorf("decode %s: %w", spec.source, err)
 	}
+
+	placeUnder(addition, prefix)
 
 	body, err := i.readDestination(filepath.Join(dir, spec.dest), spec.dest)
 	if err != nil {

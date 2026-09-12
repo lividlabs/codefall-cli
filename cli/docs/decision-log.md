@@ -290,6 +290,30 @@ Decided at scaffold, 2026-08-16.
   a manifest that means "mine to delete" is a stronger claim than one that means "mine to have
   written" — and is not made here.
 
+- **Installing below the repository root, 2026-09-11.** `codefall init` run below the root of a
+  git work tree asks, as its first question, whether to install in the working directory or at the
+  root; `--location here|root` answers without asking, and a run with neither and no terminal
+  fails naming the flag. At the root, and outside a work tree, there is no question. The case this
+  serves is a large monorepo where one team wants codefall in its own part of the tree without
+  setting it up for everyone else. Before this, a subdirectory run passed preflight, which asks only
+  whether the directory is inside a work tree, installed everything under the subdirectory, and
+  registered Claude and Codex guards naming the root's `.claude/` and `.agents/`, where nothing had
+  landed — so every Bash call raised a hook error and the guard never ran.
+  The **Unified hooks** entry's "nothing rewrites paths" no longer holds for those two: the hook
+  step asks git for the install directory's path below the root (`rev-parse --show-prefix`) and
+  writes it after `$(git rev-parse --show-toplevel)/` in every command that names the root. An
+  install at the root has an empty prefix, so it registers exactly the command the definition ships
+  and a rerun still recognises it. A prefix holding a character that keeps its meaning inside double
+  quotes (`"`, `$`, backtick, backslash) is refused by preflight rather than escaped. Antigravity's
+  `./.agents/…` is workspace-relative already and is unchanged; the OpenCode plugin now finds the
+  guard from its own directory (`import.meta.dir`) rather than from the worktree root. Which
+  directory each harness has to be started in to read a subdirectory install is that harness's own
+  configuration discovery, and is not verified here for any of them.
+  `bd init` run in a subdirectory (bd 1.2.2) writes `.beads/` there but points the clone's
+  `core.hooksPath` at a `.beads/hooks` under the root, which does not exist. The setting is local
+  to the clone, so nobody else's checkout changes, but in that clone every git hook stops running.
+  What init does about it is open.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

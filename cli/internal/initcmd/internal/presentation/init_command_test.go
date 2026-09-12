@@ -22,6 +22,7 @@ type fakeInitialize struct {
 	exists     bool
 	existsErr  error
 	suggestion mo.Option[string]
+	root       mo.Option[string]
 
 	got       application.Request
 	ran       bool
@@ -58,10 +59,15 @@ func (f *fakeInitialize) SuggestGitHubRepo(context.Context, string) mo.Option[st
 	return f.suggestion
 }
 
+func (f *fakeInitialize) RepositoryRoot(context.Context, string) mo.Option[string] {
+	return f.root
+}
+
 func newFakeInitialize() *fakeInitialize {
 	return &fakeInitialize{
 		report:     domain.NewReport(domain.SettingsStep.Done("wrote .codefall/settings.json (tracker: beads)")),
 		suggestion: mo.None[string](),
+		root:       mo.None[string](),
 	}
 }
 
@@ -202,6 +208,11 @@ func TestInitCommandRejects(t *testing.T) {
 			name: "a project number on a tracker that has no use for one",
 			args: []string{"--tracker", "beads", "--github-project", "3"},
 			want: "the --github-project flag is only used with --tracker github",
+		},
+		{
+			name: "a location that is neither here nor root",
+			args: []string{"--tracker", "beads", "--location", "elsewhere"},
+			want: `the --location flag must be here or root, not "elsewhere"`,
 		},
 		{
 			name: "an argument",
@@ -497,4 +508,70 @@ func stripANSI(s string) string {
 	}
 
 	return b.String()
+}
+
+// Below the repository root the run installs where it is told to. Without a terminal and without the
+// flag there is nobody to ask, so the command names the flag and says why it is needed.
+func TestInitCommandBelowTheRepositoryRoot(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd: %v", err)
+	}
+
+	for _, tc := range []struct {
+		name    string
+		args    []string
+		wantDir string
+		wantErr string
+	}{
+		{name: "here", args: []string{"--location", "here"}, wantDir: cwd},
+		{name: "the root", args: []string{"--location", "root"}, wantDir: "/repo"},
+		{name: "no answer", wantErr: "missing --location (stdin is not a terminal; " + cwd +
+			" is below the repository root at /repo)"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			initialize := newFakeInitialize()
+			initialize.root = mo.Some("/repo")
+
+			out, err := run(t, initialize, append([]string{"--tracker", "beads"}, tc.args...)...)
+
+			if tc.wantErr != "" {
+				if err == nil || err.Error() != tc.wantErr {
+					t.Fatalf("Execute error = %v, want %q\n%s", err, tc.wantErr, out)
+				}
+
+				if initialize.ran {
+					t.Error("the use case ran, want the command to stop before it")
+				}
+
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("Execute: %v\n%s", err, out)
+			}
+
+			if initialize.got.Dir != tc.wantDir {
+				t.Errorf("Dir = %q, want %q", initialize.got.Dir, tc.wantDir)
+			}
+		})
+	}
+}
+
+// At the root there is no choice to make, so a run neither asks nor needs the flag.
+func TestInitCommandAtTheRepositoryRootNeedsNoLocation(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd: %v", err)
+	}
+
+	initialize := newFakeInitialize()
+
+	if _, err := run(t, initialize, "--tracker", "beads"); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+
+	if initialize.got.Dir != cwd {
+		t.Errorf("Dir = %q, want the working directory %q", initialize.got.Dir, cwd)
+	}
 }

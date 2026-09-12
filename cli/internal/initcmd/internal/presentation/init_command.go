@@ -31,6 +31,9 @@ type InitializeUseCase interface {
 	Run(ctx context.Context, request application.Request, observer application.Observer) (domain.Report, error)
 	SettingsExist(dir string) (bool, error)
 	SuggestGitHubRepo(ctx context.Context, dir string) mo.Option[string]
+	// RepositoryRoot reports the root of the git work tree dir sits below, or None when dir is the
+	// root or not in a work tree. It is what decides whether there is a location to ask about.
+	RepositoryRoot(ctx context.Context, dir string) mo.Option[string]
 	// InstalledVersion reads the version the previous run recorded in .codefall/manifest.json,
 	// or None when there is no manifest or it names nothing. The upgrade gate compares it with
 	// the binary's version.
@@ -43,6 +46,14 @@ type InitializeUseCase interface {
 const (
 	trackerJira   = "jira"
 	trackerLinear = "linear"
+)
+
+// Where a run from below the repository root installs. The root is where a project usually keeps
+// its harness configuration; the directory the command runs in is for a team that wants codefall in
+// its part of a larger repository without setting it up for everyone else's.
+const (
+	locationHere = "here"
+	locationRoot = "root"
 )
 
 // nextStep is the line that closes a successful run. Init writes what doctor checks, so doctor is
@@ -66,7 +77,9 @@ func NewInitCommand(initialize InitializeUseCase) *cobra.Command {
 		Long: "Creates .codefall/settings.json from your answers. Every question is also a flag, so " +
 			"a scripted run passes them and is never prompted. The codefall extension is installed for " +
 			"the harness: Claude Code gets it at project scope into .claude/settings.json, and a " +
-			"harness that reads the .agents/skills convention gets the extension's tree under .agents/.",
+			"harness that reads the .agents/skills convention gets the extension's tree under .agents/. " +
+			"Run below the root of a git repository, init asks whether to install there or at the " +
+			"root; --location answers without asking.",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			return runInit(cmd, initialize, flags)
@@ -85,6 +98,7 @@ type initFlags struct {
 	githubRepo    string
 	githubProject int
 	harness       string
+	location      string
 	force         bool
 	yes           bool
 }
@@ -99,6 +113,9 @@ func (f *initFlags) register(cmd *cobra.Command) {
 		"number of the GitHub Project to use (optional)")
 	cmd.Flags().StringVar(&f.harness, "harness", domain.HarnessClaudeCode,
 		"coding harness to set up ("+strings.Join(domain.Harnesses(), ", ")+")")
+	cmd.Flags().StringVar(&f.location, "location", "",
+		"where to install when run below the repository root ("+locationHere+" for this directory, "+
+			locationRoot+" for the root)")
 	cmd.Flags().BoolVar(&f.force, "force", false,
 		"rewrite .codefall/settings.json if it is already there")
 	cmd.Flags().BoolVarP(&f.yes, "yes", "y", false,
@@ -145,6 +162,13 @@ func buildRequest(
 	cmd *cobra.Command, initialize InitializeUseCase, flags *initFlags, dir string,
 ) (application.Request, error) {
 	harness, err := domain.ParseHarness(flags.harness)
+	if err != nil {
+		return application.Request{}, err
+	}
+
+	// Where the run installs comes before everything else, because every other question — whether
+	// settings exist, what version is installed — is a question about that directory.
+	dir, err = chooseLocation(cmd.Context(), initialize, flags.location, dir)
 	if err != nil {
 		return application.Request{}, err
 	}
@@ -222,6 +246,54 @@ func buildRequest(
 	}
 
 	return request, nil
+}
+
+// chooseLocation settles which directory the run installs into. Only a run below the repository root
+// has a choice to make; at the root, and outside a repository, the working directory is the answer
+// and --location is not needed. Below the root, the flag answers, then a person, and a script with
+// neither is told which flag it is missing (ADR-002).
+func chooseLocation(
+	ctx context.Context, initialize InitializeUseCase, location, dir string,
+) (string, error) {
+	if location != "" && location != locationHere && location != locationRoot {
+		return "", fmt.Errorf("the --location flag must be %s or %s, not %q",
+			locationHere, locationRoot, location)
+	}
+
+	root, below := initialize.RepositoryRoot(ctx, dir).Get()
+	if !below {
+		return dir, nil
+	}
+
+	if location == "" {
+		if !stdinIsTerminal() {
+			return "", fmt.Errorf("missing --location (stdin is not a terminal; %s is below the "+
+				"repository root at %s)", dir, root)
+		}
+
+		location = locationHere
+		if err := runForm(ctx, []*huh.Group{huh.NewGroup(locationField(&location, dir, root))}); err != nil {
+			return "", err
+		}
+	}
+
+	if location == locationRoot {
+		return root, nil
+	}
+
+	return dir, nil
+}
+
+// locationField is the first question a run below the root asks. The working directory is the first
+// option and the starting value: someone who ran init there most likely meant it.
+func locationField(location *string, dir, root string) huh.Field {
+	return huh.NewSelect[string]().
+		Title("Install codefall here or at the repository root?").
+		Options(
+			huh.NewOption("Here: "+dir, locationHere),
+			huh.NewOption("Repository root: "+root, locationRoot),
+		).
+		Value(location)
 }
 
 // rejectGitHubFlags refuses the GitHub flags on a tracker that does not use them, in the terms the

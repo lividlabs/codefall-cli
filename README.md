@@ -317,6 +317,10 @@ language or scaffold only the half that fits. A profile counts as supported once
 `templates/surfaces/<name>/PROFILE.md` is complete.
 
 
+Run below the root of a git repository, as one team in a monorepo might, and `codefall init` first
+asks whether to install in that directory or at the root. `--location here` or `--location root`
+answers for a script.
+
 ## Roadmap
 
 See [extensions/docs/ROADMAP.md](extensions/docs/ROADMAP.md).
