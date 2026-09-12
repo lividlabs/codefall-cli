@@ -15,24 +15,17 @@ import (
 
 // skillsDirExtension is the extension step for every harness — each own directory comes from
 // extensionDestDirs. It copies the embedded extension tree, minus the per-harness hook definitions
-// the hook step consumes, and records the file list and the version into the install manifest, the
-// from/to narrative upgrade compares.
-func (i *Initialize) skillsDirExtension(ctx context.Context, request Request) (domain.StepResult, error) {
+// the hook step consumes, and hands back what it wrote for the manifest the run records at the end.
+func (i *Initialize) skillsDirExtension(ctx context.Context, request Request) (domain.StepResult, []string, error) {
 	dest := extensionDestDirs[request.Harness]
 
 	installed, err := i.source.Fetch(ctx, filepath.Join(request.Dir, dest), hookSourceDirs)
 	if err != nil {
-		return domain.StepResult{}, fmt.Errorf("install the embedded extension: %w", err)
-	}
-
-	if err := i.writeManifest(request.Dir, request.Harness, request.CLIVersion, installed); err != nil {
-		return domain.StepResult{}, fmt.Errorf("record the installation to %s: %w",
-			domain.ManifestName, err)
+		return domain.StepResult{}, nil, fmt.Errorf("install the embedded extension: %w", err)
 	}
 
 	return domain.ExtensionStep.Done(fmt.Sprintf(
-		"installed codefall's skills into %s/ and recorded them to %s",
-		dest, domain.ManifestName)), nil
+		"installed codefall's skills into %s/", dest)), installed, nil
 }
 
 // manifest is the install record. Files are relative to the harness's skills directory, sorted,
@@ -43,33 +36,45 @@ type manifest struct {
 	Files   []string `json:"files"`
 }
 
-// InstalledVersion is the manifest's version report through the use-case boundary, so presentation
-// can compare it with the binary's own tag without knowing the manifest's path.
-func (i *Initialize) InstalledVersion(dir string) (mo.Option[string], error) {
+// Installation is what a finished run recorded about itself, as presentation reads it back: the
+// binary that installed and the harness it installed for. Both are what the upgrade gate compares,
+// and neither answers the question on its own — a matching version for another harness is a project
+// that has never been set up for the harness in front of it (ADR-001).
+type Installation struct {
+	Harness string
+	Version string
+}
+
+// Installed is the manifest through the use-case boundary, so presentation can compare it with the
+// binary's own tag and the harness it was asked for without knowing the manifest's path. A manifest
+// naming no version records nothing a comparison can use, so it reads the same as no manifest at
+// all (ADR-GO-03).
+func (i *Initialize) Installed(dir string) (mo.Option[Installation], error) {
 	path := filepath.Join(dir, domain.ManifestName)
 
 	data, err := i.files.ReadFile(path)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		return mo.None[string](), nil
+		return mo.None[Installation](), nil
 	case err != nil:
-		return mo.None[string](), fmt.Errorf("read %s: %w", domain.ManifestName, err)
+		return mo.None[Installation](), fmt.Errorf("read %s: %w", domain.ManifestName, err)
 	}
 
 	var previous manifest
 	if err := json.Unmarshal(data, &previous); err != nil {
-		return mo.None[string](), fmt.Errorf("decode %s: %w", domain.ManifestName, err)
+		return mo.None[Installation](), fmt.Errorf("decode %s: %w", domain.ManifestName, err)
 	}
 
 	if previous.Version == "" {
-		return mo.None[string](), nil
+		return mo.None[Installation](), nil
 	}
 
-	return mo.Some(previous.Version), nil
+	return mo.Some(Installation{Harness: previous.Harness, Version: previous.Version}), nil
 }
 
-// writeManifest writes .codefall/manifest.json in the project's directory; a clobbered install is
-// rebuilt cleanly on rerun.
+// writeManifest writes .codefall/manifest.json in the project's directory. The run calls it once
+// every step has succeeded: the file says an install of this version for this harness is complete,
+// and the upgrade gate takes it at its word.
 func (i *Initialize) writeManifest(dir, harness, version string, files []string) error {
 	body, err := json.MarshalIndent(manifest{Harness: harness, Version: version, Files: files},
 		"", "  ")

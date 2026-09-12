@@ -45,7 +45,7 @@ func TestExtensionStepCopiesIntoTheHarnessSkillsDirectory(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	want := "installed codefall's skills into .claude/ and recorded them to .codefall/manifest.json"
+	want := "installed codefall's skills into .claude/"
 	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}

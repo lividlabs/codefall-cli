@@ -122,9 +122,18 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 		return domain.Report{}, err
 	}
 
+	// What the extension step copied, for the manifest the run writes at the end. It is a local of
+	// this run rather than a field of the use case, which every run of the process shares.
+	var installed []string
+
 	steps := []step{
 		{Step: domain.SettingsStep, run: i.settings},
-		{Step: domain.ExtensionStep, run: i.extension},
+		{Step: domain.ExtensionStep, run: func(ctx context.Context, request Request) (domain.StepResult, error) {
+			result, files, err := i.extension(ctx, request)
+			installed = files
+
+			return result, err
+		}},
 		{Step: domain.BeadsStep, run: i.beads},
 		{Step: domain.HookStep, run: i.hook},
 		{Step: domain.AgentsStep, run: i.agents},
@@ -147,6 +156,13 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 		observer.StepFinished(result)
 
 		results = append(results, result)
+	}
+
+	// The manifest is the last thing a run writes, because it says the install is complete and the
+	// upgrade gate believes it: written any earlier, a run that failed a later step would leave a
+	// record claiming work it never did, and the next run would report there was nothing to do.
+	if err := i.writeManifest(request.Dir, request.Harness, request.CLIVersion, installed); err != nil {
+		return domain.Report{}, fmt.Errorf("record the installation to %s: %w", domain.ManifestName, err)
 	}
 
 	return domain.NewReport(results...), nil

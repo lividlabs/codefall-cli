@@ -23,6 +23,7 @@ type fakeInitialize struct {
 	existsErr  error
 	suggestion mo.Option[string]
 	root       mo.Option[string]
+	installed  mo.Option[application.Installation]
 
 	got       application.Request
 	ran       bool
@@ -46,11 +47,11 @@ func (f *fakeInitialize) SettingsExist(string) (bool, error) {
 	return f.exists, f.existsErr
 }
 
-// InstalledVersion on the fake always reports nothing applied before — to the gate it reads
-// first install, so the upgrade confirmation is skipped in el.move tests, and the survey is
-// reached only through the settings-exists logic.
-func (f *fakeInitialize) InstalledVersion(string) (mo.Option[string], error) {
-	return mo.None[string](), nil
+// Installed on the fake reports nothing applied before unless a test says otherwise — to the gate
+// that reads first install, so the upgrade confirmation is skipped and the survey is reached only
+// through the settings-exists logic.
+func (f *fakeInitialize) Installed(string) (mo.Option[application.Installation], error) {
+	return f.installed, nil
 }
 
 func (f *fakeInitialize) SuggestGitHubRepo(context.Context, string) mo.Option[string] {
@@ -68,6 +69,7 @@ func newFakeInitialize() *fakeInitialize {
 		report:     domain.NewReport(domain.SettingsStep.Done("wrote .codefall/settings.json (tracker: beads)")),
 		suggestion: mo.None[string](),
 		root:       mo.None[string](),
+		installed:  mo.None[application.Installation](),
 	}
 }
 
@@ -573,5 +575,55 @@ func TestInitCommandAtTheRepositoryRootNeedsNoLocation(t *testing.T) {
 
 	if initialize.got.Dir != cwd {
 		t.Errorf("Dir = %q, want the working directory %q", initialize.got.Dir, cwd)
+	}
+}
+
+// The manifest records which harness a finished run installed for, and the gate compares it: a
+// project set up for one harness has had nothing done for the next one, whatever version installed
+// it. Comparing the version alone reported "already up to date" and left the second harness with no
+// skills, no hooks, and no way in short of --force.
+func TestInitCommandIsANoOpOnlyForTheHarnessItInstalled(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		installed application.Installation
+		args      []string
+		wantRun   bool
+	}{
+		{
+			name:      "the same harness at the same version",
+			installed: application.Installation{Harness: domain.HarnessClaudeCode, Version: cliVersion()},
+			wantRun:   false,
+		},
+		{
+			name:      "another harness at the same version",
+			installed: application.Installation{Harness: domain.HarnessClaudeCode, Version: cliVersion()},
+			args:      []string{"--harness", domain.HarnessAntigravity},
+			wantRun:   true,
+		},
+		{
+			name:      "the same harness at an older version",
+			installed: application.Installation{Harness: domain.HarnessClaudeCode, Version: "v0.1.0"},
+			args:      []string{"--yes"},
+			wantRun:   true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			initialize := newFakeInitialize()
+			initialize.exists = true
+			initialize.installed = mo.Some(tc.installed)
+
+			out, err := run(t, initialize, tc.args...)
+			if err != nil {
+				t.Fatalf("Execute: %v\n%s", err, out)
+			}
+
+			if initialize.ran != tc.wantRun {
+				t.Errorf("ran = %v, want %v\n%s", initialize.ran, tc.wantRun, out)
+			}
+
+			if !tc.wantRun && !strings.Contains(out, "already up to date") {
+				t.Errorf("output = %q, want it to report the install is current", out)
+			}
+		})
 	}
 }
