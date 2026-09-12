@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -114,4 +115,56 @@ func TestEmbeddedExtensionFetcherHonoursTheContext(t *testing.T) {
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("Fetch err = %v, want context.Canceled", err)
 	}
+}
+
+// Every script the tree ships is invoked by path — a hook command names the guard, and three skills
+// name shared/preflight.sh — so a copied script is made runnable where it lands, whatever the
+// embedded tree says about modes, which is nothing. A rerun over a script the project tightened
+// leaves that decision alone.
+func TestEmbeddedExtensionFetcherMakesCopiedScriptsRunnable(t *testing.T) {
+	src := fstest.MapFS{
+		"hooks/shared/codefall-block-merge-to-main.sh": &fstest.MapFile{Data: []byte("#!/bin/bash\n")},
+		"shared/preflight.sh":                          &fstest.MapFile{Data: []byte("#!/bin/bash\n")},
+		"skills/x/SKILL.md":                            &fstest.MapFile{Data: []byte("---\nname: x\n---\n")},
+	}
+	fetcher := NewEmbeddedExtensionFetcher(src)
+	dest := t.TempDir()
+
+	if _, err := fetcher.Fetch(context.Background(), dest, nil); err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+
+	for _, script := range []string{"hooks/shared/codefall-block-merge-to-main.sh", "shared/preflight.sh"} {
+		if mode := modeOf(t, filepath.Join(dest, script)); mode&0o100 == 0 {
+			t.Errorf("%s = %v, want its owner able to run it", script, mode)
+		}
+	}
+
+	if mode := modeOf(t, filepath.Join(dest, "skills/x/SKILL.md")); mode&0o111 != 0 {
+		t.Errorf("SKILL.md = %v, want a document left unexecutable", mode)
+	}
+
+	tightened := filepath.Join(dest, "hooks/shared/codefall-block-merge-to-main.sh")
+	if err := os.Chmod(tightened, 0o700); err != nil {
+		t.Fatalf("Chmod: %v", err)
+	}
+
+	if _, err := fetcher.Fetch(context.Background(), dest, nil); err != nil {
+		t.Fatalf("Fetch again: %v", err)
+	}
+
+	if mode := modeOf(t, tightened); mode != 0o700 {
+		t.Errorf("mode after a rerun = %v, want the 0700 the project chose", mode)
+	}
+}
+
+func modeOf(t *testing.T, path string) fs.FileMode {
+	t.Helper()
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Stat %s: %v", path, err)
+	}
+
+	return info.Mode().Perm()
 }

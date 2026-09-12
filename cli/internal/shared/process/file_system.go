@@ -15,6 +15,12 @@ const (
 	fileMode fs.FileMode = 0o644
 )
 
+// How a readable file becomes a runnable one: the read bits of all three classes, and the distance
+// from a read bit to the execute bit beside it.
+const readBits fs.FileMode = 0o444
+
+const readToExecute = 2
+
 // FileSystem reads and writes the working directory through the operating system. It is the union of
 // what the commands need; each one's gateway exposes only its own half.
 type FileSystem struct{}
@@ -60,6 +66,25 @@ func (*FileSystem) WriteFile(path string, data []byte) error {
 // MakeExecutable marks a copied script runnable. WriteFile's mode is deliberately not executable —
 // most of what codefall writes is configuration — so the step that installs a script says so here,
 // rather than the use case choosing modes it was promised not to think about.
+//
+// The bit is added to the mode the file already has, not written over it: WriteFile leaves an
+// existing file's permissions alone, so a project that tightened a copied script to its own user
+// would otherwise have it widened back on every rerun. Execute is added wherever read is already
+// allowed, which is the rule a mode of 0700 and a mode of 0644 both come out of correctly. A file
+// that is already runnable everywhere it is readable is left untouched, so a directory that refuses
+// chmod does not fail a rerun that had nothing to change.
 func (*FileSystem) MakeExecutable(path string) error {
-	return os.Chmod(path, dirMode)
+	info, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+
+	mode := info.Mode().Perm()
+	executable := mode | (mode&readBits)>>readToExecute
+
+	if executable == mode {
+		return nil
+	}
+
+	return os.Chmod(path, executable)
 }

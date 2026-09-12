@@ -3,6 +3,7 @@ package application
 import (
 	"errors"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -53,6 +54,20 @@ func TestExtensionStepCopiesIntoTheHarnessSkillsDirectory(t *testing.T) {
 	if len(fetcher.calls) != 1 || fetcher.calls[0].dir != filepath.Join(workingDir, ".claude") {
 		t.Errorf("fetcher calls = %+v, want one fetch into %q",
 			fetcher.calls, filepath.Join(workingDir, ".claude"))
+	}
+
+	// The per-harness definitions are the hook step's, read from the embedded tree rather than
+	// copied: a fetch that stopped excluding them would write every harness's definition into every
+	// project's skills directory and record them in the manifest, which is the stray-definition
+	// problem the unified hooks change set out to remove.
+	excluded := slices.Clone(fetcher.calls[0].exclude)
+	slices.Sort(excluded)
+
+	definitions := slices.Clone(hookSourceDirs)
+	slices.Sort(definitions)
+
+	if !slices.Equal(excluded, definitions) {
+		t.Errorf("exclude = %q, want the hook definition directories %q", excluded, definitions)
 	}
 }
 
