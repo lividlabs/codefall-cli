@@ -37,6 +37,10 @@ never restates the reasoning.
   relative form resolves under them and under Claude Code alike. Hooks are the exception, and the
   rules for them live in `hooks/`: `hooks/shared/` holds the script every harness's guard runs,
   and `hooks/<harness>/` holds the definition `codefall init` registers — never copied as files.
+- **Every script in `hooks/shared/` is named `codefall-<what-it-does>.sh`.** The prefix is not
+  decoration: `init` recognises its own registration in a file it shares with the project's hooks by
+  the script a command names, and replaces that entry on an upgrade rather than appending beside it.
+  A script renamed out of the prefix would leave every project's old registration running for ever.
 - **Whose document is it** decides who repairs it. A file the extension ships that nobody amends — the
   operative rules a verb installs alongside a directory it owns, like `docs/concepts/AGENTS.md` — is
   repaired by the verb that owns it, on run. A template that becomes the project's own document, one
