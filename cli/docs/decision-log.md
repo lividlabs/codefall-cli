@@ -309,10 +309,16 @@ Decided at scaffold, 2026-08-16.
   guard from its own directory (`import.meta.dir`) rather than from the worktree root. Which
   directory each harness has to be started in to read a subdirectory install is that harness's own
   configuration discovery, and is not verified here for any of them.
-  `bd init` run in a subdirectory (bd 1.2.2) writes `.beads/` there but points the clone's
-  `core.hooksPath` at a `.beads/hooks` under the root, which does not exist. The setting is local
-  to the clone, so nobody else's checkout changes, but in that clone every git hook stops running.
-  What init does about it is open.
+  Beads needs no second database: `bd info` searches upward, so a subdirectory of a repository
+  whose root has one reports that root database and the beads step skips, as it does anywhere else
+  Beads is already initialised. A subdirectory that is the first install in its repository does get
+  a database of its own, and there the run adds `--skip-hooks`. `bd init` otherwise points the
+  clone's `core.hooksPath` at its own `.beads/hooks` — one setting for the whole repository, which a
+  subdirectory install has no business claiming from everyone working in that clone, and which bd
+  1.2.2 fills in with a path under the root even when it wrote the database below it, so the
+  directory it names need not exist. Verified both ways against bd 1.2.2: without the flag a
+  repository's own `core.hooksPath` is replaced by a path that does not exist, and with it the
+  setting is left as it was. At the root the setting is bd's to make and the flag is not passed.
 
 ## Open
 
