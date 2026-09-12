@@ -28,10 +28,11 @@ var extensionDestDirs = map[string]string{
 }
 
 // extension is the second step of a run: it mirrors the embedded extension tree where the harness the
-// project uses reads skills, so it never touches a network or a foreign CLI.
-func (i *Initialize) extension(ctx context.Context, request Request) (domain.StepResult, error) {
+// project uses reads skills, so it never touches a network or a foreign CLI. It also hands back
+// every path it wrote, which the run records in the manifest once the last step has succeeded.
+func (i *Initialize) extension(ctx context.Context, request Request) (domain.StepResult, []string, error) {
 	if _, known := extensionDestDirs[request.Harness]; !known {
-		return domain.StepResult{}, fmt.Errorf("harness %q has no extension mechanism", request.Harness)
+		return domain.StepResult{}, nil, fmt.Errorf("harness %q has no extension mechanism", request.Harness)
 	}
 
 	return i.skillsDirExtension(ctx, request)
