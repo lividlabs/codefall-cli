@@ -240,8 +240,10 @@ A group whose lenses were all dropped at the confirmation does not run. Each ret
 
 ### Another harness
 
-`scripts/review-via.sh <harness> <model|-> <prompt-file> <schema-file> <out-file>` runs the
-harness's headless read-only mode in the repository, so the reviewer reads the files itself. The
+`scripts/review-via.sh [--model <model>] <harness> <prompt-file> <schema-file> <out-file>` runs the
+harness's headless read-only mode in the repository, so the reviewer reads the files itself. Leaving
+`--model` out is how the harness's own default is taken — which is what `via=codex` with no model
+means. The
 prompt file carries the target, the lenses, the calibration rules, and the schema. Codex and Claude
 Code also take the schema as a flag — `--output-schema` and `--json-schema` — which makes their
 output conform by construction rather than by request.

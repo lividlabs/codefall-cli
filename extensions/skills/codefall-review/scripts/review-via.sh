@@ -12,10 +12,10 @@
 # subprocess that edited would bypass the host's PreToolUse hooks and its
 # checkpoints, so nothing it did would be guarded or reversible.
 #
-# Usage: review-via.sh <harness> <model|-> <prompt-file> <schema-file> <out-file>
+# Usage: review-via.sh [--model <model>] <harness> <prompt-file> <schema-file> <out-file>
 #
+#   --model      the model to use; omitted, the harness picks its own
 #   harness      codex | claude | opencode | gemini
-#   model        the model to use, or - for the harness's own default
 #   prompt-file  the review prompt, already written
 #   schema-file  findings.schema.json, beside this script's parent
 #   out-file     where the harness's final message is written
@@ -37,7 +37,7 @@
 
 set -uo pipefail
 
-readonly USAGE="usage: review-via.sh <codex|claude|opencode|gemini> <model|-> <prompt> <schema> <out>"
+readonly USAGE="usage: review-via.sh [--model <model>] <codex|claude|opencode|gemini> <prompt> <schema> <out>"
 
 fail() {
   local code=$1
@@ -46,15 +46,44 @@ fail() {
   exit "$code"
 }
 
-if [ "$#" -ne 5 ]; then
+# The model is a flag rather than a positional, so leaving it out is how the
+# harness's own default is chosen. A positional would need a placeholder in the
+# slot, and a reader would have to open this file to learn what the placeholder
+# meant.
+model=""
+
+while [ "$#" -gt 0 ]; do
+  case $1 in
+    --model)
+      [ "$#" -ge 2 ] || fail 64 "--model needs a value ($USAGE)"
+      model=$2
+      shift 2
+      ;;
+    --model=*)
+      model=${1#--model=}
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      fail 64 "unknown flag \"$1\" ($USAGE)"
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [ "$#" -ne 4 ]; then
   fail 64 "$USAGE"
 fi
 
 harness=$1
-model=$2
-prompt=$3
-schema=$4
-out=$5
+prompt=$2
+schema=$3
+out=$4
 
 case $harness in
   codex | claude | opencode | gemini) ;;
@@ -74,15 +103,15 @@ out_dir=$(dirname "$out")
 mkdir -p "$out_dir" || fail 73 "cannot create $out_dir"
 : >"$out" || fail 73 "cannot write $out"
 
-# `-` means the harness picks. Building the flag as an array keeps the empty
-# case from becoming an empty argument, which some CLIs read as a model named "".
+# Building the flag as an array keeps the no-model case from becoming an empty
+# argument, which some CLIs read as a model named "".
 #
 # Every expansion below is written `"${model_flag[@]+"${model_flag[@]}"}"` rather
 # than `"${model_flag[@]}"`. Bash before 4.4 — which is what macOS ships as
 # /bin/bash — treats an empty array as unset under `set -u` and aborts, and this
 # script is run by whichever bash is first on PATH.
 model_flag=()
-if [ "$model" != "-" ]; then
+if [ -n "$model" ]; then
   model_flag=(--model "$model")
 fi
 
