@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewSettingsForGitHub(t *testing.T) {
-	value, err := NewSettings(settings.TrackerGitHub, mo.Some("lividlabs/codefall-cli"), mo.Some(3))
+	value, err := NewSettings(settings.TrackerGitHub, mo.Some("lividlabs/codefall-cli"), mo.Some(3), ReviewSettings{})
 	if err != nil {
 		t.Fatalf("NewSettings: %v", err)
 	}
@@ -34,7 +34,7 @@ func TestNewSettingsForGitHub(t *testing.T) {
 }
 
 func TestNewSettingsForGitHubWithoutAProject(t *testing.T) {
-	value, err := NewSettings(settings.TrackerGitHub, mo.Some("owner/name"), mo.None[int]())
+	value, err := NewSettings(settings.TrackerGitHub, mo.Some("owner/name"), mo.None[int](), ReviewSettings{})
 	if err != nil {
 		t.Fatalf("NewSettings: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestNewSettingsForGitHubWithoutAProject(t *testing.T) {
 }
 
 func TestNewSettingsForBeadsCarriesNoGitHubBlock(t *testing.T) {
-	value, err := NewSettings(settings.TrackerBeads, mo.None[string](), mo.None[int]())
+	value, err := NewSettings(settings.TrackerBeads, mo.None[string](), mo.None[int](), ReviewSettings{})
 	if err != nil {
 		t.Fatalf("NewSettings: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestNewSettingsRejects(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			value, err := NewSettings(tc.tracker, tc.repo, tc.project)
+			value, err := NewSettings(tc.tracker, tc.repo, tc.project, ReviewSettings{})
 			if err == nil {
 				t.Fatalf("NewSettings = %+v, want an error", value)
 			}

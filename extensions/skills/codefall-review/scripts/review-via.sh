@@ -1,23 +1,28 @@
 #!/usr/bin/env bash
 #
-# Run a review packet through another harness, headless and read-only.
+# Run a review through another harness, headless and read-only.
 #
-# codefall-review writes the packet — the diff or document, the full files, the
-# conventions, the upstream artifact, the lenses, and the findings schema. This
-# script only runs the harness and puts its final message in a file. It parses
-# nothing and decides nothing: what the reviewer said is the skill's to read.
+# codefall-review writes the prompt — the target, the lenses, the calibration
+# rules, and the findings schema. The reviewer runs inside the repository and
+# reads the files itself, so nothing is copied for it. This script only starts
+# the harness and puts its final message in a file. It parses nothing and
+# decides nothing: what the reviewer said is the skill's to read.
 #
 # Every harness runs in its own read-only mode. A reviewer does not edit, and a
 # subprocess that edited would bypass the host's PreToolUse hooks and its
 # checkpoints, so nothing it did would be guarded or reversible.
 #
-# Usage: review-via.sh <harness> <model|-> <packet-file> <schema-file> <out-file>
+# Usage: review-via.sh <harness> <model|-> <prompt-file> <schema-file> <out-file>
 #
 #   harness      codex | claude | opencode | gemini
 #   model        the model to use, or - for the harness's own default
-#   packet-file  the review packet, already written
+#   prompt-file  the review prompt, already written
 #   schema-file  findings.schema.json, beside this script's parent
 #   out-file     where the harness's final message is written
+#
+# The prompt carries the schema for every harness. Codex and Claude Code also
+# take it as a flag, which constrains their output instead of requesting it; the
+# other two have no equivalent and rely on the prompt alone.
 #
 # Environment
 #   CODEFALL_REVIEW_TIMEOUT   seconds before the run is killed (default 900)
@@ -32,7 +37,7 @@
 
 set -uo pipefail
 
-readonly USAGE="usage: review-via.sh <codex|claude|opencode|gemini> <model|-> <packet> <schema> <out>"
+readonly USAGE="usage: review-via.sh <codex|claude|opencode|gemini> <model|-> <prompt> <schema> <out>"
 
 fail() {
   local code=$1
@@ -47,7 +52,7 @@ fi
 
 harness=$1
 model=$2
-packet=$3
+prompt=$3
 schema=$4
 out=$5
 
@@ -56,7 +61,7 @@ case $harness in
   *) fail 64 "unknown harness \"$harness\" ($USAGE)" ;;
 esac
 
-[ -r "$packet" ] || fail 64 "cannot read packet $packet"
+[ -r "$prompt" ] || fail 64 "cannot read prompt $prompt"
 [ -r "$schema" ] || fail 64 "cannot read schema $schema"
 
 command -v "$harness" >/dev/null 2>&1 || fail 69 "$harness is not on PATH"
@@ -69,56 +74,69 @@ out_dir=$(dirname "$out")
 mkdir -p "$out_dir" || fail 73 "cannot create $out_dir"
 : >"$out" || fail 73 "cannot write $out"
 
-# `-` means the harness picks. Building the model flag as an array keeps the
-# empty case from becoming an empty argument, which some CLIs read as a model
-# named "".
+# `-` means the harness picks. Building the flag as an array keeps the empty
+# case from becoming an empty argument, which some CLIs read as a model named "".
+#
+# Every expansion below is written `"${model_flag[@]+"${model_flag[@]}"}"` rather
+# than `"${model_flag[@]}"`. Bash before 4.4 — which is what macOS ships as
+# /bin/bash — treats an empty array as unset under `set -u` and aborts, and this
+# script is run by whichever bash is first on PATH.
 model_flag=()
 if [ "$model" != "-" ]; then
   model_flag=(--model "$model")
 fi
 
-# Not every harness takes a JSON Schema, so the packet carries the schema inline
-# for all of them and this line is the extra guarantee where one is available.
+# --output-schema constrains the final message to the findings shape.
+# --output-last-message is codex writing its own output, which the read-only
+# sandbox does not govern: the sandbox covers the model's tool calls, not the
+# program's plumbing.
 run_codex() {
   codex exec \
-    "${model_flag[@]}" \
+    "${model_flag[@]+"${model_flag[@]}"}" \
     --sandbox read-only \
     --output-schema "$schema" \
     --output-last-message "$out" \
-    - <"$packet"
+    - <"$prompt"
 }
 
 # Plan mode is Claude Code's read-only mode. Text output puts the final message
 # on stdout with no envelope, which is what keeps this script free of a JSON
-# dependency.
+# dependency, and --json-schema constrains that message to the findings shape.
+#
+# Two differences from codex's --output-schema. The flag takes the schema itself
+# rather than a path to it, so the file is read in here; and its validator does
+# not resolve the 2020-12 meta-schema, rejecting the document outright while
+# `$schema` and `$id` are present — so those two lines are dropped first. They
+# identify the published artifact and say nothing about the shape, so a schema
+# without them constrains exactly the same output.
 run_claude() {
   claude --print \
-    "${model_flag[@]}" \
+    "${model_flag[@]+"${model_flag[@]}"}" \
     --permission-mode plan \
     --output-format text \
-    <"$packet" >"$out"
+    --json-schema "$(sed -e '/^  *"\$schema": /d' -e '/^  *"\$id": /d' "$schema")" \
+    <"$prompt" >"$out"
 }
 
-# OpenCode's `plan` agent is its read-only one. The packet is attached rather
-# than passed as the message: a diff plus its full files runs past the argument
-# length a shell will take.
+# OpenCode's `plan` agent is its read-only one. It has no schema flag, so the
+# copy of the schema in the prompt is all it gets.
 run_opencode() {
   opencode run \
-    "${model_flag[@]}" \
+    "${model_flag[@]+"${model_flag[@]}"}" \
     --agent plan \
-    --file "$packet" \
-    "Review the attached packet and reply with findings JSON only." >"$out"
+    --file "$prompt" \
+    "Review as the attached prompt says. Reply with findings JSON only." >"$out"
 }
 
-# Gemini appends -p to whatever arrived on stdin, so the packet is the input and
-# the prompt is the instruction that closes it.
+# Gemini appends -p to whatever arrived on stdin, so the prompt file is the
+# input and -p is the instruction that closes it. No schema flag here either.
 run_gemini() {
   gemini \
-    "${model_flag[@]}" \
+    "${model_flag[@]+"${model_flag[@]}"}" \
     --approval-mode plan \
     --output-format text \
-    -p "Review the packet above and reply with findings JSON only." \
-    <"$packet" >"$out"
+    -p "Review as the text above says. Reply with findings JSON only." \
+    <"$prompt" >"$out"
 }
 
 # A review that hangs is the failure this guards against. There is no portable

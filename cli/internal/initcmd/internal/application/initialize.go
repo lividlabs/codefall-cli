@@ -67,7 +67,11 @@ type Request struct {
 	CLIVersion string
 
 	GitHubProject mo.Option[int]
-	Harness       string
+	// ReviewPostToPullRequest is whether codefall-review may post its findings to a pull request.
+	// None means nobody was asked — a scripted run that gave no flag — and the file records the
+	// default rather than leaving the block out.
+	ReviewPostToPullRequest mo.Option[bool]
+	Harness                 string
 	// NoOp is true when everything the run would write matches what is already installed: same
 	// version recorded in the manifest, nothing the survey would need to ask. The use case is not
 	// asked at all. A Force run resets it.
@@ -137,6 +141,7 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 		{Step: domain.BeadsStep, run: i.beads},
 		{Step: domain.HookStep, run: i.hook},
 		{Step: domain.AgentsStep, run: i.agents},
+		{Step: domain.IgnoreStep, run: i.ignore},
 	}
 
 	results := make([]domain.StepResult, 0, len(steps))

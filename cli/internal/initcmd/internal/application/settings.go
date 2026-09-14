@@ -53,7 +53,8 @@ func (i *Initialize) settings(_ context.Context, request Request) (domain.StepRe
 		return domain.SettingsStep.Skipped(settingsName + " already exists (use --force to rewrite it)"), nil
 	}
 
-	chosen, err := domain.NewSettings(request.Tracker, request.GitHubRepo, request.GitHubProject)
+	chosen, err := domain.NewSettings(request.Tracker, request.GitHubRepo, request.GitHubProject,
+		domain.ReviewSettings{PostToPullRequest: request.ReviewPostToPullRequest.OrElse(false)})
 	if err != nil {
 		return domain.StepResult{}, err
 	}
@@ -93,6 +94,10 @@ func describe(chosen domain.Settings) string {
 		}
 	}
 
+	if chosen.Review.PostToPullRequest {
+		parts = append(parts, "review posts to pull requests")
+	}
+
 	return strings.Join(parts, ", ")
 }
 
@@ -106,6 +111,14 @@ type settingsDocument struct {
 	Tracker string                    `json:"tracker"`
 	Beads   mo.Option[beadsDocument]  `json:"beads,omitzero"`
 	GitHub  mo.Option[gitHubDocument] `json:"github,omitzero"`
+	Review  reviewDocument            `json:"review"`
+}
+
+// reviewDocument is the review block. It is always written, including when the answer is the
+// default: a file that states the setting shows there is something to change, where an absent block
+// reads as a feature nobody has heard of.
+type reviewDocument struct {
+	PostToPullRequest bool `json:"postToPullRequest"`
 }
 
 // beadsDocument is the empty block the schema requires for the Beads tracker: bd keeps its own
@@ -135,6 +148,7 @@ func encodeSettings(chosen domain.Settings) ([]byte, error) {
 		Schema:  settings.SchemaID,
 		Version: settings.Version,
 		Tracker: chosen.Tracker,
+		Review:  reviewDocument{PostToPullRequest: chosen.Review.PostToPullRequest},
 	}
 
 	// One case per tracker, so adding a tracker is a case here and a block above rather than a

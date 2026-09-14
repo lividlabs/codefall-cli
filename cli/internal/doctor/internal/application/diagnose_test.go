@@ -21,8 +21,11 @@ const workingDir = "/work"
 var (
 	codefallDir  = filepath.Join(workingDir, ".codefall")
 	settingsPath = filepath.Join(codefallDir, "settings.json")
+	ignorePath   = filepath.Join(workingDir, settings.IgnoreName)
 	schemaRemedy = "create .codefall/settings.json; schema: " + settings.SchemaID
 	fixRemedy    = "fix the fields above; schema: " + settings.SchemaID
+	ignoreRemedy = "add " + settings.IgnoreEntry + " to " + settings.IgnoreName +
+		", or run codefall init again"
 )
 
 const validSettings = `{
@@ -97,9 +100,12 @@ func (r *fakeCommandRunner) Run(
 // healthy is the fixture where every check passes; each case mutates it.
 func healthy() (*fakeFileSystem, *fakeCommandRunner) {
 	files := &fakeFileSystem{
-		dirs:  map[string]bool{codefallDir: true},
-		files: map[string][]byte{settingsPath: []byte(validSettings)},
-		errs:  map[string]error{},
+		dirs: map[string]bool{codefallDir: true},
+		files: map[string][]byte{
+			settingsPath: []byte(validSettings),
+			ignorePath:   []byte(settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n"),
+		},
+		errs: map[string]error{},
 	}
 
 	runner := &fakeCommandRunner{
@@ -132,6 +138,7 @@ var allPass = []outcome{
 	{domain.SettingsFile.ID, domain.StatusPass},
 	{domain.SettingsJSON.ID, domain.StatusPass},
 	{domain.SettingsComplete.ID, domain.StatusPass},
+	{domain.ReviewsIgnored.ID, domain.StatusPass},
 	{domain.BeadsInstalled.ID, domain.StatusPass},
 	{domain.BeadsInitialized.ID, domain.StatusPass},
 	{domain.GHInstalled.ID, domain.StatusPass},
@@ -161,9 +168,15 @@ func outcomes(changes map[string]domain.Status, absent ...string) []outcome {
 
 // The skip rules, named so each case reads as the rule it exercises.
 var (
-	afterCodefallDir  = []string{domain.SettingsFile.ID, domain.SettingsJSON.ID, domain.SettingsComplete.ID}
-	afterSettingsFile = []string{domain.SettingsJSON.ID, domain.SettingsComplete.ID}
-	afterSettingsJSON = []string{domain.SettingsComplete.ID}
+	afterCodefallDir = []string{
+		domain.SettingsFile.ID, domain.SettingsJSON.ID, domain.SettingsComplete.ID,
+		domain.ReviewsIgnored.ID,
+	}
+	afterSettingsFile = []string{
+		domain.SettingsJSON.ID, domain.SettingsComplete.ID, domain.ReviewsIgnored.ID,
+	}
+	afterSettingsJSON = []string{domain.SettingsComplete.ID, domain.ReviewsIgnored.ID}
+	afterSettingsDone = []string{domain.ReviewsIgnored.ID}
 	afterBeadsMissing = []string{domain.BeadsInitialized.ID}
 	afterGHMissing    = []string{domain.GHAuthenticated.ID, domain.GHScopes.ID}
 	afterGHAuth       = []string{domain.GHScopes.ID}
@@ -240,7 +253,8 @@ func TestDiagnoseRun(t *testing.T) {
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
 				f.files[settingsPath] = []byte(`["nope"]`)
 			},
-			want:       outcomes(map[string]domain.Status{domain.SettingsComplete.ID: domain.StatusFail}),
+			want: outcomes(map[string]domain.Status{domain.SettingsComplete.ID: domain.StatusFail},
+				afterSettingsDone...),
 			target:     domain.SettingsComplete.ID,
 			wantDetail: "settings.json's top level must be a JSON object",
 			wantRemedy: mo.Some(fixRemedy),
@@ -250,10 +264,39 @@ func TestDiagnoseRun(t *testing.T) {
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
 				f.files[settingsPath] = []byte(`{"version": 2}`)
 			},
-			want:       outcomes(map[string]domain.Status{domain.SettingsComplete.ID: domain.StatusFail}),
+			want: outcomes(map[string]domain.Status{domain.SettingsComplete.ID: domain.StatusFail},
+				afterSettingsDone...),
 			target:     domain.SettingsComplete.ID,
 			wantDetail: "settings.json is incomplete: version: must be 1; tracker: missing",
 			wantRemedy: mo.Some(fixRemedy),
+		},
+		{
+			name: ".ignore is missing, so review findings would show up in every search",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				delete(f.files, ignorePath)
+			},
+			want:       outcomes(map[string]domain.Status{domain.ReviewsIgnored.ID: domain.StatusFail}),
+			target:     domain.ReviewsIgnored.ID,
+			wantDetail: ".ignore not found",
+			wantRemedy: mo.Some(ignoreRemedy),
+		},
+		{
+			name: ".ignore is there but does not name the reviews directory",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[ignorePath] = []byte("vendor/\nnode_modules/\n")
+			},
+			want:       outcomes(map[string]domain.Status{domain.ReviewsIgnored.ID: domain.StatusFail}),
+			target:     domain.ReviewsIgnored.ID,
+			wantDetail: ".ignore does not name .codefall/reviews/",
+			wantRemedy: mo.Some(ignoreRemedy),
+		},
+		{
+			name: ".ignore names the reviews directory but indented",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[ignorePath] = []byte("  " + settings.IgnoreEntry + "  \n")
+			},
+			want:   allPass,
+			target: domain.ReviewsIgnored.ID,
 		},
 		{
 			name: "bd is not installed",

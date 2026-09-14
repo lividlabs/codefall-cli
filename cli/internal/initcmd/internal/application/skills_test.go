@@ -60,7 +60,7 @@ func TestSkillsStepStopsTheRunWhenTheCopyFails(t *testing.T) {
 	}
 }
 
-// A skills-directory harness runs all five steps: the extension step installs where the mechanism
+// A skills-directory harness runs all six steps: the extension step installs where the mechanism
 // installs, the hook step registers there too, and the rest are untouched.
 func TestSkillsRunStillRunsEveryStep(t *testing.T) {
 	report, err := NewInitialize(settled(""), toolsInstalled(), newFakeExtensionSource()).Run(
@@ -71,8 +71,8 @@ func TestSkillsRunStillRunsEveryStep(t *testing.T) {
 	}
 
 	results := report.Results()
-	if len(results) != 5 {
-		t.Fatalf("Results() = %+v, want a result for each of the five steps", results)
+	if len(results) != 6 {
+		t.Fatalf("Results() = %+v, want a result for each of the six steps", results)
 	}
 
 	if got := results[3].Outcome; got != domain.OutcomeDone {
@@ -85,7 +85,8 @@ func TestSkillsRunStillRunsEveryStep(t *testing.T) {
 	}
 
 	steps := []domain.Step{
-		domain.SettingsStep, domain.ExtensionStep, domain.BeadsStep, domain.HookStep, domain.AgentsStep,
+		domain.SettingsStep, domain.ExtensionStep, domain.BeadsStep, domain.HookStep,
+		domain.AgentsStep, domain.IgnoreStep,
 	}
 	got := make([]domain.Step, 0, len(results))
 	for _, result := range results {

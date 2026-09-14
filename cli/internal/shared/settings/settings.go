@@ -33,7 +33,39 @@ const (
 	TrackerGitHub = "github"
 	RepoPattern   = `^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`
 	SchemaID      = "https://raw.githubusercontent.com/lividlabs/codefall-cli/main/schemas/settings.schema.json"
+	BlockReview   = "review"
 )
+
+// The .ignore file, which is not settings but is the other file init writes and doctor checks — so
+// it lives here for the same reason the settings format does (ADR-003).
+//
+// codefall-review commits its findings so that patterns across reviews stay visible, which puts old
+// findings in the same tree as the code. Ripgrep reads .ignore and git does not, so one line keeps
+// them out of every search that goes through ripgrep while leaving them tracked.
+const (
+	// IgnoreName is the file, beside .codefall/ rather than at the repository root: a run below the
+	// root installs there, and ripgrep reads .ignore files down the tree.
+	IgnoreName = ".ignore"
+	// IgnoreEntry is the line itself.
+	IgnoreEntry = ".codefall/reviews/"
+	// IgnoreComment says why the line is there, for whoever finds the file later.
+	IgnoreComment = "# codefall review findings: tracked in git, skipped by ripgrep."
+)
+
+// IgnoresReviews reports whether a .ignore file's contents already name the reviews directory.
+//
+// The comparison is per line and ignores surrounding space, so an entry someone indented still
+// counts and a commented-out one does not — ripgrep does not read the comment either. Both
+// components need the same answer: init decides whether to append, doctor decides whether to fail.
+func IgnoresReviews(body string) bool {
+	for line := range strings.SplitSeq(body, "\n") {
+		if strings.TrimSpace(line) == IgnoreEntry {
+			return true
+		}
+	}
+
+	return false
+}
 
 var repoRegexp = regexp.MustCompile(RepoPattern)
 
@@ -46,10 +78,21 @@ type fieldSpec struct {
 }
 
 // topLevelFields is the settings file's own shape. Definition order is report order.
+//
+// The review block is optional at the top level and complete when it is there: a project set up
+// before the block existed is still valid settings, and one that carries it carries every field.
 var topLevelFields = []fieldSpec{
 	{"$schema", false, isString},
 	{"version", true, isVersion},
 	{"tracker", true, isTracker},
+	{BlockReview, false, isObject},
+}
+
+// reviewFields is the shape of the review block, which codefall-review reads and nothing else
+// writes. Posting findings to a pull request is visible to everyone on it, so the field exists to
+// make that a decision the project made rather than a default it inherited.
+var reviewFields = []fieldSpec{
+	{"postToPullRequest", true, isBool},
 }
 
 // trackerFields is the shape of each known tracker's block, keyed by the value of "tracker" that
@@ -79,6 +122,12 @@ func RequiredFields() []string {
 // order. An unknown tracker has none.
 func RequiredTrackerFields(tracker string) []string {
 	return requiredNames(trackerFields[tracker])
+}
+
+// RequiredReviewFields returns the fields the review block must carry once it is present, in
+// definition order.
+func RequiredReviewFields() []string {
+	return requiredNames(reviewFields)
 }
 
 func requiredNames(fields []fieldSpec) []string {
@@ -154,12 +203,25 @@ func Validate(doc Document) []string {
 		}
 	}
 
+	// The review block is independent of the tracker, so it is checked before the tracker's own
+	// block decides whether there is anything further to say.
+	if _, present := lookup(doc, BlockReview); present {
+		problems = append(problems, validateBlock(doc, BlockReview, reviewFields)...)
+	}
+
 	// A missing or unknown tracker selects no block, so there is nothing further to say.
 	if _, known := trackerFields[selected]; !known {
 		return problems
 	}
 
-	problems = append(problems, validateTrackerBlock(doc, selected)...)
+	if _, present := lookup(doc, selected); !present {
+		problems = append(problems,
+			fmt.Sprintf("%s: missing (required when tracker is %q)", selected, selected))
+
+		return problems
+	}
+
+	problems = append(problems, validateBlock(doc, selected, trackerFields[selected])...)
 
 	for _, other := range Trackers() {
 		if other == selected {
@@ -174,21 +236,25 @@ func Validate(doc Document) []string {
 	return problems
 }
 
-func validateTrackerBlock(doc Document, tracker string) []string {
+// validateBlock checks one present block against its field table. The tracker's block and the
+// review block have the same shape — a name, an object, a table of fields — so they are one
+// function. Whether a block being absent is a problem differs between them and is decided by the
+// caller, which is why this one is only ever called on a block that is there.
+func validateBlock(doc Document, name string, fields []fieldSpec) []string {
 	var problems []string
 
-	value, ok := lookup(doc, tracker)
+	value, ok := lookup(doc, name)
 	if !ok {
-		return []string{fmt.Sprintf("%s: missing (required when tracker is %q)", tracker, tracker)}
+		return nil
 	}
 
 	block, ok := value.(map[string]any)
 	if !ok {
-		return []string{tracker + ": must be an object"}
+		return []string{name + ": must be an object"}
 	}
 
-	for _, field := range trackerFields[tracker] {
-		path := tracker + "." + field.Name
+	for _, field := range fields {
+		path := name + "." + field.Name
 
 		fieldValue, present := lookup(block, field.Name)
 		if !present {
@@ -225,6 +291,22 @@ func lookup(doc map[string]any, name string) (any, bool) {
 func isString(v any) string {
 	if _, ok := v.(string); !ok {
 		return "must be a string"
+	}
+
+	return ""
+}
+
+func isBool(v any) string {
+	if _, ok := v.(bool); !ok {
+		return "must be true or false"
+	}
+
+	return ""
+}
+
+func isObject(v any) string {
+	if _, ok := v.(map[string]any); !ok {
+		return "must be an object"
 	}
 
 	return ""

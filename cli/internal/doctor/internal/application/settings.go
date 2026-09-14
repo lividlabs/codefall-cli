@@ -86,5 +86,39 @@ func (d *Diagnose) settings(_ context.Context, dir string, results []domain.Resu
 			"settings.json is incomplete: "+strings.Join(problems, "; "), fixRemedy))
 	}
 
-	return append(results, domain.SettingsComplete.Pass())
+	results = append(results, domain.SettingsComplete.Pass())
+
+	return d.reviewsIgnored(dir, results)
+}
+
+// reviewsIgnored is check 5: the .ignore entry that keeps codefall-review's committed findings out
+// of every search that goes through ripgrep.
+//
+// It fails rather than warns. Without the entry the findings are still written and still tracked,
+// so nothing is broken in the sense of not working — but every agent searching the codebase starts
+// reading old review findings as if they were code, which is the problem the file exists to prevent
+// and is not visible to the person it happens to.
+func (d *Diagnose) reviewsIgnored(dir string, results []domain.Result) []domain.Result {
+	path := filepath.Join(dir, settings.IgnoreName)
+	remedy := mo.Some("add " + settings.IgnoreEntry + " to " + settings.IgnoreName +
+		", or run codefall init again")
+
+	data, err := d.files.ReadFile(path)
+
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return append(results, domain.ReviewsIgnored.Fail(settings.IgnoreName+" not found", remedy))
+	case err != nil:
+		return append(results, domain.ReviewsIgnored.Fail(
+			fmt.Sprintf("Cannot read %s: %v", settings.IgnoreName, err), mo.None[string]()))
+	}
+
+	for line := range strings.SplitSeq(string(data), "\n") {
+		if strings.TrimSpace(line) == settings.IgnoreEntry {
+			return append(results, domain.ReviewsIgnored.Pass())
+		}
+	}
+
+	return append(results, domain.ReviewsIgnored.Fail(
+		settings.IgnoreName+" does not name "+settings.IgnoreEntry, remedy))
 }

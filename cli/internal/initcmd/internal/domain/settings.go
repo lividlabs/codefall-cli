@@ -22,20 +22,30 @@ type GitHubSettings struct {
 	Project mo.Option[int]
 }
 
-// Settings is a complete, valid .codefall/settings.json as a value: the tracker, and the block that
-// tracker selects. Exactly one tracker block is present, which is what the schema's oneOf says as
-// well. Beads carries no fields of its own — bd keeps its configuration under .beads/ — so it needs
-// no member here.
+// ReviewSettings is the block codefall-review reads. Posting findings to a pull request is visible
+// to everyone on it, so it is a decision a project makes rather than a default it inherits — and the
+// answer is always recorded, never inferred from the field's absence.
+type ReviewSettings struct {
+	PostToPullRequest bool
+}
+
+// Settings is a complete, valid .codefall/settings.json as a value: the tracker, the block that
+// tracker selects, and the review block. Exactly one tracker block is present, which is what the
+// schema's oneOf says as well. Beads carries no fields of its own — bd keeps its configuration under
+// .beads/ — so it needs no member here.
 type Settings struct {
 	Tracker string
 	GitHub  mo.Option[GitHubSettings]
+	Review  ReviewSettings
 }
 
 // NewSettings builds settings from the values a survey or a set of flags collected, and is the only
 // way to obtain them: a Settings value that exists is one that may be written. Which values are
 // acceptable is the format's to say; which combinations of them make sense for a run is initcmd's,
 // and that is what this constructor adds.
-func NewSettings(tracker string, repo mo.Option[string], project mo.Option[int]) (Settings, error) {
+func NewSettings(
+	tracker string, repo mo.Option[string], project mo.Option[int], review ReviewSettings,
+) (Settings, error) {
 	name, err := settings.ParseTracker(tracker)
 	if err != nil {
 		return Settings{}, err
@@ -50,7 +60,7 @@ func NewSettings(tracker string, repo mo.Option[string], project mo.Option[int])
 			return Settings{}, fmt.Errorf("a project number is only used when the tracker is %q, not %q", settings.TrackerGitHub, name)
 		}
 
-		return Settings{Tracker: name}, nil
+		return Settings{Tracker: name, Review: review}, nil
 	}
 
 	github, err := newGitHubSettings(repo, project)
@@ -58,7 +68,7 @@ func NewSettings(tracker string, repo mo.Option[string], project mo.Option[int])
 		return Settings{}, err
 	}
 
-	return Settings{Tracker: name, GitHub: mo.Some(github)}, nil
+	return Settings{Tracker: name, GitHub: mo.Some(github), Review: review}, nil
 }
 
 func newGitHubSettings(repo mo.Option[string], project mo.Option[int]) (GitHubSettings, error) {

@@ -94,13 +94,14 @@ func NewInitCommand(initialize InitializeUseCase) *cobra.Command {
 // initFlags is every value the survey asks for, plus the two that change what a run does. Each
 // prompted value is a flag, which is what keeps the command usable from a script (ADR-002).
 type initFlags struct {
-	tracker       string
-	githubRepo    string
-	githubProject int
-	harness       string
-	location      string
-	force         bool
-	yes           bool
+	tracker        string
+	githubRepo     string
+	githubProject  int
+	reviewPostToPR bool
+	harness        string
+	location       string
+	force          bool
+	yes            bool
 }
 
 func (f *initFlags) register(cmd *cobra.Command) {
@@ -111,6 +112,8 @@ func (f *initFlags) register(cmd *cobra.Command) {
 			"required when the tracker is "+settings.TrackerGitHub+" and that cannot be worked out)")
 	cmd.Flags().IntVar(&f.githubProject, "github-project", 0,
 		"number of the GitHub Project to use (optional)")
+	cmd.Flags().BoolVar(&f.reviewPostToPR, "review-post-to-pr", false,
+		"let codefall-review post its findings to a pull request (optional)")
 	cmd.Flags().StringVar(&f.harness, "harness", domain.HarnessClaudeCode,
 		"coding harness to set up ("+strings.Join(domain.Harnesses(), ", ")+")")
 	cmd.Flags().StringVar(&f.location, "location", "",
@@ -191,6 +194,12 @@ func buildRequest(
 		}
 
 		request.GitHubRepo = mo.Some(flags.githubRepo)
+	}
+
+	// Same reasoning as the project number below: a bool flag left alone and one set to false are
+	// different answers, and only the flag's own record of being set separates them.
+	if cmd.Flags().Changed("review-post-to-pr") {
+		request.ReviewPostToPullRequest = mo.Some(flags.reviewPostToPR)
 	}
 
 	// A project number is optional, so "not given" and "given as zero" are different answers and
@@ -407,6 +416,8 @@ func survey(
 		project = strconv.Itoa(number)
 	}
 
+	postToPR := request.ReviewPostToPullRequest.OrElse(false)
+
 	var groups []*huh.Group
 
 	if request.Tracker == "" {
@@ -420,9 +431,15 @@ func survey(
 			WithHideFunc(func() bool { return tracker != settings.TrackerGitHub }))
 	}
 
+	if request.ReviewPostToPullRequest.IsAbsent() {
+		groups = append(groups, huh.NewGroup(reviewPostToPRField(&postToPR)))
+	}
+
 	if err := runForm(ctx, groups); err != nil {
 		return application.Request{}, err
 	}
+
+	request.ReviewPostToPullRequest = mo.Some(postToPR)
 
 	return answered(request, tracker, repo, project)
 }
@@ -557,6 +574,18 @@ func repoField(repo *string) huh.Field {
 		Placeholder("owner/name").
 		Value(repo).
 		Validate(func(value string) error { return settings.ValidateRepo(strings.TrimSpace(value)) })
+}
+
+// reviewPostToPRField asks the one question the review block holds. No is the starting value:
+// posting is visible to everyone on the pull request, so it is something a project turns on rather
+// than something it discovers already on.
+func reviewPostToPRField(postToPR *bool) huh.Field {
+	return huh.NewConfirm().
+		Title("Let codefall-review post its findings to a pull request?").
+		Description("Findings are always written to .codefall/reviews/ either way.").
+		Affirmative("Yes").
+		Negative("No").
+		Value(postToPR)
 }
 
 func projectField(project *string) huh.Field {

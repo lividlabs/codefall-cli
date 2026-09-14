@@ -219,8 +219,8 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 	}
 
 	results := report.Results()
-	if len(results) != 5 {
-		t.Fatalf("Results() = %+v, want a result for each of the five steps", results)
+	if len(results) != 6 {
+		t.Fatalf("Results() = %+v, want a result for each of the six steps", results)
 	}
 
 	if results[0].Outcome != domain.OutcomeDone {
@@ -240,7 +240,8 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 	// The observer sees every step start and finish, in order, and what it sees on finishing is the
 	// result the report carries.
 	steps := []domain.Step{
-		domain.SettingsStep, domain.ExtensionStep, domain.BeadsStep, domain.HookStep, domain.AgentsStep,
+		domain.SettingsStep, domain.ExtensionStep, domain.BeadsStep, domain.HookStep,
+		domain.AgentsStep, domain.IgnoreStep,
 	}
 	if !slices.Equal(observer.started, steps) {
 		t.Errorf("started = %+v, want %+v", observer.started, steps)
@@ -275,6 +276,9 @@ func TestRunEncodesGitHubSettings(t *testing.T) {
   "github": {
     "repo": "owner/name",
     "project": 3
+  },
+  "review": {
+    "postToPullRequest": false
   }
 }
 `
@@ -303,6 +307,9 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 			want: `  "tracker": "github",
   "github": {
     "repo": "owner/name"
+  },
+  "review": {
+    "postToPullRequest": false
   }
 }
 `,
@@ -311,7 +318,24 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 			name:    "beads",
 			request: Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode},
 			want: `  "tracker": "beads",
-  "beads": {}
+  "beads": {},
+  "review": {
+    "postToPullRequest": false
+  }
+}
+`,
+		},
+		{
+			name: "review posting turned on",
+			request: Request{
+				Dir:                     workingDir,
+				Tracker:                 settings.TrackerBeads,
+				Harness:                 domain.HarnessClaudeCode,
+				ReviewPostToPullRequest: mo.Some(true),
+			},
+			want: `  "review": {
+    "postToPullRequest": true
+  }
 }
 `,
 		},
@@ -349,7 +373,7 @@ func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
 	}
 
 	results := report.Results()
-	if len(results) != 5 || results[0].Outcome != domain.OutcomeSkipped {
+	if len(results) != 6 || results[0].Outcome != domain.OutcomeSkipped {
 		t.Fatalf("Results() = %+v, want the settings step to have skipped", results)
 	}
 
