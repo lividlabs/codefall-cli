@@ -1,0 +1,157 @@
+# ADR-004: Skill Length Guidelines
+
+## Status
+
+Accepted — 2026-09-14
+
+## Context
+
+The extension ships eight skills, one `SKILL.md` each. Measured on 2026-09-14 they ran from 280 to
+761 lines and from roughly 2,800 to 6,400 words, which is roughly 3,800 to 9,500 tokens depending on
+the estimate. Five of the eight were over 500 lines, and six were over 5,000 tokens by at least one
+estimate.
+
+Anthropic's published guidance for Agent Skills gives two numbers for the body of a `SKILL.md`, and
+the Claude Code documentation gives a third fact that makes the second one matter more than it first
+appears.
+
+**Under 500 lines.** The Agent Skills best-practices guide, the Claude Code skills page, and the
+Agent Skills specification all state it the same way: keep `SKILL.md` under 500 lines and move
+detailed reference material to separate files. It is the ceiling at which the guidance says to start
+splitting, not a hard limit any tool enforces.
+
+**Under 5,000 tokens.** The Agent Skills overview lists the instruction level of a skill, the body
+loaded when the skill is triggered, at under 5k tokens. The specification recommends the same.
+
+**5,000 tokens is also where Claude Code cuts.** A skill's rendered content enters the conversation
+once, on invocation, and stays there across turns; Claude Code does not re-read the file. When the
+conversation is compacted, Claude Code re-attaches the most recent invocation of each skill after the
+summary, keeping only the first 5,000 tokens of each, within a combined budget of 25,000 tokens
+across all invoked skills, most recent first. Anything past the first 5,000 tokens is dropped
+silently. Every codefall skill puts its Process and Rules sections last, so those are exactly the
+sections that vanish. The skills that run longest, `codefall-specify`, `codefall-design`,
+`codefall-implement`, and `codefall-review`, are the ones most likely to be compacted mid-run.
+
+Two facts about how these skills load narrow what the guidance means here. Every codefall skill sets
+`disable-model-invocation: true`, so its description is not in the startup listing and costs nothing
+until invoked; the listing budget and the description-truncation rules do not apply. And the docs are
+explicit that the body is a recurring cost once loaded: every line competes with the conversation on
+every later turn, and the authoring test is the one used for `CLAUDE.md`, whether removing the line
+would cause mistakes.
+
+The bodies grew for a reason that was itself a rule. The extension's `AGENTS.md` asked that new skill
+prose be "declarative, reasons attached", and the skills complied: each carries the reasoning behind
+its rules, the alternatives it rejected, and a Lineage section recording what it took from other
+tools and what it deliberately dropped. None of that is instruction. The same file's own header says
+the why lives in the linked docs, which is the convention every scaffolded project gets and the one
+the skills stopped following for themselves. The `codefall-review` skill already keeps that material
+in a `NOTES.md` beside its `SKILL.md`, described there as "none of this is instruction".
+
+Three options were considered.
+
+**(a) Leave the lengths alone.** The skills work. But the compaction cap is not a preference, and the
+sections it removes are the ones that say what to do. A skill that loses its Rules section after
+compaction is a skill that behaves differently in the second half of a long session than in the
+first, with no signal that anything changed.
+
+**(b) Hard limits, failed in CI.** Precise, and easy to enforce. It overstates what the guidance says:
+the docs give ranges to stay inside, not lines to fail on, and the token figure cannot be measured
+exactly without the tokenizer, which is not available offline. A hard limit on an estimate is a hard
+limit on the wrong number. With eight skills, a reporting check that a person reads is enough.
+
+**(c) Adopt the published ranges as guidelines, move what is not instruction out of `SKILL.md`, and
+report against the ranges.** The numbers are the docs' numbers, not ones invented here. Reasoning
+goes where the repo already says it goes. A script reports each skill against the ranges so drift is
+visible, and can be made strict once every skill is inside them.
+
+Option (c) is chosen.
+
+## Decision
+
+### The ranges
+
+A `SKILL.md` body stays **under 500 lines** and **under 5,000 tokens**. Both are guidelines from the
+published Agent Skills guidance, adopted as written. Neither is enforced as a hard failure by
+default. The token figure is the one that matters most, because of the compaction cap; the line
+figure is the earlier warning.
+
+The token count is an estimate. Two heuristics are reported, characters divided by four and words
+times 1.33, and the larger is the number to read. A skill inside the range by the larger estimate is
+inside it.
+
+### What a `SKILL.md` holds
+
+Instruction: what the skill does, in what order, with what gate before each thing that lands. The
+level of procedural detail follows the guidance's degrees of freedom. Where an operation is fragile,
+where a specific sequence must be followed or a file must be edited one way, the steps stay exact.
+Where several approaches are valid, the skill says what to achieve and leaves the how to the session.
+The how is not what is being cut; the why is.
+
+### What moves out, and where
+
+- **Reasons and rejected alternatives** go to an ADR when the decision is one the repo made, or to
+  the operative rules in the relevant `AGENTS.md` when it is a convention. A `SKILL.md` states the
+  rule; it does not argue for it.
+- **Lineage**, what a skill took from other tools and what it deliberately dropped, goes to a
+  `NOTES.md` beside the `SKILL.md`, following `codefall-review`. It is a record for maintainers so
+  nothing removed on purpose is re-added, and it is never loaded by the skill.
+- **Reference material the skill reads on demand**, such as status lifecycle tables, landing-strategy
+  detail, or lens definitions, goes to a supporting file the `SKILL.md` links directly, with a
+  sentence saying what the file holds and when to read it.
+
+### Supporting files
+
+- Every supporting file is linked **directly from `SKILL.md`**, one level deep. A supporting file
+  does not link on to a further file the `SKILL.md` does not also link, because Claude may preview
+  rather than read a file reached through another file.
+- A supporting file **over 100 lines** opens with a table of contents, so a partial read still shows
+  what the file contains.
+- Directories are named for what they hold. Existing names stay: `templates/` for what a skill
+  installs, `trackers/` for tracker profiles, `scripts/` for what a skill runs. Material a skill reads
+  on demand goes under `reference/`. The names are the guidance's examples, not a fixed set; a skill
+  adds a directory when it has a kind of content the existing names do not describe.
+- Paths inside a skill stay relative to the skill's own directory, as the extension's rules already
+  require.
+
+### Measurement
+
+A script in the extension reports every skill against the ranges and the supporting-file rules
+above: lines, words, both token estimates, description length against the 1,024-character maximum,
+the frontmatter name matching the directory, every link resolving one level deep, and a table of
+contents in any supporting file over 100 lines. It reports by default. A strict flag makes it exit
+non-zero on any skill outside the ranges, for CI once every skill is inside them.
+
+## Consequences
+
+- **The Rules section survives compaction.** A skill inside the token range is re-attached whole after
+  a compaction, so the second half of a long session runs under the same instructions as the first.
+- **Reasoning has one home per kind, and it is not the skill.** A reader who wants to know why a skill
+  does something reads an ADR, an `AGENTS.md`, or a `NOTES.md`, the same places a scaffolded project
+  sends its own readers. A skill that restates its reasons is drifting and the script will show it.
+- **The register changes.** The extension's rules asked for reasons attached; they now ask for
+  instruction alone, with the reasons linked. Existing prose that reads as argument is rewritten as
+  rule when its skill is shortened, and new prose is written that way from the start.
+- **Estimates, not counts.** The token figures are heuristics because the tokenizer is not available
+  to a script. Two estimates with the larger read as the number keeps the error on the safe side;
+  a skill that is close by the larger estimate is close.
+- **More files per skill.** Progressive disclosure trades one long file for a short file and several
+  linked ones. The linking rules, one level deep and a table of contents past 100 lines, are what
+  keep that from becoming a maze; the script checks both.
+- **A guideline can be ignored.** Nothing fails until the strict flag is on in CI. That is accepted
+  on purpose: eight skills, one report, and a person reading it is enough, and the flag is there for
+  the day it is not.
+
+## Related
+
+- [Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices),
+  Anthropic — the 500-line guideline, degrees of freedom, one-level-deep references, tables of
+  contents past 100 lines, and the "Claude is already very smart" default.
+- [Agent Skills overview](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview),
+  Anthropic — the three loading levels and the under-5k-token figure for instructions.
+- [Extend Claude with skills](https://code.claude.com/docs/en/skills), Claude Code — the skill
+  content lifecycle: content persists across turns, is not re-read, and is re-attached after
+  compaction keeping the first 5,000 tokens per skill within 25,000 total.
+- [Agent Skills specification](https://agentskills.io/specification) — the same ranges, and the
+  1,024-character description maximum.
+- `extensions/skills/codefall-review/NOTES.md` — the existing precedent for keeping lineage beside a
+  skill rather than in it.
