@@ -32,6 +32,8 @@ reasons and the sources.
   of the skill is dropped after a compaction, and the tail is where Process and Rules sit.
 - Tokens are estimated: characters ÷ 4 and words × 1.33, the larger one read as the number.
 - The `description` stays under 1,024 characters.
+- `../scripts/skill-health.sh` reports every skill against these and the supporting-file rules
+  below. CI runs it; `--strict` makes it fail.
 
 ## What goes where
 
