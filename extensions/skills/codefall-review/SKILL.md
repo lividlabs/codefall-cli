@@ -38,23 +38,36 @@ The argument's shape decides what is being reviewed.
 | --- | --- | --- |
 | *(none)* | uncommitted work | `git diff`, `git diff --cached`, `git status --short` for untracked files |
 | a branch name | that branch | `git diff <base>...<branch>` against the default branch |
-| a PR number or github.com pull URL | that pull request | `gh pr view <ref> --json state,headRefName,headRefOid,baseRefOid`, `gh pr diff <ref>` |
+| a PR number or github.com pull URL | that pull request | `gh pr view <ref> --json number,state,headRefName,headRefOid,baseRefName,baseRefOid`, `gh pr diff <ref>` |
 | a path to a file or directory | that path as it stands | the files under it |
-| `CONCEPT-NNN`, `SPEC-NNN`, `DESIGN-NNN`, `ADR-NNN`, `ADR-BASE-NN`, `ADR-<PREFIX>-NN`, or a path under `docs/` | that document | the file, plus the document upstream of it |
+| a codefall document identifier, or a path under `docs/` | that document | the file, plus the document upstream of it |
 | anything else — prose describing what to look at | that code | a search, confirmed with the user |
 
-Resolve a bare identifier by globbing its directory — `docs/specs/SPEC-004-*.md` — and stop if it
-matches nothing or more than one. Never guess at a near miss.
+**The default branch** is `git symbolic-ref --short refs/remotes/origin/HEAD` with the `origin/`
+prefix stripped, falling back to `git remote show origin` when that ref was never set locally, and
+to the current checkout's initial branch when there is no remote. Resolve it once per run: branch
+diffs and `revision.base` must agree, and they will not if each derives its own.
+
+**Document identifiers** are the ones the other verbs define — `codefall-conceptualize`,
+`codefall-specify` and `codefall-design` each state their own numbering, and `codefall-scaffold`
+states the three ADR namespaces. Resolve one by globbing its directory and stop if it matches
+nothing or more than one. Never guess at a near miss, and never invent a form those verbs do not
+define.
 
 ### What is not reviewable
 
-Three things are refused rather than attempted, and the refusal says which:
+Five things are refused rather than attempted, and the refusal says which:
 
-- **A merged or closed pull request, and a merged branch.** The work has landed and the code has
-  moved on. Review what is live.
-- **A superseded ADR, or an archived concept or spec.** Immutable history. There is nothing a
-  finding could lead to.
+- **A merged or closed pull request.** `state` is not `OPEN`.
+- **A merged branch.** `git branch --merged <default>` lists it.
+- **A superseded ADR.** Its Status line says `Superseded by`.
+- **An archived concept or spec.** Its Status line says `Archived`, or it sits under `archive/` —
+  either is enough, and a document where the two disagree is a `status` finding for whoever reviews
+  the live one.
 - **A specific commit.** Out of scope for this verb.
+
+The first two have landed and the code has moved on; the next two are immutable history. In every
+case there is nowhere for a fix to go.
 
 ### A prose argument
 
@@ -65,6 +78,11 @@ description names components, behaviours, or domain terms, and those map to file
 search could not settle — which of two components was meant, whether the boundary includes its
 callers, whether a second subsystem matching the same terms is in or out. Search again with the
 answer. Repeat until the file list is one the user recognises.
+
+**Two rounds, then stop.** If the second round has not narrowed the set to something the user
+recognises, the description is not going to resolve by searching. Say so and ask for a path or a
+document identifier instead. A third round of the same question is how an interview becomes an
+interrogation.
 
 Do not review until the user confirms the file list. Stop if the search finds nothing — say so and
 ask for a different description rather than widening on your own.
@@ -98,13 +116,19 @@ surrounds it, and code that looks fine in a diff is often wrong given what it re
 2. Every modified file in full. Control flow, error handling, and the patterns the file already
    follows decide whether a change fits.
 3. Every untracked file in full. A new file has no diff; its whole content is the change.
-4. The project's `AGENTS.md`, root and scoped, and `docs/adrs/`. These are what a convention finding
-   cites. A project with neither is reviewed against its own surrounding code, and the report says
-   so.
+4. The project's `AGENTS.md` and `docs/adrs/`. The root `AGENTS.md` always; a scoped one whenever a
+   touched file sits under its directory, nearest first, since a scoped file governs its own subtree.
+   These are what a convention finding cites. A project with no `AGENTS.md` and no `docs/adrs/` is
+   reviewed against its own surrounding code, and the report says so.
 5. The design behind the work when there is one. A branch named `feat/bd-unz-…` carries a bead ID;
-   `bd show <id> --json` gives `spec_id`, the design document's path. The design's `Related` line
-   reaches the spec; the spec's `**Concept:**` row reaches the concept. No bead, no design: review
-   against conventions alone and say so.
+   `bd show <id> --json` gives `spec_id`, the design document's path. From the design,
+   `codefall-design` defines the row that reaches the spec, and `codefall-specify` the row that
+   reaches the concept — read those formats there rather than from here.
+
+**Every hop in item 5 is optional, and a missing one is never an error.** No `bd` on `PATH`, no bead
+ID in the branch name, no `spec_id`, no upstream row: review against conventions alone, and record
+which hop was missing in `notChecked` so the gap is visible in the findings file rather than only in
+the chat.
 
 **A path or prose target**: every file in the resolved set, in full, plus item 4 above. There is no
 diff, so there is no "what changed" — the whole of what was named is in scope.
@@ -118,7 +142,7 @@ asked for.
 | concept | none | — |
 | spec | its concept, when it has one | the `**Concept:**` header row |
 | design | its spec, or its concept when there is no spec | the `**Related:**` row |
-| ADR | the design that cites it, and every other accepted ADR | `grep -l 'ADR-NNN' docs/designs/`, plus `docs/adrs/` |
+| ADR | the design that cites it, and every other accepted ADR | `grep -rl 'ADR-007' docs/designs/`, substituting the identifier, plus `docs/adrs/` |
 
 Links point one way, deliberately: a design records its spec and a spec records no design. Reaching
 a design from a spec or an ADR is a grep for the identifier. A concept has no upstream and is
@@ -153,6 +177,11 @@ that pass missed or code implement never saw. Say which.
 
 **Documents.** Every document target gets `structure` and `status`, plus the lenses for its kind.
 
+Each verb owns the rules its documents are held to — required sections, status vocabularies,
+identifier forms, EARS, the Task Plan's two forms. Read them in `codefall-conceptualize`,
+`codefall-specify`, `codefall-design` and `codefall-scaffold` when a lens needs the detail. They are
+not restated here, because a copy of a rule drifts from the rule.
+
 | Target | Lens | The question |
 | --- | --- | --- |
 | all | `structure` | Required sections present; no empty headings; no template guidance left in; identifiers written in full |
@@ -161,12 +190,12 @@ that pass missed or code implement never saw. Say which.
 | concept | `scope` | What this is not, stated. No `## Non-goals` means it has not said where it stops |
 | concept | `testable` | Could what it asks for be tested at all, in principle? Not how — whether |
 | spec | `trace` | Does not run without a concept. Reports a spec requirement with no concept parent as **unframed**, and a concept requirement no spec requirement reaches as **unaddressed** |
-| spec | `criteria` | EARS: one of the six patterns, a named subject, `IF … THEN` for failure behaviour, `SHALL` only inside criteria, no endpoints/tables/components/queues/libraries |
+| spec | `criteria` | Do the acceptance criteria hold to EARS, as `codefall-specify` defines it — its patterns, its rule about failure behaviour, and its ban on implementation vocabulary |
 | spec | `precision` | Ambiguity a reader could resolve two ways; undefined terms; missing non-functional requirements |
-| spec | `stories` | Every requirement has a user story with its `so that` clause |
+| spec | `stories` | Every requirement has a user story with the `so that` clause `codefall-specify` makes mandatory |
 | design | `coverage` | Every spec requirement has a home in the design, or the design says why not |
 | design | `decisions` | Hard-to-reverse choices with no ADR; assumptions the spec does not guarantee; a conditional section present with nothing behind it |
-| design | `plan` | The Task Plan is in exactly one of its two forms, never both |
+| design | `plan` | The Task Plan is in exactly one of the two forms `codefall-design` defines, never both |
 | adr | `alternatives` | Alternatives genuinely weighed, not asserted and dismissed in a clause |
 | adr | `consequences` | Consequences stated, including the ones that cost something |
 | adr | `coherence` | No contradiction with another accepted ADR; project decisions numbered bare `ADR-NNN` rather than continuing an inherited sequence |
@@ -176,12 +205,20 @@ legitimate — a precondition the concept never anticipated. An unaddressed conc
 mean the concept should catch up. The finding asks the question; it does not assert the spec is
 wrong.
 
-**An ADR edited after ratification is itself a serious finding.**
+Every finding still carries a severity, so a question gets one on the same scale as everything else:
+`minor`, because it costs nothing to leave and the answer may be that nothing is wrong. It rises to
+`important` when the unaddressed requirement is one the concept called out as the reason for the
+work — a spec that silently drops the problem it was written to solve is a defect, not a question.
+
+**An ADR edited after ratification is itself a serious finding.** Detect it rather than assume it:
+`git log --format='%h %ad' --date=short -- <adr>` against the date on its Status line. Commits after
+that date that are not the single permitted edit — flipping Status to `Superseded by` — are the
+finding, and the log gives you which ones to cite.
 
 ## Calibration
 
-- **Be certain before calling something a bug.** Investigate. If still unsure, say so — that is
-  useful, and it is not a finding.
+- **Be certain before calling something a bug.** Investigate. If still unsure, it is not a finding —
+  it goes in `notChecked`, which is where everything the review could not settle belongs.
 - **Review the target, nothing else.** Where the target has a diff, the scope is the changed lines,
   and pre-existing code the diff did not touch is out of bounds. Where it does not — a path, a
   document — the scope is the whole of what was named. Either way, a finding about something the
@@ -216,6 +253,10 @@ via=opencode         via=opencode:anthropic/claude-sonnet-5
 via=gemini           via=gemini:gemini-3-pro
 ```
 
+The four harness names are the supported set. The model strings after the colon are examples of the
+form, current when this was written and certain to age — whatever the named harness accepts is what
+goes there, and a model this file has never heard of is passed through untouched.
+
 ### Lens groups
 
 The review runs as **four subagents in parallel**, each reading the material once and asking one
@@ -232,16 +273,38 @@ for everything.
 A document target runs two groups: the mechanical checks — `structure` and `status` — and the
 reading, which is everything else for that kind.
 
-A group whose lenses were all dropped at the confirmation does not run. Each returns JSON against
-`findings.schema.json`; this session merges them into one findings array.
+**Groups are how subagents divide the work, and only subagents.** The three reviewers do not all
+use them:
+
+| Reviewer | How the lenses are run |
+| --- | --- |
+| A subagent | One subagent per group, in parallel |
+| This session | The groups in order, as separate passes |
+| Another harness | **One call carrying every lens in scope** |
+
+An external harness gets one call because each invocation pays full process startup and re-reads the
+repository; four subprocesses asking four questions about the same files buys the decomposition at
+several times its worth.
+
+A group whose lenses were all dropped at the confirmation does not run. Each subagent is prompted
+from `reviewer-prompt.md` beside this file, rendered by substituting `{{TARGET}}`, `{{REVISION}}`,
+`{{LENSES}}`, `{{MATERIAL}}` and `{{SCHEMA}}`.
+
+**Each returns JSON against `findings.schema.json`, and this session merges them.**
+
+- **Unparseable JSON** gets one retry, with the parse error folded into the prompt. A second failure
+  drops that group: name it in `notChecked` and carry on with the rest. One group returning nothing
+  is a gap in the review; it is not a reason to lose the other three.
+- **Overlapping findings.** Groups read the same files, so `simplify` and `correctness` can land on
+  the same lines. Same file, overlapping line range, and the same claim: keep the higher severity and
+  drop the duplicate. Different claims on the same lines are different findings and both stay.
 
 ### Another harness
 
 `scripts/review-via.sh [--model <model>] <harness> <prompt-file> <schema-file> <out-file>` runs the
 harness's headless read-only mode in the repository, so the reviewer reads the files itself. Leaving
 `--model` out is how the harness's own default is taken — which is what `via=codex` with no model
-means. The
-prompt file carries the target, the lenses, the calibration rules, and the schema. Codex and Claude
+means. The prompt file is `reviewer-prompt.md` rendered with every lens in scope. Codex and Claude
 Code also take the schema as a flag — `--output-schema` and `--json-schema` — which makes their
 output conform by construction rather than by request.
 
@@ -263,11 +326,22 @@ the fixes on #51's branch, not the one you happen to be on.
 | A document or path on the default branch | A new worktree, branched from the default branch |
 
 The last row is the only case that creates anything, and it creates it because there is nothing to
-land on — not because of where the session started. A worktree unless the user asks for a plain
-branch.
+land on — not because of where the session started. It defaults to a worktree, and the confirmation
+says which it will be, so a user who wants a plain branch says so before the review rather than
+after the fixes.
 
 Uncommitted work is never moved. A new worktree cannot contain the changes in this one, so those
 fixes are applied where the changes are.
+
+**Getting there.** A branch or PR target that is not already checked out is fetched and checked out
+before any fix is applied — `git fetch origin` then `git checkout <branch>`, taking the branch name
+from `headRefName` for a pull request. A new worktree is `git worktree add` off the default branch.
+
+**A dirty working tree stops the move.** Switching away from uncommitted changes either carries them
+onto the wrong branch or refuses outright, and neither is this skill's to decide. When the tree is
+dirty and the fixes belong somewhere else, report the findings, say the fixes were not applied and
+why, and leave the tree exactly as it is. The findings file is written either way, so nothing is
+lost by stopping here.
 
 ## Triage and fixes
 
@@ -288,7 +362,7 @@ are not re-reviewed here; run the review again if that matters.
 
 ## The findings file
 
-Two files per invocation, sharing one stem, both committed:
+Two files per invocation, sharing one stem:
 
 ```
 .codefall/reviews/<YYYY-MM-DDTHHMMSSZ>-<target-key>.json
@@ -298,11 +372,46 @@ Two files per invocation, sharing one stem, both committed:
 `<target-key>` carries a slug wherever there is one to take: `pr-51-init-below-root` from a PR
 title, `SPEC-004-trip-sharing` from a document, `feat-bd-unz-stage-context` from a branch,
 `src-fulfillment` from a path, the resolved common root for a prose target or `adhoc` when the files
-share none, and `uncommitted` when there is no subject at all.
+share none, and `uncommitted` when there is no subject at all. In full:
+
+```
+.codefall/reviews/2026-09-14T081233Z-pr-51-init-below-root.json
+```
 
 The `.json` is the record; the `.md` is the same review written to be read. Both hold what was
 reviewed and at which revision, who reviewed it, which lenses ran, what could not be checked, and
-every finding with its status. `findings.schema.json` beside this file is the shape.
+every finding with its status. `findings.schema.json` beside this file is the shape of the JSON;
+the Markdown is:
+
+```markdown
+# Review: <target-key>
+
+**Reviewed:** <timestamp> · **Reviewer:** <harness>[/<model>] · **Revision:** <revision>
+**Lenses:** <the lenses that ran>
+
+## Findings
+
+### 1. <claim> — `blocker` · `correctness` · fixed
+`path/to/file.go:120-134`
+
+<conditions, when there are any, then the claim in full>
+
+<the proposed patch, in a fenced diff block, when there is one>
+
+## Not checked
+
+- <what could not be reviewed, and why>
+```
+
+Findings are ordered most severe first, matching the triage list. A review with none says so under
+the heading rather than dropping it.
+
+**Where they are committed.** With the fixes, on whatever branch the fixes landed on — one commit
+carrying both, so the record and the change it produced arrive together.
+
+**Except for uncommitted work**, where committing the findings would put them in the diff under
+review. There the files are written and left unstaged, and the report says they are uncommitted and
+where they are. The user commits them with their own work or not at all.
 
 **The files are written three times** — after the review, after triage, after the fixes. An
 interrupted session resumes from them rather than starting over.
@@ -312,11 +421,21 @@ request, HEAD is the wrong answer.
 
 | Target | `revision` |
 | --- | --- |
-| uncommitted | HEAD SHA, plus `dirty` — a short hash of `git diff HEAD` |
+| uncommitted | HEAD SHA, plus `dirty` |
 | branch | the branch's tip SHA, plus `base` — the merge-base with the default branch |
 | pull request | `headRefOid`, plus `base` — `baseRefOid` |
-| document | the SHA of the last commit that touched the file; if it is modified in the working tree, HEAD plus a `dirty` hash |
+| document | the SHA of the last commit that touched the file; if it is modified in the working tree, HEAD plus `dirty` |
 | path or prose | HEAD SHA of the checkout the review ran in, plus `dirty` when the tree is not clean |
+
+**`dirty` covers everything the review actually read**, which includes untracked files — a new file
+has no diff and its whole content is the change, so a hash that skipped it would call two different
+working trees the same. Take it over staged, unstaged and untracked content together:
+
+```bash
+{ git diff HEAD; git ls-files --others --exclude-standard -z | xargs -0 -I{} git diff --no-index /dev/null {}; } | shasum -a 256
+```
+
+Short-form the result. It identifies a working tree; it is not meant to reconstruct one.
 
 ### Kept out of codebase search
 
@@ -347,20 +466,40 @@ nothing at all when the line is already there.
 
 ## Posting to a pull request
 
-Off unless the project turned it on. `.codefall/settings.json` carries it:
+Off unless the project turned it on. `.codefall/settings.json` carries it, and
+`postToPullRequest` is the block's only key — everything else about a review is decided per run, and
+`cli/schemas/settings.schema.json` is where the file's shape is defined:
 
 ```json
 { "review": { "postToPullRequest": false } }
 ```
 
 When it is `true` and the target is an open pull request, the findings post after triage as **one
-review** — a single `POST /repos/{owner}/{repo}/pulls/{n}/reviews` with `event=COMMENT` and a
-`comments` array, so each finding becomes an inline thread on the line it is about.
+review** — `event=COMMENT` with a `comments` array, so each finding becomes an inline thread on the
+line it is about:
 
-GitHub rejects an inline comment on a line outside the diff, and rejects the whole call if any
-comment is out of bounds. So a finding that anchors inside a diff hunk becomes an inline thread, and
-everything else — a whole-file concern, a missing test, a `docs` finding about another file — goes
-in the review body. Never post a finding the user dismissed.
+```bash
+gh api --method POST repos/{owner}/{repo}/pulls/<number>/reviews --input <body.json>
+```
+
+`{owner}/{repo}` is filled by `gh` from the repository; `<number>` is the `number` field read at
+resolution.
+
+GitHub rejects an inline comment on a line outside the diff, and rejects the whole call if any one
+comment is out of bounds — so one stray finding loses the entire post. Sort them before sending.
+
+**A finding anchors** when its `location.path` appears in `gh pr diff` and its `location.startLine`
+falls inside one of that file's hunks, counted in the hunk's `+` numbering. Those get `path`, `line`
+(the finding's `endLine`, or `startLine` when there is only one), and `side: "RIGHT"`. A finding
+whose range straddles a hunk boundary anchors at the last line inside the hunk.
+
+**Everything else goes in the review body** — a whole-file concern, a missing test, a `docs` finding
+about a file the PR never touched, a finding on a line the diff only shows as context.
+
+**Only `fixed` and `deferred` findings are posted.** A `fixed` one tells a reviewer what changed and
+why; a `deferred` one is real work someone chose not to do now, which is exactly what a PR thread is
+for. A `dismissed` finding was judged wrong, and posting it puts a rejected claim in front of people
+who will not see the reasoning.
 
 ## Project customizations
 
@@ -375,9 +514,10 @@ Follow `../../shared/customizations.md` for this verb.
    [Kept out of codebase search](#kept-out-of-codebase-search). Present
    [the confirmation](#the-confirmation) and wait.
 2. **Read.** Everything in [What gets read](#what-gets-read).
-3. **Review.** Four subagents in parallel by lens group, or `scripts/review-via.sh` when `via=` was
-   given. Every candidate finding checked against [Calibration](#calibration) before it becomes one.
-4. **Write.** Merge the groups' JSON and write the findings files, every finding `open`.
+3. **Review.** By the reviewer the run chose, per [Lens groups](#lens-groups) — subagents in
+   parallel, this session pass by pass, or one `scripts/review-via.sh` call. Every candidate finding
+   checked against [Calibration](#calibration) before it becomes one.
+4. **Write.** Merge the JSON and write the findings files, every finding `open`.
 5. **Triage.** Present the list, take a decision on each, update the files. Post to the pull request
    if that is enabled and the target is one.
 6. **Fix.** Apply what was taken, in the place [Where the fixes go](#where-the-fixes-go) names.
@@ -386,23 +526,37 @@ Follow `../../shared/customizations.md` for this verb.
    dismissed, deferred; what could not be checked and why; where the files are; and the branch or
    worktree the fixes landed on if one was created.
 
+**Three runs end early, and each ends cleanly.**
+
+- **No findings.** Write the files — a review that found nothing is a fact worth keeping, and it is
+  the only record that this revision was looked at. Skip triage and fixing, and report what ran and
+  what it covered. "Nothing found" means nothing about lenses that never ran, so `notChecked` is the
+  part of that report worth reading.
+- **Nothing accepted.** Every finding `dismissed` or `deferred`. Triage still happened, so the second
+  write records it; there is no third, because nothing changed between them.
+- **This session reviewed.** The run is the same, minus the independence. Say so in the report: the
+  context that found these is the context that fixed them.
+
 ## Rules
 
 - **The reviewer never fixes.** Review in a subagent or another harness; triage and fix in this
   session.
 - **Nothing is changed before triage.** The user decides what gets fixed.
 - **Confirm the scope before reviewing it.** A review of the wrong files costs the whole run.
-- **Be certain, or say you are not.**
+- **Be certain, or put it in `notChecked`.** Uncertainty is recorded, never dressed as a finding.
 - **Review the target, nothing else.**
+- **Never restate a rule another verb owns.** Point at it; a copy drifts.
 - **Every finding carries the conditions under which it manifests.**
 - **No flattery, no filler findings.**
 - **Read the whole file, never only the hunk.**
 - **An external reviewer runs read-only.** A failure is reported, never worked around.
 - **The target decides where fixes land**, never where the session started.
-- **Uncommitted work is never moved to a worktree.**
-- **Every finding ends with a status**, and the files are written even when nothing was fixed.
+- **Uncommitted work is never moved to a worktree**, and a dirty tree stops a move rather than
+  carrying changes onto another branch.
+- **Every finding ends with a status**, and the files are written even when nothing was found and
+  even when nothing was fixed.
 - **Refuse what is not reviewable** — a merged or closed pull request, a merged branch, a superseded
   ADR, an archived document, a specific commit — and say which.
 - **An identifier that resolves to nothing is a stop**, not a guess.
-- **Never post a dismissed finding to a pull request.**
+- **Only `fixed` and `deferred` findings reach a pull request.** A dismissed one was judged wrong.
 - **The `.ignore` entry is offered, never added unasked**, and appended rather than written over.

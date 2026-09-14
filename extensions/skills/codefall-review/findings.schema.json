@@ -68,7 +68,7 @@
     "lenses": {
       "type": "array",
       "description": "The lenses that ran, after anything dropped at the confirmation.",
-      "items": { "type": "string" }
+      "items": { "$ref": "#/$defs/lens" }
     },
 
     "notChecked": {
@@ -84,7 +84,7 @@
         "required": ["lens", "severity", "location", "claim", "status"],
         "additionalProperties": false,
         "properties": {
-          "lens": { "type": "string" },
+          "lens": { "$ref": "#/$defs/lens" },
           "severity": { "type": "string", "enum": ["blocker", "important", "minor"] },
           "location": {
             "type": "object",
@@ -125,6 +125,40 @@
         },
         "then": { "required": ["reason"] }
       }
+    }
+  },
+
+  "$defs": {
+    "lens": {
+      "type": "string",
+      "description": "One review pass. Closed rather than free text: a reviewer writing \"behavior\" where the skill says \"behaviour\" would otherwise validate, and the two would count as different lenses when the findings are merged.",
+      "enum": [
+        "correctness",
+        "failures",
+        "behaviour",
+        "tests",
+        "types",
+        "conventions",
+        "comments",
+        "docs",
+        "simplify",
+        "security",
+        "structure",
+        "status",
+        "floor",
+        "scope",
+        "testable",
+        "trace",
+        "criteria",
+        "precision",
+        "stories",
+        "coverage",
+        "decisions",
+        "plan",
+        "alternatives",
+        "consequences",
+        "coherence"
+      ]
     }
   }
 }
