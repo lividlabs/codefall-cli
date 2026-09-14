@@ -23,9 +23,9 @@ One invocation is one complete review. Nothing carries over: a second review of 
 new review, with its own file.
 
 **The reviewer and the fixer are different contexts.** The review runs in a subagent or another
-harness; the triage and the fixes happen in this session. That separation is the point — a model
-that both finds a problem and fixes it grades its own work, and the second reading goes through the
-same blind spots that made the first one worth doing.
+harness; the triage and the fixes happen in this session. A model that both finds a problem and
+fixes it grades its own work, and the second reading goes through the same blind spots as the
+first.
 
 Paths that start with `../`, and `scripts/` beside this file, are relative to this skill's
 directory, not the user's project.
@@ -64,8 +64,7 @@ description names components, behaviours, or domain terms, and those map to file
 **An ambiguous scope is interviewed, not guessed.** Search, show what you found, and ask what the
 search could not settle — which of two components was meant, whether the boundary includes its
 callers, whether a second subsystem matching the same terms is in or out. Search again with the
-answer. Repeat until the file list is one the user recognises. Each round costs a question; guessing
-costs the whole review.
+answer. Repeat until the file list is one the user recognises.
 
 Do not review until the user confirms the file list. Stop if the search finds nothing — say so and
 ask for a different description rather than widening on your own.
@@ -181,8 +180,6 @@ wrong.
 
 ## Calibration
 
-The difference between a review worth reading and one worth skipping is what it declines to say.
-
 - **Be certain before calling something a bug.** Investigate. If still unsure, say so — that is
   useful, and it is not a finding.
 - **Review the target, nothing else.** Where the target has a diff, the scope is the changed lines,
@@ -206,7 +203,7 @@ if present, states what the project cares about and wins.
 
 Three options, and `via=` picks the third:
 
-1. **A subagent of this harness.** The default. Separates the reviewer from the fixer at no cost.
+1. **A subagent of this harness.** The default. Separates the reviewer from the fixer.
 2. **This session.** The reviewer is then also the fixer, which is acceptable only when the work
    under review came from somewhere else. Say so in the report.
 3. **Another harness**, named by `via=`. A different model has different blind spots, which is the
@@ -223,7 +220,7 @@ via=gemini           via=gemini:gemini-3-pro
 
 The review runs as **four subagents in parallel**, each reading the material once and asking one
 coherent set of questions. Several passes each looking for one thing find more than one pass looking
-for everything, and four is where that stops paying for itself.
+for everything.
 
 | Group | Lenses |
 | --- | --- |
