@@ -330,10 +330,23 @@ A `.ignore` file beside `.codefall/` holds one line:
 ```
 
 Ripgrep honours `.ignore` and git does not, so the directory is committed while every harness that
-searches through ripgrep skips it. `codefall init` writes the line, appending to an existing
-`.ignore` rather than replacing it, and `codefall doctor` fails when it is missing. `git grep`,
-`find`, and `cat` still reach the directory, which is fine — the objective is keeping old findings
-out of unrelated searches, not secrecy.
+searches through ripgrep skips it. `git grep`, `find`, and `cat` still reach the directory, which is
+fine — the objective is keeping old findings out of unrelated searches, not secrecy.
+
+`codefall init` writes the line, appending to an existing `.ignore` rather than replacing it, and
+`codefall doctor` warns when it is missing rather than failing: nothing stops working without it.
+
+**Check it before the review, and offer.** The line is easy to lose — a project set up before this
+verb existed never got one, and a person editing `.ignore` can drop it. This skill is where that
+costs something, because it is about to write findings into a directory nothing is hiding, so it is
+where the offer belongs:
+
+> `.ignore` doesn't list `.codefall/reviews/`, so findings from this review will show up in
+> codebase searches. Add the line?
+
+On yes, append it — the file may hold entries that are the project's own, so append, never replace.
+On no, carry on and say nothing further; it is one line in a file that belongs to the user. Say
+nothing at all when the line is already there.
 
 ## Posting to a pull request
 
@@ -361,7 +374,9 @@ Follow `../../shared/customizations.md` for this verb.
 1. **Resolve and confirm.** Resolve the target per [Targets](#targets); refuse what is not
    reviewable. Interview a prose scope until the file list is recognised. Read
    `.codefall/settings.json`'s `review` block and `.codefall/skills/codefall-review/CUSTOMIZE.md`
-   if present. Present [the confirmation](#the-confirmation) and wait.
+   if present. Check the `.ignore` entry and offer to add it if it is missing, per
+   [Kept out of codebase search](#kept-out-of-codebase-search). Present
+   [the confirmation](#the-confirmation) and wait.
 2. **Read.** Everything in [What gets read](#what-gets-read).
 3. **Review.** Four subagents in parallel by lens group, or `scripts/review-via.sh` when `via=` was
    given. Every candidate finding checked against [Calibration](#calibration) before it becomes one.
@@ -393,3 +408,4 @@ Follow `../../shared/customizations.md` for this verb.
   ADR, an archived document, a specific commit — and say which.
 - **An identifier that resolves to nothing is a stop**, not a guess.
 - **Never post a dismissed finding to a pull request.**
+- **The `.ignore` entry is offered, never added unasked**, and appended rather than written over.

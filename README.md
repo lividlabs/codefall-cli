@@ -290,7 +290,9 @@ another branch puts the fixes on #51's branch.
 the record, Markdown to read — carrying what was reviewed, at which revision, which questions ran,
 what could not be checked, and what you decided about every finding. They stay in the repository so
 that patterns across reviews are visible, and a `.ignore` entry keeps them out of every search that
-goes through ripgrep. Posting findings to a pull request is off until a project turns it on.
+goes through ripgrep — `init` writes that entry, `doctor` warns when it has gone missing, and
+`review` offers to put it back before writing findings into a directory nothing is hiding. Posting
+findings to a pull request is off until a project turns it on.
 
 ### The stance
 

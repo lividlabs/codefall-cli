@@ -275,7 +275,7 @@ func TestDiagnoseRun(t *testing.T) {
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
 				delete(f.files, ignorePath)
 			},
-			want:       outcomes(map[string]domain.Status{domain.ReviewsIgnored.ID: domain.StatusFail}),
+			want:       outcomes(map[string]domain.Status{domain.ReviewsIgnored.ID: domain.StatusWarn}),
 			target:     domain.ReviewsIgnored.ID,
 			wantDetail: ".ignore not found",
 			wantRemedy: mo.Some(ignoreRemedy),
@@ -285,7 +285,7 @@ func TestDiagnoseRun(t *testing.T) {
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
 				f.files[ignorePath] = []byte("vendor/\nnode_modules/\n")
 			},
-			want:       outcomes(map[string]domain.Status{domain.ReviewsIgnored.ID: domain.StatusFail}),
+			want:       outcomes(map[string]domain.Status{domain.ReviewsIgnored.ID: domain.StatusWarn}),
 			target:     domain.ReviewsIgnored.ID,
 			wantDetail: ".ignore does not name .codefall/reviews/",
 			wantRemedy: mo.Some(ignoreRemedy),
