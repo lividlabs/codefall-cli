@@ -3,6 +3,7 @@ package application
 import (
 	"errors"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -22,8 +23,8 @@ func agentsResult(t *testing.T, report domain.Report) domain.StepResult {
 	t.Helper()
 
 	results := report.Results()
-	if len(results) != 5 {
-		t.Fatalf("Results() = %+v, want a result for each of the five steps", results)
+	if len(results) != 6 {
+		t.Fatalf("Results() = %+v, want a result for each of the six steps", results)
 	}
 
 	return results[4]
@@ -270,8 +271,10 @@ func TestAgentsStepRunsAfterBeads(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	last := observer.started[len(observer.started)-1]
-	if last != domain.AgentsStep {
-		t.Errorf("the last step started = %+v, want %+v", last, domain.AgentsStep)
+	beads := slices.Index(observer.started, domain.BeadsStep)
+	agents := slices.Index(observer.started, domain.AgentsStep)
+
+	if beads < 0 || agents < 0 || agents < beads {
+		t.Errorf("started = %+v, want %+v after %+v", observer.started, domain.AgentsStep, domain.BeadsStep)
 	}
 }

@@ -9,16 +9,18 @@ type Step struct {
 
 // The steps an init run performs, in the order it performs them. The settings file comes first, the
 // harness extension second, Beads third, the hooks that tell the harness about Beads and guard the
-// default branch fourth, and the section that tells an agent how to use it last. The hook step
+// default branch fourth, and the section that tells an agent how to use it fifth. The hook step
 // follows the extension step because the scripts the hooks run are what the extension step copies.
 // The agents step follows Beads because bd init commits what it staged, and codefall's edit to
-// AGENTS.md belongs in the author's own commit rather than bd's.
+// AGENTS.md belongs in the author's own commit rather than bd's — which is the same reason the
+// ignore step comes last: .ignore is the author's file to commit, not bd's.
 var (
 	SettingsStep  = Step{ID: "settings", Title: "Writing .codefall/settings.json"}
 	ExtensionStep = Step{ID: "extension", Title: "Installing the codefall extension"}
 	BeadsStep     = Step{ID: "beads", Title: "Initializing Beads"}
 	HookStep      = Step{ID: "hook", Title: "Registering codefall's hooks"}
 	AgentsStep    = Step{ID: "agents", Title: "Writing the Beads section to AGENTS.md"}
+	IgnoreStep    = Step{ID: "ignore", Title: "Hiding review findings from codebase search"}
 )
 
 // What codefall's extension for Claude Code is called and where it comes from. These are facts about

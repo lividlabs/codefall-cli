@@ -48,15 +48,14 @@ TODO: rename the skill names to the actual
 
 | Skill | Does | Status |
 | --- | --- | --- |
-| [`conceptualize`](plugins/codefall/skills/conceptualize/SKILL.md) | Get an idea onto paper before anyone specifies or scaffolds it: a numbered concept document under `docs/concepts/` that carries the problem, the rough shape of an answer, and what nobody has decided yet. | in progress |
-| [`scaffold`](plugins/codefall/skills/scaffold/SKILL.md) | Start a new project on the Clean + package-by-component stance: ratified ADRs, scoped `AGENTS.md`, optionally project files and boundary lint. | in progress |
-| [`graft`](plugins/codefall/skills/graft/SKILL.md) | Bring a scaffolded project's docs up to date with the current templates: report what changed since its version, with per-file provenance, and apply only what the user takes. Also handles first-time adoption of the stance. | in progress |
-| [`specify`](plugins/codefall/skills/specify/SKILL.md) | Turn a feature idea into a specification another session can implement: a spec document under `docs/specs/` holding requirements with EARS acceptance criteria, mirrored to the issue tracker. | in progress |
-| [`mock-up`](plugins/codefall/skills/mock-up/SKILL.md) | Get the visual surface of a feature into the repository under `docs/mockups/`: import what a design tool exported, or make the mockup here, matching the app's own design system so it looks like it belongs. | in progress |
-| [`design`](plugins/codefall/skills/design/SKILL.md) | Decide how a feature gets built and put the work into the graph: a design document under `docs/designs/` scaled to the size of the change, ADRs for the choices that are hard to reverse, and the tasks in Beads with their dependency edges. | in progress |
-| [`implement`](plugins/codefall/skills/implement/SKILL.md) | Execute the graph: claim ready beads, build each in an isolated worker worktree with tests as part of done, verify against acceptance criteria, open PRs, and walk the waves until the frontier is empty. Never merges to `main`. | in progress |
-
-TODO: add review to the table when complete
+| [`conceptualize`](extensions/skills/codefall-conceptualize/SKILL.md) | Get an idea onto paper before anyone specifies or scaffolds it: a numbered concept document under `docs/concepts/` that carries the problem, the rough shape of an answer, and what nobody has decided yet. | in progress |
+| [`scaffold`](extensions/skills/codefall-scaffold/SKILL.md) | Start a new project on the Clean + package-by-component stance: ratified ADRs, scoped `AGENTS.md`, optionally project files and boundary lint. | in progress |
+| [`graft`](extensions/skills/codefall-graft/SKILL.md) | Bring a scaffolded project's docs up to date with the current templates: report what changed since its version, with per-file provenance, and apply only what the user takes. Also handles first-time adoption of the stance. | in progress |
+| [`specify`](extensions/skills/codefall-specify/SKILL.md) | Turn a feature idea into a specification another session can implement: a spec document under `docs/specs/` holding requirements with EARS acceptance criteria, mirrored to the issue tracker. | in progress |
+| [`mock-up`](extensions/skills/codefall-mock-up/SKILL.md) | Get the visual surface of a feature into the repository under `docs/mockups/`: import what a design tool exported, or make the mockup here, matching the app's own design system so it looks like it belongs. | in progress |
+| [`design`](extensions/skills/codefall-design/SKILL.md) | Decide how a feature gets built and put the work into the graph: a design document under `docs/designs/` scaled to the size of the change, ADRs for the choices that are hard to reverse, and the tasks in Beads with their dependency edges. | in progress |
+| [`implement`](extensions/skills/codefall-implement/SKILL.md) | Execute the graph: claim ready beads, build each in an isolated worker worktree with tests as part of done, verify against acceptance criteria, open PRs, and walk the waves until the frontier is empty. Never merges to `main`. | in progress |
+| [`review`](extensions/skills/codefall-review/SKILL.md) | Review something and fix what the user accepts: uncommitted work, a branch, an open pull request, a path, a document, or a description of what to look at. A subagent or another harness reviews, the session triages with you and applies what you take, and every finding is committed under `.codefall/reviews/`. | in progress |
 
 ### Concepts
 
@@ -260,6 +259,40 @@ epic, so the epic cannot close until you have merged everything, and the next se
 order, and the plugin ships a hook that mechanically denies the alternative. Tests are part of done
 — the ones the design planned and the ones the work turned out to need — while regression and
 fresh-context retesting stay with the future `test` verb.
+
+### Reviews
+
+`review` reads something, says what is wrong with it, and fixes what you accept. Point it at nothing
+and it takes your uncommitted work; at a branch, an open pull request, a path, or a document
+identifier and it takes that; or describe what to look at — "the codepaths on the backend that
+handle flight fulfillment" — and it searches, shows you the files it found, and asks before reading
+a line of them.
+
+**The context that finds a problem is never the one that fixes it.** The review runs in a subagent,
+or in another harness entirely — `via=codex`, `via=gemini`, `via=claude`, `via=opencode`, each in its
+own read-only mode. Then you triage, and this session applies what you took. A model that both finds
+and fixes grades its own work on the next pass, and the second reading goes through the same blind
+spots that made the first one worth doing.
+
+**Ten questions, asked separately.** Correctness, swallowed failures, behaviour changes, tests, type
+design, conventions, comment accuracy, documentation that has fallen behind, simplification, and
+security — run as four parallel passes rather than one reviewer looking for everything at once.
+Documents get their own set: a spec is checked against its concept, a design against its spec, an ADR
+against every other accepted ADR. Before anything runs, the skill names what it resolved and which
+questions it will ask, and you can drop any of them.
+
+**Only live things are reviewable.** A merged pull request, a merged branch, a superseded ADR, an
+archived document — all refused, because the code has moved on and there is nowhere for a fix to
+land. Where fixes go is decided by the target, not by where you are standing: reviewing PR #51 from
+another branch puts the fixes on #51's branch.
+
+**Findings are committed.** Each review writes a pair of files under `.codefall/reviews/` — JSON for
+the record, Markdown to read — carrying what was reviewed, at which revision, which questions ran,
+what could not be checked, and what you decided about every finding. They stay in the repository so
+that patterns across reviews are visible, and a `.ignore` entry keeps them out of every search that
+goes through ripgrep — `init` writes that entry, `doctor` warns when it has gone missing, and
+`review` offers to put it back before writing findings into a directory nothing is hiding. Posting
+findings to a pull request is off until a project turns it on.
 
 ### The stance
 

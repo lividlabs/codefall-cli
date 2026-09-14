@@ -88,6 +88,18 @@ func TestSchemaMatchesTheFieldTables(t *testing.T) {
 	if got := schemaNumber(t, schemaObject(t, blockProperties, "project"), "minimum"); got != 1 {
 		t.Errorf("properties.%s.properties.project.minimum = %v, want 1", TrackerGitHub, got)
 	}
+
+	review := schemaObject(t, properties, BlockReview)
+
+	if got, want := schemaList(t, review, "required"), RequiredReviewFields(); !slices.Equal(got, want) {
+		t.Errorf("properties.%s.required = %q, want %q", BlockReview, got, want)
+	}
+
+	// The block is optional at the top level, so it must not appear in the schema's own required
+	// list: settings written before it existed are still valid settings.
+	if slices.Contains(schemaList(t, schema, "required"), BlockReview) {
+		t.Errorf("required contains %q, want the review block to stay optional", BlockReview)
+	}
 }
 
 // One oneOf branch per tracker, each pinning "tracker" to itself, requiring its own block, and

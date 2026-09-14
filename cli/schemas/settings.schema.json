@@ -18,6 +18,14 @@
         "project": { "type": "integer", "minimum": 1 }
       },
       "additionalProperties": true
+    },
+    "review": {
+      "type": "object",
+      "required": ["postToPullRequest"],
+      "properties": {
+        "postToPullRequest": { "type": "boolean" }
+      },
+      "additionalProperties": true
     }
   },
   "oneOf": [

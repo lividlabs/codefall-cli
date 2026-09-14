@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/lividlabs/codefall-cli/main/extensions/skills/codefall-review/findings.schema.json",
+  "title": "Codefall review findings",
+  "description": "One review of one target: what was reviewed, at which revision, who reviewed it, what was found, and what was decided about each finding. Written to .codefall/reviews/<timestamp>-<target-key>.json and rewritten after triage and after the fixes. A reviewer — subagent or external harness — returns this shape with every finding open; the session that triages fills in the rest.",
+  "type": "object",
+  "required": ["version", "target", "reviewer", "reviewedAt", "lenses", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+
+    "target": {
+      "type": "object",
+      "required": ["kind", "key", "revision"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["uncommitted", "branch", "pr", "path", "prose", "concept", "spec", "design", "adr"]
+        },
+        "key": {
+          "type": "string",
+          "description": "The suffix of the filename stem, slugged: pr-51-init-below-root, SPEC-004-trip-sharing, feat-bd-unz-stage-context, src-fulfillment, adhoc, uncommitted."
+        },
+        "ref": {
+          "type": "string",
+          "description": "What the user typed, before resolution. For a prose target this is the description itself."
+        },
+        "revision": {
+          "type": "string",
+          "description": "The state reviewed, and the target's own rather than the session's: branch tip for a branch, headRefOid for a pull request, the last commit that touched a document, HEAD otherwise."
+        },
+        "dirty": {
+          "type": "string",
+          "description": "Short hash of the working-tree diff, present only when the tree was not clean. Distinguishes two reviews at one revision with different uncommitted changes."
+        },
+        "base": {
+          "type": "string",
+          "description": "For a branch, the merge-base with the default branch. For a pull request, baseRefOid."
+        },
+        "files": {
+          "type": "array",
+          "description": "For a path or prose target, the files the review actually covered, as confirmed by the user.",
+          "items": { "type": "string" }
+        },
+        "upstream": {
+          "type": "string",
+          "description": "Path of the document this target was checked against. Absent for code targets and for a concept."
+        }
+      }
+    },
+
+    "reviewer": {
+      "type": "object",
+      "required": ["harness"],
+      "additionalProperties": false,
+      "properties": {
+        "harness": {
+          "type": "string",
+          "description": "subagent, session, or the external CLI that ran: codex, claude, opencode, gemini."
+        },
+        "model": { "type": "string" }
+      }
+    },
+
+    "reviewedAt": { "type": "string", "format": "date-time" },
+
+    "lenses": {
+      "type": "array",
+      "description": "The lenses that ran, after anything dropped at the confirmation.",
+      "items": { "$ref": "#/$defs/lens" }
+    },
+
+    "notChecked": {
+      "type": "array",
+      "description": "What could not be reviewed, and why: no design behind the branch, no concept above the spec, a lens dropped at the confirmation.",
+      "items": { "type": "string" }
+    },
+
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["lens", "severity", "location", "claim", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "lens": { "$ref": "#/$defs/lens" },
+          "severity": { "type": "string", "enum": ["blocker", "important", "minor"] },
+          "location": {
+            "type": "object",
+            "required": ["path"],
+            "additionalProperties": false,
+            "properties": {
+              "path": { "type": "string" },
+              "startLine": { "type": "integer", "minimum": 1 },
+              "endLine": { "type": "integer", "minimum": 1 },
+              "heading": {
+                "type": "string",
+                "description": "For a document target, the section the finding sits in."
+              }
+            }
+          },
+          "claim": { "type": "string", "description": "What is wrong, in one sentence." },
+          "conditions": {
+            "type": "string",
+            "description": "When it manifests. Absent means always."
+          },
+          "patch": {
+            "type": "string",
+            "description": "A proposed diff in unified format. A starting point for the fix, not a script."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "fixed", "dismissed", "deferred"],
+            "description": "open when the reviewer writes it. Triage replaces it, and no finding is still open when an invocation ends normally."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the user dismissed or deferred it. Required for dismissed."
+          }
+        },
+        "if": {
+          "properties": { "status": { "const": "dismissed" } },
+          "required": ["status"]
+        },
+        "then": { "required": ["reason"] }
+      }
+    }
+  },
+
+  "$defs": {
+    "lens": {
+      "type": "string",
+      "description": "One review pass. Closed rather than free text: a reviewer writing \"behavior\" where the skill says \"behaviour\" would otherwise validate, and the two would count as different lenses when the findings are merged.",
+      "enum": [
+        "correctness",
+        "failures",
+        "behaviour",
+        "tests",
+        "types",
+        "conventions",
+        "comments",
+        "docs",
+        "simplify",
+        "security",
+        "structure",
+        "status",
+        "floor",
+        "scope",
+        "testable",
+        "trace",
+        "criteria",
+        "precision",
+        "stories",
+        "coverage",
+        "decisions",
+        "plan",
+        "alternatives",
+        "consequences",
+        "coherence"
+      ]
+    }
+  }
+}

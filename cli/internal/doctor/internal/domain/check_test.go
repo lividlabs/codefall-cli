@@ -78,9 +78,9 @@ func TestWarnAndFailCarryDetailAndRemedy(t *testing.T) {
 	}
 }
 
-// allChecks is the nine checks in the order doctor runs them.
+// allChecks is the ten checks in the order doctor runs them.
 var allChecks = []Check{
-	CodefallDir, SettingsFile, SettingsJSON, SettingsComplete,
+	CodefallDir, SettingsFile, SettingsJSON, SettingsComplete, ReviewsIgnored,
 	BeadsInstalled, BeadsInitialized, GHInstalled, GHAuthenticated, GHScopes,
 }
 
@@ -108,6 +108,7 @@ func TestEveryCheckBelongsToOneOfTheThreeCategories(t *testing.T) {
 		SettingsFile.ID:     CategorySettings,
 		SettingsJSON.ID:     CategorySettings,
 		SettingsComplete.ID: CategorySettings,
+		ReviewsIgnored.ID:   CategorySettings,
 		BeadsInstalled.ID:   CategoryBeads,
 		BeadsInitialized.ID: CategoryBeads,
 		GHInstalled.ID:      CategoryGitHub,
