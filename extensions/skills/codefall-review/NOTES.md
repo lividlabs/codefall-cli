@@ -50,7 +50,7 @@ finding fixed, dismissed, or deferred. One invocation, one file, and a later rev
 thing is a new review.
 
 **Review as a read-only verb.** The first draft changed nothing at all and left every fix to the
-user. It kept the reviewer honest by construction, and it meant a review of twelve typos produced
+user. It kept the reviewer and the fixer apart by construction, and it meant a review of twelve typos produced
 twelve things to type by hand. The subagent boundary gets the same separation without that cost.
 
 **Inline `> [!REVIEW]` callouts in documents.** Document findings were going to be written into the
@@ -70,3 +70,32 @@ for a fix to land. Every target is something live.
 everything it needed — the diff, the full files, the conventions, the upstream document — because a
 subprocess starts with no context. It runs inside the repository instead and reads what it needs,
 which is less to build and less to go stale.
+
+## Why the rules are shaped this way
+
+**Four subagents in parallel.** Several passes each looking for one thing find more than one pass
+looking for everything. Each reads the material once and asks one coherent set of questions.
+
+**An external harness gets one call.** Each invocation pays full process startup and re-reads the
+repository; four subprocesses asking four questions about the same files buys the decomposition at
+several times its worth.
+
+**Only `fixed` and `deferred` findings post to a pull request.** A `fixed` one tells a reviewer what
+changed and why; a `deferred` one is real work someone chose not to do now, which is what a PR
+thread is for. A `dismissed` one was judged wrong.
+
+**The target decides where fixes land.** Reviewing PR #51 from a feature branch puts the fixes on
+#51's branch. The new-worktree case exists because a document or path on the default branch has
+nothing to land on, not because of where the session started. Uncommitted work is never moved
+because a new worktree cannot contain the changes in this one.
+
+**Diffs alone are not enough.** Code that looks wrong in isolation is often correct given what
+surrounds it, and code that looks fine in a diff is often wrong given what it replaced.
+
+**`.ignore` rather than `.gitignore`.** Ripgrep honours `.ignore` and git does not, so the reviews
+directory is committed while every harness that searches through ripgrep skips it. The objective is
+keeping old findings out of unrelated searches, not secrecy. The offer to add the line lives in this
+skill because this is where a missing line costs something.
+
+**The default branch is resolved once.** Branch diffs and `revision.base` must agree, and they will
+not if each derives its own.
