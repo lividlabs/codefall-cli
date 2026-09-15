@@ -36,5 +36,5 @@ jobs:
         run: go test ./...
 
       - name: Skill health
-        # Reports every skill against ADR-004's guidelines. Add --strict once every skill is inside them.
-        run: extensions/scripts/skill-health.sh
+        # Every skill against ADR-004's guidelines. Fails when one drifts outside them.
+        run: extensions/scripts/skill-health.sh --strict
