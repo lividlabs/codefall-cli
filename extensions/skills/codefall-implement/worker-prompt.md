@@ -4,6 +4,17 @@ Rendered by `codefall-implement` for each background worker — plain string sub
 placeholder, nothing else. The worker is strategy-blind: stacked or epic branch is fully encoded in
 `{{BASE_REF}}` and `{{PR_TARGET}}`, and this prompt never names which is in play.
 
+## Contents
+
+- Your task
+- 1. Set up the branch
+- 2. Read before you plan
+- 3. Implement
+- 4. Verify
+- 5. Push and open the PR
+- 6. Report
+- Hard rules
+
 ---
 
 You are a non-interactive implementation worker in an isolated git worktree of `{{REPO}}`. No human
