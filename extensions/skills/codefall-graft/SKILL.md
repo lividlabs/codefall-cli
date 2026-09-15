@@ -30,10 +30,11 @@ an empty directory, but graft runs on a project people depend on. Never suggest 
 from a passing remark, never chain into it from another skill. Someone types `/graft` on purpose or
 it does not run.
 
-Template paths in this document are relative to `../scaffold/templates/`, resolved from this skill's
-directory — the one holding this `SKILL.md` — because graft reasons about `codefall-scaffold`'s templates and
-has none of its own. Its one bundled reference is `lineage.md` beside this file, the record of what
-every current template used to be called. Neither path is relative to the user's project.
+Template paths in this document are relative to `../codefall-scaffold/templates/`, resolved from
+this skill's directory — the one holding this `SKILL.md` — because graft reasons about
+`codefall-scaffold`'s templates and has none of its own. Its one bundled reference is `lineage.md`
+beside this file, the record of what every current template used to be called. Neither path is
+relative to the user's project.
 
 ## Scope — documents, not code
 
@@ -269,12 +270,24 @@ the graft should be reviewable as one coherent change.
   adoption — the boundary-enforcement obligation, named exactly as `codefall-scaffold` names it after a
   docs-only run.
 
-## Conventions
+## Rules
 
-Repo-wide rules — verb naming, template lineage upkeep, ADR immutability — live in the extension
-repo's root `AGENTS.md`. Specific to this skill:
-
-- `lineage.md` is required: any change that renames, moves, or retires a template ships a row
-  in it, in the same PR. Graft can only tell a rename from a deletion because that record exists.
-- Graft writes nothing outside the target project. The extension's own files — templates, lineage,
-  this skill — are maintained through PRs, not by a run of graft.
+- **Only ever invoked explicitly.** Never suggested, never fired from a passing remark, never
+  chained into from another skill.
+- **Documents, not code.** Moving code between architectures or extracting a service is `migrate`'s
+  work; say so and stop.
+- **Report, then stop.** Nothing is applied unrequested, and what is applied is one item at a time.
+- **Only untouched is taken mechanically.** Amended and edited get the diff; the superseding ADR
+  that carries their amendment forward is the user's to write.
+- **A ratified ADR is never rewritten.** A revision is a new, superseding ADR; the only in-place
+  edit is the Status line.
+- **A rename is recognised as a rename**, never as a deletion plus an addition. `lineage.md` is the
+  record.
+- **The ladder or nothing.** Never reconstruct an old template from memory, and never invent a
+  hash.
+- **`scaffold.json` records history.** It is verified, never corrected to make drift disappear.
+- **A clean tree before anything is written.** Every application is reviewable as a git diff on
+  its own.
+- **`AGENTS.md` gets targeted edits on request only**, never a wholesale replacement.
+- **Graft writes nothing outside the target project.** The extension's own files — templates,
+  `lineage.md`, this skill — change through pull requests, not through a run of graft.
