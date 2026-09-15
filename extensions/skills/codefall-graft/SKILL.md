@@ -30,10 +30,17 @@ an empty directory, but graft runs on a project people depend on. Never suggest 
 from a passing remark, never chain into it from another skill. Someone types `/graft` on purpose or
 it does not run.
 
-Template paths in this document are relative to `../scaffold/templates/`, resolved from this skill's
-directory — the one holding this `SKILL.md` — because graft reasons about `codefall-scaffold`'s templates and
-has none of its own. Its one bundled reference is `lineage.md` beside this file, the record of what
-every current template used to be called. Neither path is relative to the user's project.
+Template paths in this document are relative to `../codefall-scaffold/templates/`, resolved from
+this skill's directory — the one holding this `SKILL.md` — because graft reasons about
+`codefall-scaffold`'s templates and has none of its own. Neither path is relative to the user's
+project.
+
+## Files beside this one
+
+- `lineage.md` — the record of what every current template used to be called. Read whenever a
+  project doc carries a historical identifier.
+- `reference/pre-provenance.md` — everything graft does differently for a project scaffolded
+  before `scaffold.json` existed. Read only when step 1 finds no provenance.
 
 ## Scope — documents, not code
 
@@ -83,33 +90,6 @@ version with the template's*. That is their call, and supersession keeps their v
 record — but their amendment stops governing, so say exactly that, require them to name the file,
 and only then land it like any other taken revision. Never offer this as the convenient path.
 
-## Where the old templates come from
-
-With `.codefall/scaffold.json` present this question does not arise: the recorded hashes classify
-every file without any historical template. It arises for projects scaffolded before provenance
-existed, and there the answer is a ladder — take the first rung that works:
-
-1. **The local plugin cache** — `~/.claude/plugins/cache/<marketplace>/codefall/<version>/`. Exact
-   snapshots, offline, but only of versions this machine actually installed.
-2. **Git history** — if the extension root, two levels up from this skill's directory, sits inside a
-   clone that can reach the release tag, `git show <tag>:<path>` works. Installed marketplace
-   clones are usually **shallow** with few or no tags, so try `git fetch --depth=1 origin tag <tag>`
-   before concluding the tag is missing. Tags come in two forms and old paths differ from current
-   ones — `lineage.md` records both.
-3. **GitHub** — `gh api repos/lividlabs/codefall-plugin/contents/<historical-path>?ref=<tag>`,
-   or the raw URL. Needs network.
-4. **Nowhere** — then the file is **unverifiable**. Say so and treat it as edited.
-
-**Never reconstruct an old template from memory of what it probably said.** A plausible-looking
-reconstruction poisons every classification built on it: it marks edited files untouched and
-untouched files edited. The ladder or nothing.
-
-When comparing a project file against the template that emitted it, normalize the one thing
-`codefall-scaffold` changes on emission: the date on the `## Status` line (`Accepted — <date>` became
-`Accepted — 2026-08-12`). Everything else compares verbatim. Equal after that means untouched;
-different means edited — without provenance you cannot distinguish *amended at the interview* from
-*edited since*, and edited is the safe reading, so collapse to it.
-
 ## Process
 
 ### 1. Read the project — the gate
@@ -125,8 +105,7 @@ all three — they differ only in how much step 2 must reconstruct:
 
 - **Provenanced** — `scaffold.json` exists. The normal case from codefall 0.4.0 on.
 - **Scaffolded, pre-provenance** — no `scaffold.json`, but `docs/adrs/` holds codefall-lineage
-  files (current identifiers, or historical ones per `lineage.md`). The decision log's *scaffolded
-  with codefall `<version>`* line, when present, names the baseline version.
+  files. Read `reference/pre-provenance.md`; it covers this case from here on.
 - **Never scaffolded** — no codefall docs at all. This is **first-time adoption**: every applicable
   template is simply missing, and the same report-then-take flow installs the stance. Detect the
   surfaces from the repo (`package.json`/`tsconfig` suggests `typescript-react`, `go.mod` suggests
@@ -157,11 +136,8 @@ recorded, and a flag wrongly set to `false` marks a customized file as safe to s
 downstream can catch that lie; a backfill unsure about a file should say `true`, whose worst case
 is a diff shown instead of an update offered.
 
-**Without `scaffold.json`:** identify each codefall-lineage doc via `lineage.md`, find the template
-that emitted it using the ladder above, and classify by normalized comparison. When the decision
-log doesn't name the baseline version, there are only a handful of releases a given filename can
-come from — `lineage.md` names them; compare against each. What can't be classified is
-unverifiable, and unverifiable is edited. Do not guess a version, and never invent a hash.
+**Without `scaffold.json`:** classify per `reference/pre-provenance.md`. What cannot be classified
+is unverifiable, and unverifiable is edited.
 
 ### 3. Compare against the current templates
 
@@ -188,7 +164,7 @@ Then classify every difference:
   project at scaffold time, so it is *always* effectively amended: skeleton changes are reported as
   advisory, never applied wholesale.
 - **Provenance** — `scaffold.json` itself is missing or stale. Offer to write it; that is how a
-  pre-provenance project stops needing the ladder next time.
+  pre-provenance project stops needing `reference/pre-provenance.md` next time.
 
 ### 4. Report — and stop
 
@@ -269,12 +245,23 @@ the graft should be reviewable as one coherent change.
   adoption — the boundary-enforcement obligation, named exactly as `codefall-scaffold` names it after a
   docs-only run.
 
-## Conventions
+## Rules
 
-Repo-wide rules — verb naming, template lineage upkeep, ADR immutability — live in the extension
-repo's root `AGENTS.md`. Specific to this skill:
-
-- `lineage.md` is required: any change that renames, moves, or retires a template ships a row
-  in it, in the same PR. Graft can only tell a rename from a deletion because that record exists.
-- Graft writes nothing outside the target project. The extension's own files — templates, lineage,
-  this skill — are maintained through PRs, not by a run of graft.
+- **Only ever invoked explicitly.** Never suggested, never fired from a passing remark, never
+  chained into from another skill.
+- **Documents, not code.** Moving code between architectures or extracting a service is `migrate`'s
+  work; say so and stop.
+- **Report, then stop.** Nothing is applied unrequested, and what is applied is one item at a time.
+- **Only untouched is taken mechanically.** Amended and edited get the diff; the superseding ADR
+  that carries their amendment forward is the user's to write.
+- **A ratified ADR is never rewritten.** A revision is a new, superseding ADR; the only in-place
+  edit is the Status line.
+- **A rename is recognised as a rename**, never as a deletion plus an addition. `lineage.md` is the
+  record.
+- **Never reconstruct an old template from memory, and never invent a hash.**
+- **`scaffold.json` records history.** It is verified, never corrected to make drift disappear.
+- **A clean tree before anything is written.** Every application is reviewable as a git diff on
+  its own.
+- **`AGENTS.md` gets targeted edits on request only**, never a wholesale replacement.
+- **Graft writes nothing outside the target project.** The extension's own files — templates,
+  `lineage.md`, this skill — change through pull requests, not through a run of graft.
