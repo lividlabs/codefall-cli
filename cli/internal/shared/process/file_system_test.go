@@ -45,6 +45,44 @@ func TestFileSystemDirExists(t *testing.T) {
 	}
 }
 
+func TestFileSystemExists(t *testing.T) {
+	root := t.TempDir()
+
+	file := filepath.Join(root, "file.txt")
+	if err := os.WriteFile(file, []byte("x"), 0o600); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	dangling := filepath.Join(root, "dangling")
+	if err := os.Symlink(filepath.Join(root, "nope"), dangling); err != nil {
+		t.Fatalf("symlink: %v", err)
+	}
+
+	files := NewFileSystem()
+
+	for _, tc := range []struct {
+		name string
+		path string
+		want bool
+	}{
+		{"a directory", root, true},
+		{"a file", file, true},
+		{"a link whose target is missing is still there", dangling, true},
+		{"a missing path is not an error", filepath.Join(root, "nope"), false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := files.Exists(tc.path)
+			if err != nil {
+				t.Fatalf("Exists: %v", err)
+			}
+
+			if got != tc.want {
+				t.Errorf("Exists(%q) = %v, want %v", tc.path, got, tc.want)
+			}
+		})
+	}
+}
+
 func TestFileSystemReadFile(t *testing.T) {
 	root := t.TempDir()
 	path := filepath.Join(root, "settings.json")

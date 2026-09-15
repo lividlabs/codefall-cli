@@ -45,6 +45,20 @@ func (*FileSystem) DirExists(path string) (bool, error) {
 	return info.IsDir(), nil
 }
 
+// Exists reports whether anything is at path — a directory, a file, or a link, which is not followed.
+// A path that is not there is not an error — that is the answer the caller asked for.
+func (*FileSystem) Exists(path string) (bool, error) {
+	if _, err := os.Lstat(path); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
+}
+
 // ReadFile returns a file's bytes. os.ReadFile's *PathError already satisfies
 // errors.Is(err, fs.ErrNotExist), which is what the use cases branch on.
 func (*FileSystem) ReadFile(path string) ([]byte, error) {
