@@ -8,6 +8,26 @@ GitHub Issues, in a single repository, optionally placed on a GitHub Project. Th
 **The spec document is canonical.** This profile creates and refreshes a mirror of it. Nothing here
 holds a fact the document does not, and a hand-edited issue body is overwritten on the next run.
 
+## Contents
+
+- Fits when
+- Does not fit
+- Capabilities
+- Preconditions
+- Issue shape
+- Requirements
+- Acceptance criteria
+- Edge cases
+- Labels
+- Field mapping
+- Searching for duplicates
+- Creating
+- Refreshing
+- Archiving
+- Project boards
+- Work-state transitions
+- Note on Beads
+
 ## Fits when
 
 - The project's issues live in a GitHub repository, **and**

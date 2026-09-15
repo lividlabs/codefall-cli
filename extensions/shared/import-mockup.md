@@ -6,6 +6,14 @@ for its import mode. Defined once so the two never drift.
 The job is narrow: get the user's existing mockup into the repository at a stable path, and hand back
 that path. Importing is not reviewing, redrawing, or improving.
 
+## Contents
+
+- Accept
+- Where it lands
+- Rules
+- Hand back
+- Committing
+
 ## Accept
 
 | The user has | Do this |
