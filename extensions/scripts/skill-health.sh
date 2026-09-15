@@ -27,8 +27,9 @@
 # A reference is a markdown link target or a backticked path with a file
 # extension. Bare paths that do not resolve are taken to be the user's project
 # and ignored; paths with placeholders are ignored. Files under templates/ are
-# installed into projects, not read by the skill, so depth and contents skip
-# them. NOTES.md is never loaded by a skill and is exempt from everything.
+# installed into projects, not read as instruction, so depth and contents skip
+# them, and a supporting file may name one without counting as nested.
+# NOTES.md is never loaded by a skill and is exempt from everything.
 #
 # Token counts are estimates. The tokenizer is not available to a script, so
 # two heuristics are reported and the larger one is judged.
@@ -204,6 +205,7 @@ for dir in "${dirs[@]}"; do
       if sub="$(resolve "$base" "$ref")"; then
         [ "$sub" = "$abs" ] && continue
         [ "$sub" = "$skill" ] && continue
+        case "$sub" in */templates/*) continue ;; esac
         if ! grep -q -x -F "$sub" "$tmp/resolved"; then
           nested+=("$(show "$abs") -> $ref")
         fi
