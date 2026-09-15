@@ -6,6 +6,35 @@ below were written by hand, before that was wired up.
 Tags are bare version numbers (`0.1.2`), not `v`-prefixed, so they match the `ref` the marketplace
 pins. A `v0.1.1` tag also exists from before that convention was settled.
 
+## [0.12.0](https://github.com/lividlabs/codefall-cli/compare/v0.11.0...v0.12.0) (2026-09-15)
+
+
+### Features
+
+* **review:** review a target, triage with the user, fix what they take ([#50](https://github.com/lividlabs/codefall-cli/issues/50)) ([f27c06c](https://github.com/lividlabs/codefall-cli/commit/f27c06c1aab88d5a2622be6a32e91e0cb1286111))
+* **skills:** report every skill against the ADR-004 guidelines ([#54](https://github.com/lividlabs/codefall-cli/issues/54)) ([7e4d40e](https://github.com/lividlabs/codefall-cli/commit/7e4d40ed6ac71e0697b75e76713b6738b26946d2))
+
+
+### Bug Fixes
+
+* **graft:** correct the template path, replace Conventions with Rules, isolate pre-provenance ([#61](https://github.com/lividlabs/codefall-cli/issues/61)) ([034cc91](https://github.com/lividlabs/codefall-cli/commit/034cc9165613c8e9aa373672d27d4b5e312d6d82))
+
+
+### Documentation
+
+* **skills:** adopt the published skill length guidelines (ADR-004) ([#53](https://github.com/lividlabs/codefall-cli/issues/53)) ([bfa4f9c](https://github.com/lividlabs/codefall-cli/commit/bfa4f9c725c40052f78e9fbe30addc8b465c9208))
+
+
+### Refactoring
+
+* **conceptualize:** shorten SKILL.md and make the skill health check strict ([#60](https://github.com/lividlabs/codefall-cli/issues/60)) ([9f36bb7](https://github.com/lividlabs/codefall-cli/commit/9f36bb7f456ff6568e8163a80dfba558a0ab8950))
+* **design:** shorten SKILL.md to the ADR-004 guidelines ([#55](https://github.com/lividlabs/codefall-cli/issues/55)) ([9b08c9a](https://github.com/lividlabs/codefall-cli/commit/9b08c9a07374cde891a00056961149c3a3ec2c93))
+* **docs:** move ADRs, decision log, and provenance to the repo root ([#52](https://github.com/lividlabs/codefall-cli/issues/52)) ([900a8e8](https://github.com/lividlabs/codefall-cli/commit/900a8e8bbcba54089e3efe948ef78472242b8cd5))
+* **implement:** shorten SKILL.md to the ADR-004 guidelines ([#58](https://github.com/lividlabs/codefall-cli/issues/58)) ([d8142b7](https://github.com/lividlabs/codefall-cli/commit/d8142b7871955b8b0450666522ba79791f4139ce))
+* **review:** shorten SKILL.md to the ADR-004 guidelines ([#59](https://github.com/lividlabs/codefall-cli/issues/59)) ([242450f](https://github.com/lividlabs/codefall-cli/commit/242450f3f18989f2ea6ca6b014a08eb51f815ed9))
+* **scaffold:** shorten SKILL.md to the ADR-004 guidelines ([#57](https://github.com/lividlabs/codefall-cli/issues/57)) ([09cdd7e](https://github.com/lividlabs/codefall-cli/commit/09cdd7e9fda58c471dee10903d410c28c74d2123))
+* **specify:** shorten SKILL.md to the ADR-004 guidelines ([#56](https://github.com/lividlabs/codefall-cli/issues/56)) ([cff8a62](https://github.com/lividlabs/codefall-cli/commit/cff8a622ea310fa7bba525646e16e3db7e9a6638))
+
 ## [0.11.0](https://github.com/lividlabs/codefall-cli/compare/v0.10.0...v0.11.0) (2026-09-12)
 
 
