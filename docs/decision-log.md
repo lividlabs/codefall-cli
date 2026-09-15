@@ -235,7 +235,7 @@ Decided at scaffold, 2026-08-16.
   failed the `pure-shared-modules` rule, and `internal/shared/ui` imported from
   `internal/initcmd/internal/domain/` failed the `domain-layer` rule — while that same package's
   import of `internal/shared/settings`, which is what the whole change rests on, passes.
-- **Where init gets the repository, 2026-08-28.** `--github-repo` is a flag nobody should have to
+- **Where init gets the repository, 2026-08-28.** `--issues-repo` is a flag nobody should have to
   type in the repository it names. Init asks two sources for it, in order: `gh repo view --json
   nameWithOwner`, and then `git remote get-url origin`. gh goes first because it answers with the
   repository as GitHub knows it today, which is right after a rename and for a fork whose remote

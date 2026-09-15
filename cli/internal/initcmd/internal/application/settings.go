@@ -53,7 +53,7 @@ func (i *Initialize) settings(_ context.Context, request Request) (domain.StepRe
 		return domain.SettingsStep.Skipped(settingsName + " already exists (use --force to rewrite it)"), nil
 	}
 
-	chosen, err := domain.NewSettings(request.Tracker, request.GitHubRepo, request.GitHubProject,
+	chosen, err := domain.NewSettings(request.Tracker, request.IssuesRepo, request.IssuesProject,
 		domain.ReviewSettings{PostToPullRequest: request.ReviewPostToPullRequest.OrElse(false)})
 	if err != nil {
 		return domain.StepResult{}, err
@@ -87,10 +87,10 @@ func describe(chosen domain.Settings) string {
 	parts := []string{"tracker: " + chosen.Tracker}
 
 	if github, ok := chosen.GitHub.Get(); ok {
-		parts = append(parts, "repo: "+github.Repo)
+		parts = append(parts, "issues repo: "+github.Repo)
 
 		if project, ok := github.Project.Get(); ok {
-			parts = append(parts, fmt.Sprintf("project: %d", project))
+			parts = append(parts, fmt.Sprintf("issues project: %d", project))
 		}
 	}
 
@@ -135,8 +135,8 @@ func (beadsDocument) IsZero() bool { return false }
 // gitHubDocument is the GitHub tracker's block. The project number is omitted rather than written as
 // null when the repository's issues are not organised into a project.
 type gitHubDocument struct {
-	Repo    string         `json:"repo"`
-	Project mo.Option[int] `json:"project,omitzero"`
+	Repo    string         `json:"issuesRepo"`
+	Project mo.Option[int] `json:"issuesProject,omitzero"`
 }
 
 func (gitHubDocument) IsZero() bool { return false }

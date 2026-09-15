@@ -12,10 +12,10 @@
     "beads": { "type": "object", "properties": {}, "additionalProperties": true },
     "github": {
       "type": "object",
-      "required": ["repo"],
+      "required": ["issuesRepo"],
       "properties": {
-        "repo": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
-        "project": { "type": "integer", "minimum": 1 }
+        "issuesRepo": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" },
+        "issuesProject": { "type": "integer", "minimum": 1 }
       },
       "additionalProperties": true
     },

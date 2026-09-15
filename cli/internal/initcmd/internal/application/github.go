@@ -17,7 +17,7 @@ const ghCommand = "gh"
 // pointing anywhere else is somebody else's forge, and the repository settings field is GitHub's.
 const gitHubHost = "github.com"
 
-// SuggestGitHubRepo asks which repository dir belongs to, so the survey can offer an answer rather
+// SuggestIssuesRepo asks which repository dir belongs to, so the survey can offer an answer rather
 // than an empty field and a non-interactive run has one less flag to pass.
 //
 // Two sources, in this order. gh is asked first because it answers with the repository as GitHub
@@ -29,7 +29,7 @@ const gitHubHost = "github.com"
 // Every way of not knowing means the same thing to the caller — there is nothing to suggest — so a
 // missing tool, a directory that is not a GitHub repository, and a tool failing for its own reasons
 // all return None rather than an error (ADR-GO-03).
-func (i *Initialize) SuggestGitHubRepo(ctx context.Context, dir string) mo.Option[string] {
+func (i *Initialize) SuggestIssuesRepo(ctx context.Context, dir string) mo.Option[string] {
 	if repo := i.repoFromGitHubCLI(ctx, dir); repo.IsPresent() {
 		return repo
 	}
@@ -59,7 +59,7 @@ func (i *Initialize) repoFromGitHubCLI(ctx context.Context, dir string) mo.Optio
 
 // repoFromGitRemote reads the origin remote's URL and takes the repository out of it. Only origin is
 // consulted: a directory whose GitHub repository is under some other remote name is one the person
-// running init knows better than this does, and --github-repo is how they say so.
+// running init knows better than this does, and --issues-repo is how they say so.
 func (i *Initialize) repoFromGitRemote(ctx context.Context, dir string) mo.Option[string] {
 	if i.runner.LookPath(gitCommand).IsAbsent() {
 		return mo.None[string]()

@@ -32,7 +32,7 @@ const validSettings = `{
   "$schema": "` + settings.SchemaID + `",
   "version": 1,
   "tracker": "github",
-  "github": { "repo": "lividlabs/codefall-cli", "project": 3 }
+  "github": { "issuesRepo": "lividlabs/codefall-cli", "issuesProject": 3 }
 }`
 
 // --- fakes -------------------------------------------------------------------------------------
