@@ -18,16 +18,16 @@ inner layers may import them. `cmd/codefall/main.go` is the composition root and
 
 The why lives in the ADRs. This file is the operative rules only — never restate the reasoning here.
 
-- [ADR-BASE-01 Clean Architecture](docs/adrs/ADR-BASE-01-clean-architecture.md) ·
-  [ADR-BASE-02 Package-by-component](docs/adrs/ADR-BASE-02-package-by-component.md) ·
-  [ADR-GO-01 Dependency Injection](docs/adrs/ADR-GO-01-dependency-injection.md) ·
-  [ADR-GO-02 Boundary enforcement](docs/adrs/ADR-GO-02-boundary-enforcement.md) ·
-  [ADR-GO-03 Optional values](docs/adrs/ADR-GO-03-optional-values.md)
-- This project's own decisions: [ADR-001 Facade contracts](docs/adrs/ADR-001-facade-contracts.md) ·
-  [ADR-002 CLI libraries](docs/adrs/ADR-002-cli-libraries.md) ·
-  [ADR-003 Pure shared modules](docs/adrs/ADR-003-pure-shared-modules.md). New ones use
-  [`docs/adrs/_TEMPLATE.md`](docs/adrs/_TEMPLATE.md); decisions still moving live in
-  [`docs/decision-log.md`](docs/decision-log.md).
+- [ADR-BASE-01 Clean Architecture](../docs/adrs/ADR-BASE-01-clean-architecture.md) ·
+  [ADR-BASE-02 Package-by-component](../docs/adrs/ADR-BASE-02-package-by-component.md) ·
+  [ADR-GO-01 Dependency Injection](../docs/adrs/ADR-GO-01-dependency-injection.md) ·
+  [ADR-GO-02 Boundary enforcement](../docs/adrs/ADR-GO-02-boundary-enforcement.md) ·
+  [ADR-GO-03 Optional values](../docs/adrs/ADR-GO-03-optional-values.md)
+- This project's own decisions: [ADR-001 Facade contracts](../docs/adrs/ADR-001-facade-contracts.md) ·
+  [ADR-002 CLI libraries](../docs/adrs/ADR-002-cli-libraries.md) ·
+  [ADR-003 Pure shared modules](../docs/adrs/ADR-003-pure-shared-modules.md). New ones use
+  [`docs/adrs/_TEMPLATE.md`](../docs/adrs/_TEMPLATE.md); decisions still moving live in
+  [`docs/decision-log.md`](../docs/decision-log.md).
 
 ## Structure
 
