@@ -1,11 +1,12 @@
 codefall
 --------
 
-**Codefall** is an opinionated, yet flexible, toolkit for spec driven development.
+**Codefall** is a toolkit for agentic spec driven software development utilizing beads. The toolkit has strong 
+opinions — loosely held — regarding software architecture and software development.
 
 The repo holds two components:
 
-- [`cli/`](cli/) — the Go installer (`codefall init`, `codefall doctor`). Rules: [cli/AGENTS.md](cli/AGENTS.md)
+- [`cli/`](cli/) — the commaand line tool to help create and manage repos with Codefall.
 - [`extensions/`](extensions/) — the installable plugin: skills, hooks, and shared scripts. 
 
 Every skill is a **verb**. The verbs chain: `conceptualize` frames the idea, `scaffold` makes the
@@ -29,14 +30,32 @@ All realease binaries can be found on the [Github project release list](https://
 
 ### Getting Started
 
-Enter your project repository and install the extensions (skills and hooks) for your harness with the following command.
+There are two ways to get started, with or without an existing repository.
+
+### Currently Supported Harnesses
+
+- Claude Code
+- Codex
+- OpenCode
+- Antigravity
+- Muse
+
+### New Projects
+
+Using the `create` command will make your project directory, initialize git with an optional remote, create a barebones first commit,
+and then run the `codefall init` worflow.
+
+```
+codefall create
+```
+
+### Existing Projects
+
+Running the `init` command installs configuration for codefall and extensions for the harnesses in your repo.
 
 ```
 codefall init
 ```
-
-`codefall init` detects (or takes `--harness`) and installs for the harness: Claude Code, Codex,
-Muse, OpenCode, or Antigravity. 
 
 ## CLI commands
 

@@ -208,8 +208,8 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 		Request{
 			Dir:           workingDir,
 			Tracker:       settings.TrackerGitHub,
-			GitHubRepo:    mo.Some("lividlabs/codefall-cli"),
-			GitHubProject: mo.Some(3),
+			IssuesRepo:    mo.Some("lividlabs/codefall-cli"),
+			IssuesProject: mo.Some(3),
 			Harness:       domain.HarnessClaudeCode,
 		},
 		observer,
@@ -227,7 +227,7 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", results[0].Outcome)
 	}
 
-	want := "wrote .codefall/settings.json (tracker: github, repo: lividlabs/codefall-cli, project: 3)"
+	want := "wrote .codefall/settings.json (tracker: github, issues repo: lividlabs/codefall-cli, issues project: 3)"
 	if results[0].Detail != want {
 		t.Errorf("detail = %q, want %q", results[0].Detail, want)
 	}
@@ -260,8 +260,8 @@ func TestRunEncodesGitHubSettings(t *testing.T) {
 		Request{
 			Dir:           workingDir,
 			Tracker:       settings.TrackerGitHub,
-			GitHubRepo:    mo.Some("owner/name"),
-			GitHubProject: mo.Some(3),
+			IssuesRepo:    mo.Some("owner/name"),
+			IssuesProject: mo.Some(3),
 			Harness:       domain.HarnessClaudeCode,
 		},
 		nil,
@@ -274,8 +274,8 @@ func TestRunEncodesGitHubSettings(t *testing.T) {
   "version": 1,
   "tracker": "github",
   "github": {
-    "repo": "owner/name",
-    "project": 3
+    "issuesRepo": "owner/name",
+    "issuesProject": 3
   },
   "review": {
     "postToPullRequest": false
@@ -301,12 +301,12 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 			request: Request{
 				Dir:        workingDir,
 				Tracker:    settings.TrackerGitHub,
-				GitHubRepo: mo.Some("owner/name"),
+				IssuesRepo: mo.Some("owner/name"),
 				Harness:    domain.HarnessClaudeCode,
 			},
 			want: `  "tracker": "github",
   "github": {
-    "repo": "owner/name"
+    "issuesRepo": "owner/name"
   },
   "review": {
     "postToPullRequest": false
@@ -445,7 +445,7 @@ func TestRunStopsOnAStepThatFails(t *testing.T) {
 
 			request := Request{Dir: workingDir, Tracker: settings.TrackerGitHub, Harness: domain.HarnessClaudeCode}
 			if tc.name != "the settings could not be built" {
-				request.GitHubRepo = mo.Some("owner/name")
+				request.IssuesRepo = mo.Some("owner/name")
 			}
 
 			report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Run(t.Context(), request, observer)
@@ -524,7 +524,7 @@ func TestSettingsExist(t *testing.T) {
 	}
 }
 
-func TestSuggestGitHubRepo(t *testing.T) {
+func TestSuggestIssuesRepo(t *testing.T) {
 	const (
 		ghRepoView   = "gh repo view --json nameWithOwner --jq .nameWithOwner"
 		gitRemoteURL = "git remote get-url origin"
@@ -550,9 +550,9 @@ func TestSuggestGitHubRepo(t *testing.T) {
 		runner := withGit(withGH(), "git@github.com:lividlabs/stale.git\n")
 		runner.runs[ghRepoView] = CommandResult{Stdout: "lividlabs/codefall-cli\n"}
 
-		got := NewInitialize(newFakeFileSystem(), runner, newFakeExtensionSource()).SuggestGitHubRepo(t.Context(), workingDir)
+		got := NewInitialize(newFakeFileSystem(), runner, newFakeExtensionSource()).SuggestIssuesRepo(t.Context(), workingDir)
 		if repo, ok := got.Get(); !ok || repo != "lividlabs/codefall-cli" {
-			t.Errorf("SuggestGitHubRepo = %v, want Some(%q)", got, "lividlabs/codefall-cli")
+			t.Errorf("SuggestIssuesRepo = %v, want Some(%q)", got, "lividlabs/codefall-cli")
 		}
 
 		// gh answers about the directory init is running in, not about wherever the process started.
@@ -582,9 +582,9 @@ func TestSuggestGitHubRepo(t *testing.T) {
 		},
 	} {
 		t.Run("the origin remote when "+tc.name, func(t *testing.T) {
-			got := NewInitialize(newFakeFileSystem(), tc.runner(), newFakeExtensionSource()).SuggestGitHubRepo(t.Context(), workingDir)
+			got := NewInitialize(newFakeFileSystem(), tc.runner(), newFakeExtensionSource()).SuggestIssuesRepo(t.Context(), workingDir)
 			if repo, ok := got.Get(); !ok || repo != "lividlabs/codefall-cli" {
-				t.Errorf("SuggestGitHubRepo = %v, want Some(%q)", got, "lividlabs/codefall-cli")
+				t.Errorf("SuggestIssuesRepo = %v, want Some(%q)", got, "lividlabs/codefall-cli")
 			}
 		})
 	}
@@ -636,9 +636,9 @@ func TestSuggestGitHubRepo(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got := NewInitialize(newFakeFileSystem(), tc.runner(), newFakeExtensionSource()).SuggestGitHubRepo(t.Context(), workingDir)
+			got := NewInitialize(newFakeFileSystem(), tc.runner(), newFakeExtensionSource()).SuggestIssuesRepo(t.Context(), workingDir)
 			if got.IsPresent() {
-				t.Errorf("SuggestGitHubRepo = %v, want None", got)
+				t.Errorf("SuggestIssuesRepo = %v, want None", got)
 			}
 		})
 	}

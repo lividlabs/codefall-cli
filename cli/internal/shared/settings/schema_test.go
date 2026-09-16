@@ -81,11 +81,11 @@ func TestSchemaMatchesTheFieldTables(t *testing.T) {
 
 	blockProperties := schemaObject(t, block, "properties")
 
-	if got := schemaText(t, schemaObject(t, blockProperties, "repo"), "pattern"); got != RepoPattern {
-		t.Errorf("properties.%s.properties.repo.pattern = %q, want %q", TrackerGitHub, got, RepoPattern)
+	if got := schemaText(t, schemaObject(t, blockProperties, "issuesRepo"), "pattern"); got != RepoPattern {
+		t.Errorf("properties.%s.properties.issuesRepo.pattern = %q, want %q", TrackerGitHub, got, RepoPattern)
 	}
 
-	if got := schemaNumber(t, schemaObject(t, blockProperties, "project"), "minimum"); got != 1 {
+	if got := schemaNumber(t, schemaObject(t, blockProperties, "issuesProject"), "minimum"); got != 1 {
 		t.Errorf("properties.%s.properties.project.minimum = %v, want 1", TrackerGitHub, got)
 	}
 

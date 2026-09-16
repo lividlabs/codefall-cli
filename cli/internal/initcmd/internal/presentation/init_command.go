@@ -30,7 +30,7 @@ import (
 type InitializeUseCase interface {
 	Run(ctx context.Context, request application.Request, observer application.Observer) (domain.Report, error)
 	SettingsExist(dir string) (bool, error)
-	SuggestGitHubRepo(ctx context.Context, dir string) mo.Option[string]
+	SuggestIssuesRepo(ctx context.Context, dir string) mo.Option[string]
 	// RepositoryRoot reports the root of the git work tree dir sits below, or None when dir is the
 	// root or not in a work tree. It is what decides whether there is a location to ask about.
 	RepositoryRoot(ctx context.Context, dir string) mo.Option[string]
@@ -95,8 +95,8 @@ func NewInitCommand(initialize InitializeUseCase) *cobra.Command {
 // prompted value is a flag, which is what keeps the command usable from a script (ADR-002).
 type initFlags struct {
 	tracker        string
-	githubRepo     string
-	githubProject  int
+	issuesRepo     string
+	issuesProject  int
 	reviewPostToPR bool
 	harness        string
 	location       string
@@ -107,11 +107,12 @@ type initFlags struct {
 func (f *initFlags) register(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&f.tracker, "tracker", "",
 		"issue tracker to use ("+strings.Join(settings.Trackers(), ", ")+")")
-	cmd.Flags().StringVar(&f.githubRepo, "github-repo", "",
-		"repository as owner/name on GitHub (defaults to the repository this directory belongs to; "+
-			"required when the tracker is "+settings.TrackerGitHub+" and that cannot be worked out)")
-	cmd.Flags().IntVar(&f.githubProject, "github-project", 0,
-		"number of the GitHub Project to use (optional)")
+	cmd.Flags().StringVar(&f.issuesRepo, "issues-repo", "",
+		"repository whose issues the project files against, as owner/name on GitHub (defaults to the "+
+			"repository this directory belongs to; required when the tracker is "+settings.TrackerGitHub+
+			" and that cannot be worked out)")
+	cmd.Flags().IntVar(&f.issuesProject, "issues-project", 0,
+		"number of the GitHub Project those issues are organised into (optional)")
 	cmd.Flags().BoolVar(&f.reviewPostToPR, "review-post-to-pr", false,
 		"let codefall-review post its findings to a pull request (optional)")
 	cmd.Flags().StringVar(&f.harness, "harness", domain.HarnessClaudeCode,
@@ -188,12 +189,12 @@ func buildRequest(
 		request.Tracker = tracker
 	}
 
-	if flags.githubRepo != "" {
-		if err := settings.ValidateRepo(flags.githubRepo); err != nil {
+	if flags.issuesRepo != "" {
+		if err := settings.ValidateRepo(flags.issuesRepo); err != nil {
 			return application.Request{}, err
 		}
 
-		request.GitHubRepo = mo.Some(flags.githubRepo)
+		request.IssuesRepo = mo.Some(flags.issuesRepo)
 	}
 
 	// Same reasoning as the project number below: a bool flag left alone and one set to false are
@@ -204,15 +205,15 @@ func buildRequest(
 
 	// A project number is optional, so "not given" and "given as zero" are different answers and
 	// only the flag's own record of being set can tell them apart.
-	if cmd.Flags().Changed("github-project") {
-		if flags.githubProject < 1 {
+	if cmd.Flags().Changed("issues-project") {
+		if flags.issuesProject < 1 {
 			// The flag name is never the message's first word: Fang title-cases it before
-			// rendering, which would turn --github-project into --Github-Project.
+			// rendering, which would turn --issues-project into --Issues-Project.
 			return application.Request{}, fmt.Errorf(
-				"the --github-project flag must be a positive integer, not %d", flags.githubProject)
+				"the --issues-project flag must be a positive integer, not %d", flags.issuesProject)
 		}
 
-		request.GitHubProject = mo.Some(flags.githubProject)
+		request.IssuesProject = mo.Some(flags.issuesProject)
 	}
 
 	// Settings that are already there and are not being rewritten are not worth surveying for: the
@@ -316,13 +317,13 @@ func locationField(location *string, dir, root string) huh.Field {
 // does.
 //
 // "the" opens the sentence rather than the flag name: Fang title-cases the first word of every
-// error it renders, which would turn --github-repo into --Github-Repo.
+// error it renders, which would turn --issues-repo into --Issues-Repo.
 func rejectGitHubFlags(cmd *cobra.Command, tracker string) error {
 	if tracker == "" || tracker == settings.TrackerGitHub {
 		return nil
 	}
 
-	for _, name := range []string{"github-repo", "github-project"} {
+	for _, name := range []string{"issues-repo", "issues-project"} {
 		if cmd.Flags().Changed(name) {
 			return fmt.Errorf("the --%s flag is only used with --tracker %s", name, settings.TrackerGitHub)
 		}
@@ -345,7 +346,7 @@ func collect(
 	// nobody is.
 	suggestion := mo.None[string]()
 	if mightUseGitHub(request) {
-		suggestion = initialize.SuggestGitHubRepo(ctx, request.Dir)
+		suggestion = initialize.SuggestIssuesRepo(ctx, request.Dir)
 	}
 
 	if !stdinIsTerminal() {
@@ -359,13 +360,13 @@ func collect(
 // project number is not one of those, so it is never on its own a reason to prompt.
 func needsAnswers(request application.Request) bool {
 	return request.Tracker == "" ||
-		(request.Tracker == settings.TrackerGitHub && request.GitHubRepo.IsAbsent())
+		(request.Tracker == settings.TrackerGitHub && request.IssuesRepo.IsAbsent())
 }
 
 // mightUseGitHub reports whether a repository could still be wanted — either because the tracker is
 // GitHub, or because it has not been chosen yet and might be.
 func mightUseGitHub(request application.Request) bool {
-	return request.GitHubRepo.IsAbsent() &&
+	return request.IssuesRepo.IsAbsent() &&
 		(request.Tracker == "" || request.Tracker == settings.TrackerGitHub)
 }
 
@@ -379,16 +380,16 @@ func withoutPrompting(
 		return application.Request{}, missingFlag("--tracker")
 	}
 
-	if request.Tracker != settings.TrackerGitHub || request.GitHubRepo.IsPresent() {
+	if request.Tracker != settings.TrackerGitHub || request.IssuesRepo.IsPresent() {
 		return request, nil
 	}
 
 	repo, ok := suggestion.Get()
 	if !ok {
-		return application.Request{}, missingFlag("--github-repo")
+		return application.Request{}, missingFlag("--issues-repo")
 	}
 
-	request.GitHubRepo = mo.Some(repo)
+	request.IssuesRepo = mo.Some(repo)
 
 	return request, nil
 }
@@ -409,10 +410,10 @@ func survey(
 		tracker = request.Tracker
 	}
 
-	repo := request.GitHubRepo.OrElse(suggestion.OrEmpty())
+	repo := request.IssuesRepo.OrElse(suggestion.OrEmpty())
 
 	project := ""
-	if number, ok := request.GitHubProject.Get(); ok {
+	if number, ok := request.IssuesProject.Get(); ok {
 		project = strconv.Itoa(number)
 	}
 
@@ -447,11 +448,11 @@ func survey(
 func gitHubFields(request application.Request, repo, project *string) []huh.Field {
 	var fields []huh.Field
 
-	if request.GitHubRepo.IsAbsent() {
+	if request.IssuesRepo.IsAbsent() {
 		fields = append(fields, repoField(repo))
 	}
 
-	if request.GitHubProject.IsAbsent() {
+	if request.IssuesProject.IsAbsent() {
 		fields = append(fields, projectField(project))
 	}
 
@@ -516,7 +517,7 @@ func answered(
 		return request, nil
 	}
 
-	request.GitHubRepo = mo.Some(strings.TrimSpace(repo))
+	request.IssuesRepo = mo.Some(strings.TrimSpace(repo))
 
 	trimmed := strings.TrimSpace(project)
 	if trimmed == "" {
@@ -528,7 +529,7 @@ func answered(
 		return application.Request{}, fmt.Errorf("project number %q: %w", project, err)
 	}
 
-	request.GitHubProject = mo.Some(number)
+	request.IssuesProject = mo.Some(number)
 
 	return request, nil
 }

@@ -13,8 +13,8 @@ func complete() Document {
 		"version": 1.0,
 		"tracker": "github",
 		"github": map[string]any{
-			"repo":    "lividlabs/codefall-cli",
-			"project": 3.0,
+			"issuesRepo":    "lividlabs/codefall-cli",
+			"issuesProject": 3.0,
 		},
 	}
 }
@@ -34,7 +34,7 @@ func TestValidate(t *testing.T) {
 			doc: Document{
 				"version": 1.0,
 				"tracker": "github",
-				"github":  map[string]any{"repo": "lividlabs/codefall-cli"},
+				"github":  map[string]any{"issuesRepo": "lividlabs/codefall-cli"},
 			},
 		},
 		{
@@ -42,7 +42,7 @@ func TestValidate(t *testing.T) {
 			doc: Document{
 				"version":  1.0,
 				"tracker":  "github",
-				"github":   map[string]any{"repo": "a/b"},
+				"github":   map[string]any{"issuesRepo": "a/b"},
 				"nonsense": "ignored",
 			},
 		},
@@ -51,7 +51,7 @@ func TestValidate(t *testing.T) {
 			doc: Document{
 				"version": 1.0,
 				"tracker": "github",
-				"github":  map[string]any{"repo": "a/b"},
+				"github":  map[string]any{"issuesRepo": "a/b"},
 				"gitlab":  map[string]any{"project": "x"},
 			},
 		},
@@ -122,7 +122,7 @@ func TestValidate(t *testing.T) {
 				"version": 1.0,
 				"tracker": "beads",
 				"beads":   map[string]any{},
-				"github":  map[string]any{"repo": "a/b"},
+				"github":  map[string]any{"issuesRepo": "a/b"},
 			},
 			want: []string{`github: present but tracker is "beads" — remove it`},
 		},
@@ -138,43 +138,43 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "repo missing",
-			doc:  with(complete(), "github", map[string]any{"project": 3.0}),
-			want: []string{"github.repo: missing"},
+			doc:  with(complete(), "github", map[string]any{"issuesProject": 3.0}),
+			want: []string{"github.issuesRepo: missing"},
 		},
 		{
 			name: "repo empty counts as missing",
-			doc:  with(complete(), "github", map[string]any{"repo": ""}),
-			want: []string{"github.repo: missing"},
+			doc:  with(complete(), "github", map[string]any{"issuesRepo": ""}),
+			want: []string{"github.issuesRepo: missing"},
 		},
 		{
 			name: "repo without a slash",
-			doc:  with(complete(), "github", map[string]any{"repo": "no-slash"}),
-			want: []string{"github.repo: must match owner/name"},
+			doc:  with(complete(), "github", map[string]any{"issuesRepo": "no-slash"}),
+			want: []string{"github.issuesRepo: must match owner/name"},
 		},
 		{
 			name: "repo with two slashes",
-			doc:  with(complete(), "github", map[string]any{"repo": "a/b/c"}),
-			want: []string{"github.repo: must match owner/name"},
+			doc:  with(complete(), "github", map[string]any{"issuesRepo": "a/b/c"}),
+			want: []string{"github.issuesRepo: must match owner/name"},
 		},
 		{
 			name: "repo is not a string",
-			doc:  with(complete(), "github", map[string]any{"repo": 3.0}),
-			want: []string{"github.repo: must be a string"},
+			doc:  with(complete(), "github", map[string]any{"issuesRepo": 3.0}),
+			want: []string{"github.issuesRepo: must be a string"},
 		},
 		{
 			name: "project is zero",
-			doc:  with(complete(), "github", map[string]any{"repo": "a/b", "project": 0.0}),
-			want: []string{"github.project: must be a positive integer"},
+			doc:  with(complete(), "github", map[string]any{"issuesRepo": "a/b", "issuesProject": 0.0}),
+			want: []string{"github.issuesProject: must be a positive integer"},
 		},
 		{
 			name: "project is fractional",
-			doc:  with(complete(), "github", map[string]any{"repo": "a/b", "project": 1.5}),
-			want: []string{"github.project: must be a positive integer"},
+			doc:  with(complete(), "github", map[string]any{"issuesRepo": "a/b", "issuesProject": 1.5}),
+			want: []string{"github.issuesProject: must be a positive integer"},
 		},
 		{
 			name: "project is a string",
-			doc:  with(complete(), "github", map[string]any{"repo": "a/b", "project": "3"}),
-			want: []string{"github.project: must be a positive integer"},
+			doc:  with(complete(), "github", map[string]any{"issuesRepo": "a/b", "issuesProject": "3"}),
+			want: []string{"github.issuesProject: must be a positive integer"},
 		},
 		{
 			name: "$schema is not a string",
@@ -187,13 +187,13 @@ func TestValidate(t *testing.T) {
 				"$schema": 1.0,
 				"version": 2.0,
 				"tracker": "github",
-				"github":  map[string]any{"repo": "no-slash", "project": 0.0},
+				"github":  map[string]any{"issuesRepo": "no-slash", "issuesProject": 0.0},
 			},
 			want: []string{
 				"$schema: must be a string",
 				"version: must be 1",
-				"github.repo: must match owner/name",
-				"github.project: must be a positive integer",
+				"github.issuesRepo: must match owner/name",
+				"github.issuesProject: must be a positive integer",
 			},
 		},
 	} {
@@ -292,7 +292,7 @@ func TestRequiredFields(t *testing.T) {
 		t.Errorf("RequiredTrackerFields(%q) = %q, want %q", TrackerBeads, got, want)
 	}
 
-	if got, want := RequiredTrackerFields(TrackerGitHub), []string{"repo"}; !slices.Equal(got, want) {
+	if got, want := RequiredTrackerFields(TrackerGitHub), []string{"issuesRepo"}; !slices.Equal(got, want) {
 		t.Errorf("RequiredTrackerFields(%q) = %q, want %q", TrackerGitHub, got, want)
 	}
 

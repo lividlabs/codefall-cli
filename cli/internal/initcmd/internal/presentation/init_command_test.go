@@ -54,7 +54,7 @@ func (f *fakeInitialize) Installed(string) (mo.Option[application.Installation],
 	return f.installed, nil
 }
 
-func (f *fakeInitialize) SuggestGitHubRepo(context.Context, string) mo.Option[string] {
+func (f *fakeInitialize) SuggestIssuesRepo(context.Context, string) mo.Option[string] {
 	f.suggested = true
 
 	return f.suggestion
@@ -117,8 +117,8 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 
 	if _, err := run(t, initialize,
 		"--tracker", "github",
-		"--github-repo", "lividlabs/codefall-cli",
-		"--github-project", "3",
+		"--issues-repo", "lividlabs/codefall-cli",
+		"--issues-project", "3",
 		"--harness", "claude-code",
 		"--force",
 	); err != nil {
@@ -133,8 +133,8 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 	want := application.Request{
 		Dir:           dir,
 		Tracker:       settings.TrackerGitHub,
-		GitHubRepo:    mo.Some("lividlabs/codefall-cli"),
-		GitHubProject: mo.Some(3),
+		IssuesRepo:    mo.Some("lividlabs/codefall-cli"),
+		IssuesProject: mo.Some(3),
 		Harness:       domain.HarnessClaudeCode,
 		CLIVersion:    cliVersion(),
 		Force:         true,
@@ -146,7 +146,7 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 
 	// Every answer was on the command line, so there was nothing to ask gh either.
 	if initialize.suggested {
-		t.Error("asked gh for a repository, want it not asked when --github-repo was given")
+		t.Error("asked gh for a repository, want it not asked when --issues-repo was given")
 	}
 }
 
@@ -161,7 +161,7 @@ func TestInitCommandDefaultsTheHarnessAndLeavesTheOptionalValuesAbsent(t *testin
 		t.Errorf("Harness = %q, want %q", initialize.got.Harness, domain.HarnessClaudeCode)
 	}
 
-	if initialize.got.GitHubRepo.IsPresent() || initialize.got.GitHubProject.IsPresent() {
+	if initialize.got.IssuesRepo.IsPresent() || initialize.got.IssuesProject.IsPresent() {
 		t.Errorf("request = %+v, want the GitHub values absent", initialize.got)
 	}
 
@@ -193,23 +193,23 @@ func TestInitCommandRejects(t *testing.T) {
 		},
 		{
 			name: "a repository that is not owner/name",
-			args: []string{"--tracker", "github", "--github-repo", "codefall-cli"},
+			args: []string{"--tracker", "github", "--issues-repo", "codefall-cli"},
 			want: "owner/name",
 		},
 		{
 			name: "a project number below one",
-			args: []string{"--tracker", "github", "--github-repo", "owner/name", "--github-project", "0"},
-			want: "the --github-project flag must be a positive integer, not 0",
+			args: []string{"--tracker", "github", "--issues-repo", "owner/name", "--issues-project", "0"},
+			want: "the --issues-project flag must be a positive integer, not 0",
 		},
 		{
 			name: "a repository on a tracker that has no use for one",
-			args: []string{"--tracker", "beads", "--github-repo", "owner/name"},
-			want: "the --github-repo flag is only used with --tracker github",
+			args: []string{"--tracker", "beads", "--issues-repo", "owner/name"},
+			want: "the --issues-repo flag is only used with --tracker github",
 		},
 		{
 			name: "a project number on a tracker that has no use for one",
-			args: []string{"--tracker", "beads", "--github-project", "3"},
-			want: "the --github-project flag is only used with --tracker github",
+			args: []string{"--tracker", "beads", "--issues-project", "3"},
+			want: "the --issues-project flag is only used with --tracker github",
 		},
 		{
 			name: "a location that is neither here nor root",
@@ -257,7 +257,7 @@ func TestInitCommandWithoutATerminalNamesTheMissingFlag(t *testing.T) {
 		{
 			name: "github without a repository",
 			args: []string{"--tracker", "github"},
-			want: "missing --github-repo (stdin is not a terminal)",
+			want: "missing --issues-repo (stdin is not a terminal)",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -285,8 +285,8 @@ func TestInitCommandUsesTheRepositoryGHSuggests(t *testing.T) {
 		t.Fatalf("Execute: %v", err)
 	}
 
-	if got, ok := initialize.got.GitHubRepo.Get(); !ok || got != "lividlabs/codefall-cli" {
-		t.Errorf("GitHubRepo = %v, want Some(%q)", initialize.got.GitHubRepo, "lividlabs/codefall-cli")
+	if got, ok := initialize.got.IssuesRepo.Get(); !ok || got != "lividlabs/codefall-cli" {
+		t.Errorf("IssuesRepo = %v, want Some(%q)", initialize.got.IssuesRepo, "lividlabs/codefall-cli")
 	}
 }
 
