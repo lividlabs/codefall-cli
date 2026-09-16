@@ -8,6 +8,13 @@ pins. A `v0.1.1` tag also exists from before that convention was settled.
 
 ## [0.13.0](https://github.com/lividlabs/codefall-cli/compare/v0.12.0...v0.13.0) (2026-09-16)
 
+### ⚠ BREAKING CHANGES
+
+* **init:** `--github-repo` is now `--issues-repo` and `--github-project` is `--issues-project`; the settings fields are `github.issuesRepo` and `github.issuesProject`. There are no aliases and no migration: edit `.codefall/settings.json` by hand, or rerun `codefall init --force`.
+
+### Refactoring
+
+* **init:** rename the GitHub tracker flags and fields after what they name ([#66](https://github.com/lividlabs/codefall-cli/issues/66)) ([f82cadf](https://github.com/lividlabs/codefall-cli/commit/f82cadf2e585430c9b994f9c84e488f025f54ce6))
 
 ### Features
 
