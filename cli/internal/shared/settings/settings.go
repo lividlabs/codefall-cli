@@ -102,9 +102,12 @@ var trackerFields = map[string][]fieldSpec{
 	// bd keeps its own configuration under .beads/, so the block carries no fields of its own today;
 	// it exists so the "exactly one tracker block" rule applies to it uniformly.
 	TrackerBeads: {},
+	// The fields say what they point at rather than which forge holds it: the block is already named
+	// github, and "repo" alone read as the repository being set up rather than the one issues are
+	// filed in — which need not be the same repository.
 	TrackerGitHub: {
-		{"repo", true, matches(repoRegexp, "owner/name")},
-		{"project", false, isPositiveInteger},
+		{"issuesRepo", true, matches(repoRegexp, "owner/name")},
+		{"issuesProject", false, isPositiveInteger},
 	},
 }
 

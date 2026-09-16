@@ -61,12 +61,12 @@ type ExtensionSource interface {
 type Request struct {
 	Dir        string
 	Tracker    string
-	GitHubRepo mo.Option[string]
+	IssuesRepo mo.Option[string]
 	// CLIVersion is the binary version that will get stamped into .codefall/manifest.json when
 	// this run writes one. Presentation reads it from the build's own info.
 	CLIVersion string
 
-	GitHubProject mo.Option[int]
+	IssuesProject mo.Option[int]
 	// ReviewPostToPullRequest is whether codefall-review may post its findings to a pull request.
 	// None means nobody was asked — a scripted run that gave no flag — and the file records the
 	// default rather than leaving the block out.

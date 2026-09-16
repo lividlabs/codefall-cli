@@ -5,7 +5,7 @@ codefall
 
 The repo holds two components:
 
-- [`cli/`](cli/) — the Go installer (`codefall init`, `codefall doctor`). Rules: [cli/AGENTS.md](cli/AGENTS.md)
+- [`cli/`](cli/) — the Go installer (`codefall create`, `codefall init`, `codefall doctor`). Rules: [cli/AGENTS.md](cli/AGENTS.md)
 - [`extensions/`](extensions/) — the installable plugin: skills, hooks, and shared scripts. 
 
 Every skill is a **verb**. The verbs chain: `conceptualize` frames the idea, `scaffold` makes the
@@ -37,6 +37,10 @@ codefall init
 
 `codefall init` detects (or takes `--harness`) and installs for the harness: Claude Code, Codex,
 Muse, OpenCode, or Antigravity. 
+
+Starting from nothing, `codefall create my-app` makes the directory, a git repository with an
+optional remote, and a first commit holding a `README.md` and a `.gitignore`; then it runs
+`codefall init` there and offers to push.
 
 ## CLI commands
 

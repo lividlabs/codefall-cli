@@ -8,7 +8,8 @@ A Go command-line tool. One surface, one app, one module.
 
 **State: two components and four shared modules.** `internal/doctor/` (`codefall doctor`) is the
 first component and the reference for the rules below; `internal/initcmd/` (`codefall init`) is the
-second, and follows it. `internal/shared/ui/` holds the palette, the marks, the colour-profile
+second, and follows it; `internal/create/` (`codefall create`) is the third, and runs init's command
+in the directory it makes. `internal/shared/ui/` holds the palette, the marks, the colour-profile
 writer, and the spinner runner; `internal/shared/process/` holds the command runner and the file
 system. `internal/shared/settings/` holds the `.codefall/settings.json` format and
 `internal/shared/text/` the string helpers both components need — both **pure** (ADR-003), so the
@@ -99,7 +100,9 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   the root in the composition root. Flags are `pflag` — never the standard library `flag`.
 - A component's facade exports `Register(do.Injector)` and `Command(do.Injector) *cobra.Command`;
   `main` calls the first and mounts the second. A component with several top-level commands adds
-  `Commands(do.Injector) []*cobra.Command` when that happens.
+  `Commands(do.Injector) []*cobra.Command` when that happens. A command that runs another
+  component's command takes it as a parameter — `create.Command(injector, initcmd.Command(injector))`
+  — built by `main` for it alone, never the instance mounted on the root.
 - Styling is Lip Gloss v2 (`charm.land/lipgloss/v2`), used where it helps. Plain text is the
   default; parsed output (anything piped or `--json`-style) is never styled; human output goes
   through the colour-profile writer `internal/shared/ui` builds (`ui.NewWriter`), never a rendered
