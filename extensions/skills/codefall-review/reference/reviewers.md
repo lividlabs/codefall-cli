@@ -28,7 +28,7 @@ has never heard of is passed through untouched.
 | --- | --- |
 | 1 | `correctness`, `failures`, `behaviour` |
 | 2 | `tests`, `types` |
-| 3 | `conventions`, `comments`, `docs`, `simplify` |
+| 3 | `conventions`, `comments`, `docs`, `simplify`, `local` |
 | 4 | `security` |
 
 A document target runs two groups: the mechanical checks — `structure` and `status` — and the

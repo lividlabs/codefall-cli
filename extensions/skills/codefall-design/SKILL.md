@@ -275,6 +275,13 @@ or does not? A task nobody can tell is done is too big or too vague.
 before it can start? A task with no answer is a root. A cycle is an error in the cut — fix the cut,
 not the edges.
 
+**A task that introduces a tool carries the script change as a criterion.** When a task's
+predicted files include a compose file, a migrations directory, a lockfile, a codegen config, or an
+`.env.example`, one of its acceptance criteria says the project's declared `start` and `update`
+scripts were changed for it, following `codefall-equip`. The environment a teammate refreshes into
+is part of what the task delivers. A project with no `local` block gets the criterion "equip the
+project" on the first such task instead.
+
 Write the staging table.
 
 ### 7. Draft and confirm
@@ -368,6 +375,9 @@ your own initiative.
   grows a duplicate table.
 - **Every task bead carries acceptance criteria** — checkable, citing spec requirement IDs where
   they trace. They are what `codefall-implement` verifies before closing the bead.
+- **A task that introduces infrastructure, a dependency, a migration, or generated code names the
+  local-script change in its criteria.** The scripts stay current at the point of introduction,
+  never as a follow-up.
 - **Verify the graph before collapsing the table.** `bd ready` and `bd dep cycles`, against the
   staging table's roots.
 - **A removed task's bead is reported, never closed silently.** Work may already have happened

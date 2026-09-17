@@ -142,6 +142,7 @@
         "comments",
         "docs",
         "simplify",
+        "local",
         "security",
         "structure",
         "status",

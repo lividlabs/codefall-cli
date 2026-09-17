@@ -165,7 +165,11 @@ The resolved list is passed into worker prompts. Workers re-derive nothing.
   bead with no acceptance field falls back to the design's Hard Constraints plus the spec's
   criteria, and the close reason still records what was verified.
 
-**Tests are part of done, not a follow-up.**
+**Tests are part of done, not a follow-up.** So are the local scripts: a bead whose criteria name
+the `start` and `update` change, or whose diff adds infrastructure, a dependency, a migration, or
+generated code, changes the declared scripts in the same PR, following the `codefall-equip`
+skill's section *When another verb follows this skill*. The bead is the confirmation; the PR body
+names the change.
 
 ## Merges and the mirror
 
@@ -332,6 +336,8 @@ Do not merge. Do not wait for merges. The next session's `bd gate check` finishe
 - **No permission prompts mid-run.** Workers cannot answer them; the go gate states the condition
   and offers single-task mode when it fails.
 - **Tests are part of done.** Planned or discovered, written now, never deferred to `test`.
+- **The local scripts are part of done.** A change that would leave a teammate's refresh stale
+  changes `start` and `update` in the same PR, per `codefall-equip`.
 - **Implement never writes bead metadata and never redesigns the graph.** Metadata is read as a
   recommendation; a wrong task goes back to `codefall-design`.
 - **The mirror never guesses.** The spec's parent issue carries the ladder; requirement children

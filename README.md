@@ -302,9 +302,10 @@ own read-only mode. Then you triage, and this session applies what you took. A m
 and fixes grades its own work on the next pass, and the second reading goes through the same blind
 spots that made the first one worth doing.
 
-**Ten questions, asked separately.** Correctness, swallowed failures, behaviour changes, tests, type
-design, conventions, comment accuracy, documentation that has fallen behind, simplification, and
-security — run as four parallel passes rather than one reviewer looking for everything at once.
+**Eleven questions, asked separately.** Correctness, swallowed failures, behaviour changes, tests,
+type design, conventions, comment accuracy, documentation that has fallen behind, simplification,
+the local-environment scripts left stale by a change, and security — run as four parallel passes
+rather than one reviewer looking for everything at once.
 Documents get their own set: a spec is checked against its concept, a design against its spec, an ADR
 against every other accepted ADR. Before anything runs, the skill names what it resolved and which
 questions it will ask, and you can drop any of them.
