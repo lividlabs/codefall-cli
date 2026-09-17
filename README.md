@@ -83,6 +83,7 @@ TODO: rename the skill names to the actual
 | [`implement`](extensions/skills/codefall-implement/SKILL.md) | Execute the graph: claim ready beads, build each in an isolated worker worktree with tests as part of done, verify against acceptance criteria, open PRs, and walk the waves until the frontier is empty. Never merges to `main`. | in progress |
 | [`review`](extensions/skills/codefall-review/SKILL.md) | Review something and fix what the user accepts: uncommitted work, a branch, an open pull request, a path, a document, or a description of what to look at. A subagent or another harness reviews, the session triages with you and applies what you take, and every finding is committed under `.codefall/reviews/`. | in progress |
 | [`equip`](extensions/skills/codefall-equip/SKILL.md) | Equip a project with the two local-environment scripts `refresh` runs — `start`, which brings its services up, and `update`, which makes the local environment match the checkout — by finding what the project already has or drafting them from what the repository shows, then declaring them in `.codefall/settings.json`. | in progress |
+| [`refresh`](extensions/skills/codefall-refresh/SKILL.md) | Bring the checkout and the local environment current: fetch, fast-forward `main` when that is safe, run the declared `start` and `update`, record the commit the environment now matches, and turn a failure into a sentence that says what to do. The routine before starting new work. | in progress |
 
 ### Concepts
 
@@ -320,6 +321,34 @@ that patterns across reviews are visible, and a `.ignore` entry keeps them out o
 goes through ripgrep — `init` writes that entry, `doctor` warns when it has gone missing, and
 `review` offers to put it back before writing findings into a directory nothing is hiding. Posting
 findings to a pull request is off until a project turns it on.
+
+### Local environment
+
+Pulling `main` has consequences the pull does not perform: a migration the local database needs, a
+dependency to install, code to regenerate, a container to rebuild. Each arrives as a diff, and a
+teammate who does not read diffs has no way to know which. Two verbs close that gap.
+
+**`equip` builds and rebuilds two scripts the project owns.** `start` brings up what the project
+needs running locally; `update` makes the local environment match the checkout. Both are declared
+under `local` in `.codefall/settings.json` as plain shell commands, so a Makefile target or a
+package script is as good as a script of the project's own, and anyone can run them from a terminal.
+On an existing project `equip` searches first and asks one question with what it found; on a new
+one `scaffold` writes them at code depth. Both are idempotent and never destructive: "bring the
+project up to date?" has to be a question anyone can always answer yes to.
+
+**`refresh` runs them, and is the thing to run instead of pulling by hand.** It fetches,
+fast-forwards `main` when the tree is clean and the move is safe, runs `start`, runs `update` when
+the commit has moved since the last clean run, and records that commit in a per-machine stamp so
+the next session on the same commit does nothing. A failure comes back as one sentence saying what
+failed, what it means, and what to do. A feature branch is never rebased and a dirty tree is never
+stashed; the environment is brought level with the checkout either way.
+
+**The scripts stay current at the point of introduction.** A task that adds infrastructure, a
+dependency, a migration, or generated code changes the scripts in the same pull request: `design`
+names it in the task, `implement` counts it toward done, `review` carries a lens for it. `init`
+writes the rule into `AGENTS.md`, `doctor` checks the declaration and that the stamp is
+git-ignored, and every verb that reads the repository reports when `main` has moved or the
+environment is stale.
 
 ### The stance
 

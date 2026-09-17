@@ -681,6 +681,31 @@ Decided at scaffold, 2026-08-16.
   reaches outside the repository, so it is a yes-or-no, and the proof is `update` twice with the
   second exit `0` and quick.
 
+- **The refresh skill, 2026-09-16.** The fifth code PR of the ADR-005 stack, and the verb a
+  teammate runs. `extensions/skills/codefall-refresh/` holds the `SKILL.md`, a
+  `reference/failures.md` mapping the failures `start` and `update` produce most often to what
+  each means and what to say, and a `NOTES.md` with the lineage.
+  The checkout is moved in exactly one case — default branch, clean tree, and `origin/<default>`
+  is a fast-forward — with `git pull --ff-only`, which cannot lose anything and cannot conflict.
+  Every other state is reported and left alone: a diverged default branch, a dirty tree, a feature
+  branch, a detached HEAD, a failed fetch. Rebasing a feature branch was rejected because a
+  conflict inside the verb a teammate runs to get going is the opposite of the point, and stashing
+  was rejected because a stash is state nobody asked for in a stack other sessions share. The
+  environment is brought level with the checkout it finds whatever the row, because that is the
+  half a hand pull leaves undone.
+  `start` runs always: cheap when everything is up, and `update` assumes it ran. `update` runs
+  when the stamp does not match `HEAD` or the user asks; a matching stamp is the skip. The stamp
+  is written after a clean `update` and never otherwise, and only by this verb: written before, a
+  failed `update` would leave a record claiming an environment that does not exist. Refresh checks
+  the stamp is git-ignored with `git check-ignore` and names `codefall init` when it is not; it
+  never adds the entry, which would make it a second owner of init's line.
+  A failure is three things in one paragraph — what failed, quoted in one line; what it means;
+  what to do — and the failures reference sorts each into the environment's (run refresh again
+  once fixed), the script's (`codefall-equip`, since refresh never edits a script), or the
+  checkout's (a lockfile out of step with its manifest is the branch's problem, not the machine's).
+  The README gains a **Local environment** section covering both verbs. The `SessionStart` notice
+  the ADR mentions is not in this stack; the slot exists and a notice can join it later.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

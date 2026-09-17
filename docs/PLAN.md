@@ -17,7 +17,7 @@ The following items are outstanding in order to complete the first verion of the
   - on an existing repo, search first and confirm with evidence: name the candidate scripts it
     found and ask whether to declare them or draft new ones; a candidate that fails the contract
     (not idempotent) is reported, never declared
-- [ ] `refresh` — bring the checkout and the local environment current: start what is down, run
+- [x] `refresh` — bring the checkout and the local environment current: start what is down, run
   `update`, record the stamp, explain failures in plain terms; never drafts a script
 - [ ] point-of-introduction rules — `design` names the script change in the task, `implement`
   counts it toward done, `review` carries a lens for it
