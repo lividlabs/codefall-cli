@@ -388,6 +388,33 @@ Decided at scaffold, 2026-08-16.
   builds its document in place before a later key can fail it, and the error alone never said the
   file survived. Both were proven against the mutation each describes.
 
+- **Harnesses are shared vocabulary, 2026-09-16.** `internal/shared/harness/` is now the one
+  definition of which coding harnesses codefall can set up and where each one reads skills, as a
+  third pure shared module. This reverses the note in **Shared modules, 2026-08-27** that `Harness`
+  stayed initcmd's because nothing else in the project had an opinion about which harnesses can be
+  set up: doctor is about to have one. Once a project records the harnesses it chose in
+  `.codefall/settings.json`, doctor reads that field and reports on the directories it names, and
+  then neither component can be the one that decides where those directories are.
+  What moved is the five names, the sorted roster, and the destination directory per harness:
+  `Harnesses()` and `ParseHarness` are `harness.All` and `harness.Parse`, and `extensionDestDirs` is
+  `harness.SkillsDir`, an Option because a name `Parse` has already refused has no directory to
+  report (ADR-GO-03). That one map is also the roster, so a harness codefall can set up is a harness
+  with somewhere to install and the two cannot disagree. What stayed in initcmd is `hookSpecs` —
+  which file in the embedded tree a definition comes from, and whether it is merged or copied, is how
+  init registers a hook rather than what a harness is. Claude Code's hook destination is now the
+  literal `.claude/settings.json` its three siblings already used, rather than being composed from
+  the skills directory that moved.
+  Nothing a user can see changes here: `--harness` still defaults to `claude-code`, and a run still
+  installs for exactly one harness. This is the first of four changes that together let a project
+  choose several, and it lands on its own so the move is reviewable without the behaviour change on
+  top of it.
+  Both halves of the new module's configuration were proven the way ADR-GO-02 requires. A
+  `charm.land/lipgloss/v2` import in `internal/shared/harness/` compiled and failed
+  `golangci-lint run` on the `pure-shared-modules` rule, and the same run left a deliberate
+  `harness` import from `internal/initcmd/internal/domain/` unreported, which is what proves the
+  `domain-layer` allow entry names the module. The `application-layer` entry needs no throwaway
+  proof: the extension and hook steps import the module, and lint passes.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
