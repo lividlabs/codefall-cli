@@ -740,6 +740,39 @@ Decided at scaffold, 2026-08-16.
   The stack is eight PRs counting the record that opened it, not seven; the first entry said
   seven, and is corrected there rather than rewritten around.
 
+- **The install layout, 2026-09-17.** Recorded as ADR-006; the implementation is the next pull
+  request of this stack. The problem is that the extension step copies the embedded tree into every
+  skills directory a chosen harness reads, and there are two of them — `.claude/` for Claude Code,
+  `.agents/` for the other four — so a project on Claude Code plus anything else holds the tree
+  twice: 64 files under `skills/` at about 375 KB, plus seven files at about 28 KB that no harness
+  looks for by convention.
+  Three layouts were seen. **One real copy in `.agents/` with `.claude/` linking into it** is the
+  smallest change and bets on one harness following a symlinked skills directory. **One real copy
+  in `.codefall/` with every harness directory linking into it** removes every duplicate byte and
+  makes that bet against every harness at once, including harnesses codefall does not support yet.
+  **`.codefall/` holding what is reached by a path codefall writes, with the skills still copied per
+  skills directory** was taken: it depends on no harness following a link, so a harness added later
+  cannot break it, and the duplication it leaves is bounded at two copies of the skills because
+  every harness but Claude Code shares `.agents/`.
+  Found on the way and not deciding: the Claude Code documentation does describe symlinking a skill
+  into a skills directory, so option (a) was supported rather than a guess. It was still refused,
+  because what the docs say about Claude Code says nothing about Codex, OpenCode, Muse,
+  Antigravity, or the next one, and a layout that works only while each of them behaves is a layout
+  with a failure mode — no skills found — that reads to a user as codefall not being installed.
+  Also found: symlinks were available. `.goreleaser.yml` builds `darwin` and `linux` only, so
+  Windows is not a release target and none of the usual reasons to refuse links applied here.
+  Two things land with the layout. **The maintainer documents are installed nowhere** — `AGENTS.md`,
+  `skills/AGENTS.md`, `README.md`, `docs/ROADMAP.md`, and every `NOTES.md`. They are written for
+  someone working on codefall, no skill or script names one, and a project that uses codefall has no
+  reader for them. **There is no automatic clean-up.** Init writes the new layout and re-registers
+  its hooks; codefall deletes only what it can prove it owns, and the old copy sits in directories
+  that hold the project's own files, so the by-hand list goes in the pull request description.
+  One thing the implementation has to settle that this record does not: doctor's per-harness install
+  check stats `<skills dir>/hooks/shared` today, and under the new layout that directory is not
+  written per harness at all. The evidence has to become something still per harness — the files the
+  manifest records for that harness, or the skills directory — and the decision-log entry *Doctor
+  reports on the harnesses the settings name* is where the constraints on that check were set.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
