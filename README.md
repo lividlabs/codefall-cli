@@ -82,6 +82,7 @@ TODO: rename the skill names to the actual
 | [`design`](extensions/skills/codefall-design/SKILL.md) | Decide how a feature gets built and put the work into the graph: a design document under `docs/designs/` scaled to the size of the change, ADRs for the choices that are hard to reverse, and the tasks in Beads with their dependency edges. | in progress |
 | [`implement`](extensions/skills/codefall-implement/SKILL.md) | Execute the graph: claim ready beads, build each in an isolated worker worktree with tests as part of done, verify against acceptance criteria, open PRs, and walk the waves until the frontier is empty. Never merges to `main`. | in progress |
 | [`review`](extensions/skills/codefall-review/SKILL.md) | Review something and fix what the user accepts: uncommitted work, a branch, an open pull request, a path, a document, or a description of what to look at. A subagent or another harness reviews, the session triages with you and applies what you take, and every finding is committed under `.codefall/reviews/`. | in progress |
+| [`equip`](extensions/skills/codefall-equip/SKILL.md) | Equip a project with the two local-environment scripts `refresh` runs — `start`, which brings its services up, and `update`, which makes the local environment match the checkout — by finding what the project already has or drafting them from what the repository shows, then declaring them in `.codefall/settings.json`. | in progress |
 
 ### Concepts
 

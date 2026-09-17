@@ -11,7 +11,7 @@ The following items are outstanding in order to complete the first verion of the
 - [ ] `test` — run tests
   - unit, integration, and e2e
   - testing scope: full suite, a subset based on local/branch changes, a specific subset
-- [ ] `equip` — build and rebuild the project's local scripts, `start` and `update`; followed as a
+- [x] `equip` — build and rebuild the project's local scripts, `start` and `update`; followed as a
   reference by `scaffold` at code depth and by `implement` when a task introduces infrastructure,
   a dependency, a migration, or generated code
   - on an existing repo, search first and confirm with evidence: name the candidate scripts it
