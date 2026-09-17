@@ -40,6 +40,10 @@ There are two ways to get started, with or without an existing repository.
 - Antigravity
 - Muse
 
+A project can use more than one, and `init` asks which ones to set up rather than choosing for you.
+`--harness` answers without asking and takes several: repeat the flag, or separate the names with
+commas.
+
 ### New Projects
 
 Using the `create` command will make your project directory, initialize git with an optional remote, create a barebones first commit,
@@ -51,7 +55,10 @@ codefall create
 
 ### Existing Projects
 
-Running the `init` command installs configuration for codefall and extensions for the harnesses in your repo.
+Running the `init` command installs configuration for codefall, and the extension for each harness you
+choose. It asks which harnesses the project uses and records them in `.codefall/settings.json`; a rerun
+installs for the harnesses already recorded there, so `--harness` is only needed the first time, or to
+add one.
 
 ```
 codefall init
