@@ -11,10 +11,32 @@ The following items are outstanding in order to complete the first verion of the
 - [ ] `test` — run tests
   - unit, integration, and e2e
   - testing scope: full suite, a subset based on local/branch changes, a specific subset
+- [ ] `equip` — build and rebuild the project's local scripts, `start` and `update`; followed as a
+  reference by `scaffold` at code depth and by `implement` when a task introduces infrastructure,
+  a dependency, a migration, or generated code
+  - on an existing repo, search first and confirm with evidence: name the candidate scripts it
+    found and ask whether to declare them or draft new ones; a candidate that fails the contract
+    (not idempotent) is reported, never declared
+- [ ] `refresh` — bring the checkout and the local environment current: start what is down, run
+  `update`, record the stamp, explain failures in plain terms; never drafts a script
+- [ ] point-of-introduction rules — `design` names the script change in the task, `implement`
+  counts it toward done, `review` carries a lens for it
+- [ ] `scaffold` emits both scripts at code depth
 
 ## Command Line
 - [ ] Set up `mise` config for the cli tool inside of init
 - [ ] `create` command to start a new project
+- [ ] `local` block in `.codefall/settings.json` declaring the `start` and `update` entry points;
+  `doctor` checks they exist and are runnable
+- [ ] `init` writes the refresh rule into `AGENTS.md` through the marker mechanism, and names
+  `equip` in its report when nothing is declared
+- [ ] `preflight.sh` fetches and reports commits behind the default branch, a dirty tree, and the
+  refresh stamp against `HEAD`; every verb reports it
+
+### Landing order
+Stacked PRs, in this order: settings schema plus doctor → init's `AGENTS.md` section → preflight
+with the stamp → `equip` → `refresh` → the design/implement/review rules → scaffold at code depth.
+The decision log entry for 2026-09-16 has the reasoning.
 
 ## Testing
 - Test all of the skills against an actual project.
@@ -28,6 +50,8 @@ The following items are outstanding in order to complete the first verion of the
   - [ ] `review`
   - [ ] `report`
   - [ ] `test`
+  - [ ] `equip`
+  - [ ] `refresh`
 
 ## Completed
 
