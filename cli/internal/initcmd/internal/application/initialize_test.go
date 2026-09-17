@@ -211,7 +211,7 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 			Tracker:       settings.TrackerGitHub,
 			IssuesRepo:    mo.Some("lividlabs/codefall-cli"),
 			IssuesProject: mo.Some(3),
-			Harness:       harness.ClaudeCode,
+			Harnesses:     []string{harness.ClaudeCode},
 		},
 		observer,
 	)
@@ -263,7 +263,7 @@ func TestRunEncodesGitHubSettings(t *testing.T) {
 			Tracker:       settings.TrackerGitHub,
 			IssuesRepo:    mo.Some("owner/name"),
 			IssuesProject: mo.Some(3),
-			Harness:       harness.ClaudeCode,
+			Harnesses:     []string{harness.ClaudeCode},
 		},
 		nil,
 	); err != nil {
@@ -303,7 +303,7 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 				Dir:        workingDir,
 				Tracker:    settings.TrackerGitHub,
 				IssuesRepo: mo.Some("owner/name"),
-				Harness:    harness.ClaudeCode,
+				Harnesses:  []string{harness.ClaudeCode},
 			},
 			want: `  "tracker": "github",
   "github": {
@@ -317,7 +317,7 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 		},
 		{
 			name:    "beads",
-			request: Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: harness.ClaudeCode},
+			request: Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harnesses: []string{harness.ClaudeCode}},
 			want: `  "tracker": "beads",
   "beads": {},
   "review": {
@@ -331,7 +331,7 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 			request: Request{
 				Dir:                     workingDir,
 				Tracker:                 settings.TrackerBeads,
-				Harness:                 harness.ClaudeCode,
+				Harnesses:               []string{harness.ClaudeCode},
 				ReviewPostToPullRequest: mo.Some(true),
 			},
 			want: `  "review": {
@@ -366,7 +366,7 @@ func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
 
 	report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Run(
 		t.Context(),
-		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: harness.ClaudeCode},
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harnesses: []string{harness.ClaudeCode}},
 		nil,
 	)
 	if err != nil {
@@ -394,7 +394,7 @@ func TestRunRewritesSettingsWithForce(t *testing.T) {
 
 	report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Run(
 		t.Context(),
-		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: harness.ClaudeCode, Force: true},
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harnesses: []string{harness.ClaudeCode}, Force: true},
 		nil,
 	)
 	if err != nil {
@@ -444,7 +444,7 @@ func TestRunStopsOnAStepThatFails(t *testing.T) {
 
 			observer := &recordingObserver{}
 
-			request := Request{Dir: workingDir, Tracker: settings.TrackerGitHub, Harness: harness.ClaudeCode}
+			request := Request{Dir: workingDir, Tracker: settings.TrackerGitHub, Harnesses: []string{harness.ClaudeCode}}
 			if tc.name != "the settings could not be built" {
 				request.IssuesRepo = mo.Some("owner/name")
 			}
@@ -480,7 +480,7 @@ func TestRunReportsAnUnreadableSettingsFile(t *testing.T) {
 
 	if _, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Run(
 		t.Context(),
-		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: harness.ClaudeCode},
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harnesses: []string{harness.ClaudeCode}},
 		nil,
 	); err == nil || !strings.Contains(err.Error(), "read .codefall/settings.json") {
 		t.Errorf("Run error = %v, want it to say the settings could not be read", err)
@@ -493,7 +493,7 @@ func TestRunStopsOnACancelledContext(t *testing.T) {
 
 	_, err := NewInitialize(newFakeFileSystem(), toolsInstalled(), newFakeExtensionSource()).Run(
 		ctx,
-		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: harness.ClaudeCode},
+		Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harnesses: []string{harness.ClaudeCode}},
 		nil,
 	)
 	if !errors.Is(err, context.Canceled) {

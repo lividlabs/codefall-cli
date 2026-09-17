@@ -182,7 +182,7 @@ func TestAgentsStepWritesClaudeMdOnlyForClaudeCode(t *testing.T) {
 	files := settled("{}")
 
 	request := beadsRequest()
-	request.Harness = "aider"
+	request.Harnesses = []string{"aider"}
 
 	result, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).agents(t.Context(), request)
 	if err != nil {

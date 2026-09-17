@@ -38,6 +38,13 @@ func (i *Initialize) preflight(ctx context.Context, request Request) error {
 		}
 	}
 
+	// A run for no harness has nowhere to install, and every step after this one would report doing
+	// nothing rather than failing. It is refused here, where a run that cannot finish has not
+	// started either.
+	if len(chosen(request)) == 0 {
+		add(errors.New("no harness to set up"))
+	}
+
 	for _, tool := range requiredTools(request) {
 		if i.runner.LookPath(tool.name).IsAbsent() {
 			add(missingTool(tool))

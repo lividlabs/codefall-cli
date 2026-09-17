@@ -74,25 +74,86 @@ var hookSourceDirs = func() []string {
 // extension step has already copied the shared scripts the hooks point at, so the destination of
 // any script path in a definition exists by the time this runs.
 func (i *Initialize) hook(ctx context.Context, request Request) (domain.StepResult, error) {
-	if harness.SkillsDir(request.Harness).IsAbsent() {
-		return domain.StepResult{}, fmt.Errorf("harness %q has no extension mechanism", request.Harness)
-	}
-
-	spec, known := hookSpecs[request.Harness]
-	if !known {
-		return domain.HookStep.Skipped(fmt.Sprintf("codefall has no hooks for %s", request.Harness)), nil
-	}
-
-	if spec.format == formatCopy {
-		return i.copyHook(request.Dir, spec)
-	}
-
-	prefix, err := i.repositoryPrefix(ctx, request.Dir)
-	if err != nil {
+	if _, err := skillsDirs(request); err != nil {
 		return domain.StepResult{}, err
 	}
 
-	return i.mergeHook(request.Dir, prefix, spec)
+	// The path below the repository root is the same answer for every harness, and asking git for it
+	// is only worth doing when a definition that names the root is about to be registered.
+	prefix := mo.None[string]()
+
+	results := make([]domain.StepResult, 0, len(request.Harnesses))
+
+	for _, name := range chosen(request) {
+		spec, known := hookSpecs[name]
+		if !known {
+			results = append(results,
+				domain.HookStep.Skipped(fmt.Sprintf("codefall has no hooks for %s", name)))
+
+			continue
+		}
+
+		if spec.format == formatCopy {
+			result, err := i.copyHook(request.Dir, spec)
+			if err != nil {
+				return domain.StepResult{}, err
+			}
+
+			results = append(results, result)
+
+			continue
+		}
+
+		if prefix.IsAbsent() {
+			below, err := i.repositoryPrefix(ctx, request.Dir)
+			if err != nil {
+				return domain.StepResult{}, err
+			}
+
+			prefix = mo.Some(below)
+		}
+
+		result, err := i.mergeHook(request.Dir, prefix.OrEmpty(), spec)
+		if err != nil {
+			return domain.StepResult{}, err
+		}
+
+		results = append(results, result)
+	}
+
+	return oneHookResult(results), nil
+}
+
+// oneHookResult is what the step reports when it has registered with several harnesses: the outcome
+// is Done when any registration changed something, and the detail is every harness's own sentence.
+// A run for one harness reports that harness's result as it is, which is what the step has always
+// said.
+func oneHookResult(results []domain.StepResult) domain.StepResult {
+	switch len(results) {
+	case 0:
+		return domain.HookStep.Skipped("no harness to register codefall's hooks with")
+	case 1:
+		return results[0]
+	}
+
+	details := make([]string, 0, len(results))
+	done := false
+
+	for _, result := range results {
+		details = append(details, result.Detail)
+
+		if result.Outcome == domain.OutcomeDone {
+			done = true
+		}
+	}
+
+	detail := strings.Join(details, "; ")
+
+	if done {
+		return domain.HookStep.Done(detail)
+	}
+
+	return domain.HookStep.Skipped(detail)
 }
 
 // mergeHook merges the harness's hook definitions into the file it reads them from. The
