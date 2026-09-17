@@ -13,6 +13,7 @@ import (
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/manifest"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
@@ -113,12 +114,12 @@ func TestTheManifestRecordsOnlyARunThatFinished(t *testing.T) {
 			t.Fatalf("Run: %v", err)
 		}
 
-		var recorded manifest
-		if err := json.Unmarshal(files.files[filepath.Join(workingDir, domain.ManifestName)], &recorded); err != nil {
-			t.Fatalf("decode %s: %v", domain.ManifestName, err)
+		var recorded manifest.Document
+		if err := json.Unmarshal(files.files[filepath.Join(workingDir, manifest.Name)], &recorded); err != nil {
+			t.Fatalf("decode %s: %v", manifest.Name, err)
 		}
 
-		want := manifest{Harnesses: map[string]harnessInstall{
+		want := manifest.Document{Harnesses: map[string]manifest.Install{
 			harness.ClaudeCode: {Version: "v1.2.3", Files: []string{".claude/skills/design/SKILL.md"}},
 		}}
 		if !reflect.DeepEqual(recorded, want) {
@@ -134,7 +135,7 @@ func TestTheManifestRecordsOnlyARunThatFinished(t *testing.T) {
 			t.Fatal("Run = nil error, want the hook step to stop the run")
 		}
 
-		if _, wrote := files.files[filepath.Join(workingDir, domain.ManifestName)]; wrote {
+		if _, wrote := files.files[filepath.Join(workingDir, manifest.Name)]; wrote {
 			t.Error("a failed run recorded a manifest, want none until every step has succeeded")
 		}
 	})
@@ -174,7 +175,7 @@ func TestInstalledReportsWhatFinishedRunsRecorded(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			files := newFakeFileSystem()
 			if !tc.missing {
-				files.files[filepath.Join(workingDir, domain.ManifestName)] = []byte(tc.body)
+				files.files[filepath.Join(workingDir, manifest.Name)] = []byte(tc.body)
 			}
 
 			got, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Installed(workingDir)

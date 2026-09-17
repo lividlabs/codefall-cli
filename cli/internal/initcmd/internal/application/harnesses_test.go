@@ -9,6 +9,7 @@ import (
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/manifest"
 )
 
 // requestFor is a settled project's run for whichever harnesses the test names.
@@ -32,12 +33,12 @@ func runFor(t *testing.T, files *fakeFileSystem, source ExtensionSource, request
 }
 
 // recordedManifestIn decodes the install record a finished run wrote.
-func recordedManifestIn(t *testing.T, files *fakeFileSystem) manifest {
+func recordedManifestIn(t *testing.T, files *fakeFileSystem) manifest.Document {
 	t.Helper()
 
-	var recorded manifest
-	if err := json.Unmarshal(files.files[filepath.Join(workingDir, domain.ManifestName)], &recorded); err != nil {
-		t.Fatalf("decode %s: %v", domain.ManifestName, err)
+	var recorded manifest.Document
+	if err := json.Unmarshal(files.files[filepath.Join(workingDir, manifest.Name)], &recorded); err != nil {
+		t.Fatalf("decode %s: %v", manifest.Name, err)
 	}
 
 	return recorded
@@ -98,8 +99,8 @@ func TestExtensionStepCopiesOncePerDirectoryHoweverManyHarnessesShareIt(t *testi
 		t.Errorf("fetches = %+v, want one into %q", fetcher.calls, filepath.Join(workingDir, ".agents"))
 	}
 
-	install := harnessInstall{Version: "v1.2.3", Files: []string{".agents/skills/design/SKILL.md"}}
-	want := manifest{Harnesses: map[string]harnessInstall{
+	install := manifest.Install{Version: "v1.2.3", Files: []string{".agents/skills/design/SKILL.md"}}
+	want := manifest.Document{Harnesses: map[string]manifest.Install{
 		harness.Antigravity: install,
 		harness.Codex:       install,
 		harness.Muse:        install,
@@ -121,7 +122,7 @@ func TestTheManifestRecordsWhereEachHarnessFilesLanded(t *testing.T) {
 
 	runFor(t, files, newFakeExtensionSource(), request)
 
-	want := manifest{Harnesses: map[string]harnessInstall{
+	want := manifest.Document{Harnesses: map[string]manifest.Install{
 		harness.ClaudeCode: {Version: "v1.2.3", Files: []string{".claude/skills/design/SKILL.md"}},
 		harness.Codex:      {Version: "v1.2.3", Files: []string{".agents/skills/design/SKILL.md"}},
 	}}
@@ -136,7 +137,7 @@ func TestTheManifestRecordsWhereEachHarnessFilesLanded(t *testing.T) {
 // naming a single harness could not do.
 func TestTheManifestKeepsWhatAnEarlierRunRecordedForAnotherHarness(t *testing.T) {
 	files := settled("")
-	files.files[filepath.Join(workingDir, domain.ManifestName)] = []byte(
+	files.files[filepath.Join(workingDir, manifest.Name)] = []byte(
 		`{"harnesses": {"claude-code": {"version": "v0.1.0", "files": [".claude/skills/old/SKILL.md"]}}}`)
 
 	request := requestFor(harness.Codex)
@@ -144,7 +145,7 @@ func TestTheManifestKeepsWhatAnEarlierRunRecordedForAnotherHarness(t *testing.T)
 
 	runFor(t, files, newFakeExtensionSource(), request)
 
-	want := manifest{Harnesses: map[string]harnessInstall{
+	want := manifest.Document{Harnesses: map[string]manifest.Install{
 		harness.ClaudeCode: {Version: "v0.1.0", Files: []string{".claude/skills/old/SKILL.md"}},
 		harness.Codex:      {Version: "v1.2.3", Files: []string{".agents/skills/design/SKILL.md"}},
 	}}

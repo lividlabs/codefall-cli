@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -10,7 +9,7 @@ import (
 
 	"github.com/samber/mo"
 
-	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/manifest"
 )
 
 // fetchSkills copies the embedded extension tree into one skills directory, minus the per-harness
@@ -24,23 +23,6 @@ func (i *Initialize) fetchSkills(ctx context.Context, dir, dest string) ([]strin
 	return installed, nil
 }
 
-// manifest is the install record: what each harness has installed, and which binary installed it.
-//
-// A run updates the entries for the harnesses it installed for and leaves every other entry as it
-// was. A project set up for two harnesses therefore keeps both records, where a file naming one
-// harness lost the first record as soon as the second install finished — and the next run for that
-// first harness repeated work it had already done.
-type manifest struct {
-	Harnesses map[string]harnessInstall `json:"harnesses"`
-}
-
-// harnessInstall is one harness's entry: the binary that wrote its files, and the files, relative to
-// the directory init installed in.
-type harnessInstall struct {
-	Version string   `json:"version"`
-	Files   []string `json:"files"`
-}
-
 // Installation is what finished runs recorded, as presentation reads it back: the version each
 // harness was installed at. The gate compares it per harness, because a current version for one
 // harness says nothing about a project that has never been set up for the harness in front of it
@@ -50,32 +32,19 @@ type Installation struct {
 }
 
 // Installed is the manifest through the use-case boundary, so presentation can compare it with the
-// binary's own tag without knowing the manifest's path. A harness recorded with no version records
-// nothing a comparison can use, so it is left out; a manifest that records no usable version at all
-// reads the same as no manifest (ADR-GO-03).
+// binary's own tag without knowing the manifest's path. A manifest that records no usable version at
+// all reads the same as no manifest (ADR-GO-03).
 func (i *Initialize) Installed(dir string) (mo.Option[Installation], error) {
-	data, err := i.files.ReadFile(filepath.Join(dir, domain.ManifestName))
-
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-		return mo.None[Installation](), nil
-	case err != nil:
-		return mo.None[Installation](), fmt.Errorf("read %s: %w", domain.ManifestName, err)
-	}
-
-	previous, err := decodeManifest(data)
+	recorded, read, err := i.recordedManifest(dir)
 	if err != nil {
 		return mo.None[Installation](), err
 	}
 
-	versions := map[string]string{}
-
-	for name, install := range previous.Harnesses {
-		if install.Version != "" {
-			versions[name] = install.Version
-		}
+	if !read {
+		return mo.None[Installation](), nil
 	}
 
+	versions := recorded.Versions()
 	if len(versions) == 0 {
 		return mo.None[Installation](), nil
 	}
@@ -90,61 +59,48 @@ func (i *Initialize) Installed(dir string) (mo.Option[Installation], error) {
 // It merges into what is already recorded rather than replacing it. A run for one harness has done
 // nothing to another harness's install and has no business erasing the record of it.
 func (i *Initialize) writeManifest(dir, version string, installed map[string][]string) error {
-	recorded, err := i.recordedManifest(dir)
+	recorded, _, err := i.recordedManifest(dir)
 	if err != nil {
 		return err
+	}
+
+	if recorded.Harnesses == nil {
+		recorded.Harnesses = map[string]manifest.Install{}
 	}
 
 	for name, files := range installed {
-		recorded.Harnesses[name] = harnessInstall{Version: version, Files: files}
+		recorded.Harnesses[name] = manifest.Install{Version: version, Files: files}
 	}
 
-	body, err := json.MarshalIndent(recorded, "", "  ")
+	body, err := manifest.Encode(recorded)
 	if err != nil {
 		return err
 	}
 
-	if err := i.files.WriteFile(filepath.Join(dir, domain.ManifestName), body); err != nil {
-		return fmt.Errorf("write %s: %w", domain.ManifestName, err)
+	if err := i.files.WriteFile(filepath.Join(dir, manifest.Name), body); err != nil {
+		return fmt.Errorf("write %s: %w", manifest.Name, err)
 	}
 
 	return nil
 }
 
-// recordedManifest is what the file already says, with an entry map ready to write into. A file that
-// is not there is an empty record rather than an error, because this is what creates it.
-func (i *Initialize) recordedManifest(dir string) (manifest, error) {
-	recorded := manifest{Harnesses: map[string]harnessInstall{}}
-
-	data, err := i.files.ReadFile(filepath.Join(dir, domain.ManifestName))
+// recordedManifest is what the file already says. A file that is not there is not an error and not a
+// record either, because this is what creates it — so the second return says whether there was one to
+// read, which the caller needs when the difference matters (ADR-GO-03).
+func (i *Initialize) recordedManifest(dir string) (manifest.Document, bool, error) {
+	data, err := i.files.ReadFile(filepath.Join(dir, manifest.Name))
 
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		return recorded, nil
+		return manifest.Document{}, false, nil
 	case err != nil:
-		return manifest{}, fmt.Errorf("read %s: %w", domain.ManifestName, err)
+		return manifest.Document{}, false, fmt.Errorf("read %s: %w", manifest.Name, err)
 	}
 
-	previous, err := decodeManifest(data)
+	recorded, err := manifest.Decode(data)
 	if err != nil {
-		return manifest{}, err
+		return manifest.Document{}, false, err
 	}
 
-	for name, install := range previous.Harnesses {
-		recorded.Harnesses[name] = install
-	}
-
-	return recorded, nil
-}
-
-// decodeManifest reads the record. A manifest written before harnesses were recorded per install
-// names none of them, which decodes cleanly to an empty record: the run then repeats every step,
-// which they are all built to tolerate.
-func decodeManifest(data []byte) (manifest, error) {
-	var previous manifest
-	if err := json.Unmarshal(data, &previous); err != nil {
-		return manifest{}, fmt.Errorf("decode %s: %w", domain.ManifestName, err)
-	}
-
-	return previous, nil
+	return recorded, true, nil
 }

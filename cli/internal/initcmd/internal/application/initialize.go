@@ -11,6 +11,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/manifest"
 )
 
 // FileSystem is initcmd's view of the working directory (one gateway role). It reads what is already
@@ -174,7 +175,7 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 	// upgrade gate believes it: written any earlier, a run that failed a later step would leave a
 	// record claiming work it never did, and the next run would report there was nothing to do.
 	if err := i.writeManifest(request.Dir, request.CLIVersion, installed); err != nil {
-		return domain.Report{}, fmt.Errorf("record the installation to %s: %w", domain.ManifestName, err)
+		return domain.Report{}, fmt.Errorf("record the installation to %s: %w", manifest.Name, err)
 	}
 
 	return domain.NewReport(results...), nil

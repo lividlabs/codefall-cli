@@ -13,6 +13,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/doctor/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/manifest"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
@@ -25,11 +26,27 @@ var (
 	claudeShared = filepath.Join(workingDir, ".claude", "hooks", "shared")
 	agentsShared = filepath.Join(workingDir, ".agents", "hooks", "shared")
 	settingsPath = filepath.Join(codefallDir, "settings.json")
+	manifestPath = filepath.Join(workingDir, manifest.Name)
 	ignorePath   = filepath.Join(workingDir, settings.IgnoreName)
 	schemaRemedy = "create .codefall/settings.json; schema: " + settings.SchemaID
 	fixRemedy    = "fix the fields above; schema: " + settings.SchemaID
 	ignoreRemedy = "add " + settings.IgnoreEntry + " to " + settings.IgnoreName +
 		", or run codefall init again"
+	leftoverRemedy = "remove the files " + manifest.Name +
+		" lists for codex; codefall never deletes what it wrote"
+)
+
+// installedManifest is what a finished run leaves on record: one entry for the harness the settings
+// name. droppedManifest is the same project after it stopped naming codex, with everything codefall
+// wrote for codex still recorded.
+const (
+	installedManifest = `{"harnesses": {
+  "claude-code": {"version": "v1.2.3", "files": [".claude/skills/design/SKILL.md"]}
+}}`
+	droppedManifest = `{"harnesses": {
+  "claude-code": {"version": "v1.2.3", "files": [".claude/skills/design/SKILL.md"]},
+  "codex": {"version": "v1.2.3", "files": [".agents/skills/design/SKILL.md"]}
+}}`
 )
 
 const validSettings = `{
@@ -117,6 +134,7 @@ func healthy() (*fakeFileSystem, *fakeCommandRunner) {
 		dirs: map[string]bool{codefallDir: true, claudeShared: true},
 		files: map[string][]byte{
 			settingsPath: []byte(validSettings),
+			manifestPath: []byte(installedManifest),
 			ignorePath:   []byte(settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n"),
 		},
 		errs: map[string]error{},
@@ -154,6 +172,7 @@ var allPass = []outcome{
 	{domain.SettingsComplete.ID, domain.StatusPass},
 	{domain.ReviewsIgnored.ID, domain.StatusPass},
 	{domain.HarnessesInstalled.ID, domain.StatusPass},
+	{domain.HarnessesLeftOver.ID, domain.StatusPass},
 	{domain.BeadsInstalled.ID, domain.StatusPass},
 	{domain.BeadsInitialized.ID, domain.StatusPass},
 	{domain.GHInstalled.ID, domain.StatusPass},
@@ -187,16 +206,19 @@ var (
 	// checks skips it too.
 	afterCodefallDir = []string{
 		domain.SettingsFile.ID, domain.SettingsJSON.ID, domain.SettingsComplete.ID,
-		domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID,
+		domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
 	}
 	afterSettingsFile = []string{
 		domain.SettingsJSON.ID, domain.SettingsComplete.ID, domain.ReviewsIgnored.ID,
-		domain.HarnessesInstalled.ID,
+		domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
 	}
 	afterSettingsJSON = []string{
 		domain.SettingsComplete.ID, domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID,
+		domain.HarnessesLeftOver.ID,
 	}
-	afterSettingsDone = []string{domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID}
+	afterSettingsDone = []string{
+		domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
+	}
 	afterBeadsMissing = []string{domain.BeadsInitialized.ID}
 	afterGHMissing    = []string{domain.GHAuthenticated.ID, domain.GHScopes.ID}
 	afterGHAuth       = []string{domain.GHScopes.ID}
@@ -359,6 +381,29 @@ func TestDiagnoseRun(t *testing.T) {
 			target:     domain.HarnessesInstalled.ID,
 			wantDetail: "Cannot stat " + claudeShared + ": permission denied",
 			wantRemedy: mo.None[string](),
+		},
+		{
+			// A project that drops a harness keeps every file codefall wrote for it, because codefall
+			// only ever writes what it owns and never deletes. The directory is still on disk here,
+			// which is the state the warning is about.
+			name: "an install is left over from a harness the settings dropped",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[manifestPath] = []byte(droppedManifest)
+				f.dirs[agentsShared] = true
+			},
+			want:       outcomes(map[string]domain.Status{domain.HarnessesLeftOver.ID: domain.StatusWarn}),
+			target:     domain.HarnessesLeftOver.ID,
+			wantDetail: "codefall is still installed for codex, which the settings no longer name",
+			wantRemedy: mo.Some(leftoverRemedy),
+		},
+		{
+			// No record means no install that could be left over. Init fails on a manifest it cannot
+			// read the next time it writes one, so nothing here goes unsaid.
+			name: "there is no manifest to hold the settings against",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				delete(f.files, manifestPath)
+			},
+			want: outcomes(nil, domain.HarnessesLeftOver.ID),
 		},
 		{
 			name: "bd is not installed",

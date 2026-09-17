@@ -490,11 +490,40 @@ Decided at scaffold, 2026-08-16.
   check is absent from the report, which is what every other prerequisite failure already does. No
   presentation change was needed — `Sections()` groups by first appearance, so a new category reports
   itself.
-  What this does not do is warn about a harness codefall finds installed that the settings do not
-  name. That needs doctor to read `.codefall/manifest.json`, which would mean promoting the manifest
+  What this entry did not do is warn about a harness codefall finds installed that the settings do
+  not name. That needs doctor to read `.codefall/manifest.json`, which means promoting the manifest
   format to a shared module, and codefall's stance is that it never removes what it wrote, so the
-  remedy would be manual. It stays for a later change, as does detecting harnesses a project uses
-  without codefall knowing: there is no signal for that which codefall does not write itself.
+  remedy is somebody's to carry out by hand. **Doctor reports an install the settings dropped,
+  2026-09-16** below is that change.
+
+- **Doctor reports an install the settings dropped, 2026-09-16.** A second check in the Harnesses
+  category: the manifest records an install for a harness `.codefall/settings.json` no longer names.
+  A project set up for two harnesses that later drops one keeps every file codefall wrote for it,
+  because codefall only ever writes what it owns and never deletes — so the skills for a dropped
+  harness stay where an agent reading that directory will find them, and the hook codefall registered
+  for it still runs.
+  `internal/shared/manifest/` is now the one definition of the `.codefall/manifest.json` format, a
+  fourth pure shared module, for the reason the settings format is one: initcmd writes that file and
+  doctor reads it, and a file initcmd wrote that doctor could not read would be the worst bug in
+  either (ADR-003). initcmd's private `manifest` and `harnessInstall` structs and its
+  `domain.ManifestName` are gone; `Decode`, `Encode`, `Recorded` and `Versions` belong to the format,
+  and `Installation` stays initcmd's because what the upgrade gate compares is initcmd's business. The
+  format itself is unchanged, so no project's file needs anything done to it.
+  The check warns rather than fails, because nothing stops working. Its remedy points at the manifest
+  rather than naming a directory to delete: the manifest is what records which files codefall wrote
+  for that harness, and harnesses share directories — four of the five read `.agents/` — so the
+  directory a dropped harness read may still be another's. Which of those files are safe to remove is
+  the reader's judgement, not doctor's.
+  A manifest that is missing, unreadable, or no longer a manifest records no install that could be
+  left over, so the check is absent from the report rather than complaining a second time: doctor has
+  no check for the manifest's own shape, the install check has already reported whatever is missing on
+  disk, and init fails on a file it cannot read the next time it writes one.
+  The module's four `.golangci.yml` entries were proven the way ADR-GO-02 requires. A
+  `charm.land/lipgloss/v2` import in `internal/shared/manifest/` compiled and failed
+  `golangci-lint run` on the `pure-shared-modules` rule, and the same run left a deliberate `manifest`
+  import from `internal/initcmd/internal/domain/` unreported. That second proof matters here in a way
+  it did not for `harness`: no `domain/` package imports the manifest format, so nothing else would
+  have exercised the entry.
 
 ## Open
 
