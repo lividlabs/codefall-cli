@@ -119,6 +119,10 @@ Go needs no formatter config, no test-runner dependency, and no build tool — `
 ship with the toolchain. Do not add `testify`, a mock generator, or a task runner reflexively; add
 them when a project asks.
 
+The local scripts at this tier: `update` runs `go mod download`, and `mise install` first when the
+project pins a toolchain; `start` exits `0` with nothing to bring up. Where the tier added a
+`Makefile`, they are two targets there rather than a script.
+
 The **runnable skeleton** tier adds `cmd/<app>/main.go` wiring the composition root end to end with
 no features in it, plus each component directory with its facade file and the four nested layer
 packages.

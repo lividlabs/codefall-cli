@@ -173,6 +173,12 @@ auditing every store for cross-request leakage.
 The **runnable skeleton** tier adds the component folders with their `index.ts` facades and nested
 Clean layers, plus one Inversify composition root per app that boots with no features in it.
 
+The local scripts at either code tier: `update` runs the package manager's frozen install for the
+lockfile the tier wrote — `npm ci`, `pnpm install --frozen-lockfile`, `yarn install --immutable`
+— and `mise install` first when the project pins a runtime; `start` exits `0` with nothing to bring
+up. They are two `package.json` scripts, `local:start` and `local:update`, declared as
+`npm run local:start` and `npm run local:update` in the package manager's own form.
+
 ---
 
 ## Adding a new profile

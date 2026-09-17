@@ -582,7 +582,7 @@ Decided at scaffold, 2026-08-16.
   something current), `catch-up`, `provision`. `equip` because the repository is being equipped
   with the tools it needs to run; `refresh` because nothing else in codefall refreshes anything,
   and it describes the routine whether or not anything changed.
-  Lands as a stack of seven PRs; the order is in [`PLAN.md`](PLAN.md). The contract with projects —
+  Lands as a stack of eight PRs, this record first; the order is in [`PLAN.md`](PLAN.md). The contract with projects —
   the `local` block, the two script names, idempotency, the stamp — is a breaking-change surface
   once any project declares it, and is recorded as
   [`ADR-005`](adrs/ADR-005-local-environment-scripts.md).
@@ -722,6 +722,23 @@ Decided at scaffold, 2026-08-16.
   earliest moment the need is visible; implement is where the work happens and the only place a
   worker reads; review is the backstop for work that came through neither. The same sentence in
   the `AGENTS.md` section init writes covers an ad hoc session that used none of the verbs.
+
+- **Scaffold equips at code depth, 2026-09-16.** The last PR of the ADR-005 stack. Either code
+  tier of `codefall-scaffold` now writes the `start` and `update` scripts and proves them with the
+  rest of what it emitted, following `codefall-equip`'s *When another verb follows this skill*
+  section: nothing exists to search for, so the draft comes from the manifest and lockfile the
+  tier wrote and the task runner if the profile added one. `start` exits `0` with nothing to bring
+  up, because scaffold decides how a project is built and never what services it uses, and the
+  first task that adds a service revises it under the point-of-introduction rule. Each profile's
+  depth notes say what `update` does for its language — `go mod download`, the package manager's
+  frozen install — and where a `Makefile` exists the scripts are two targets there.
+  The declaration goes into `.codefall/settings.json` when the file exists. `codefall create` runs
+  init before anything else, so it usually does; when a scaffold runs in a directory init has not
+  seen, the scripts are written and the declaration is reported as owed once init has run, rather
+  than scaffold writing a settings file that is init's. Docs-only output writes no scripts and
+  names `codefall-equip` as owed, beside boundary enforcement.
+  The stack is eight PRs counting the record that opened it, not seven; the first entry said
+  seven, and is corrected there rather than rewritten around.
 
 ## Open
 

@@ -19,9 +19,9 @@ The following items are outstanding in order to complete the first verion of the
     (not idempotent) is reported, never declared
 - [x] `refresh` — bring the checkout and the local environment current: start what is down, run
   `update`, record the stamp, explain failures in plain terms; never drafts a script
-- [ ] point-of-introduction rules — `design` names the script change in the task, `implement`
+- [x] point-of-introduction rules — `design` names the script change in the task, `implement`
   counts it toward done, `review` carries a lens for it
-- [ ] `scaffold` emits both scripts at code depth
+- [x] `scaffold` emits both scripts at code depth
 
 ## Command Line
 - [ ] Set up `mise` config for the cli tool inside of init
