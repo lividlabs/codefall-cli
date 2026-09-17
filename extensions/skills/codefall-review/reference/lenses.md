@@ -21,6 +21,7 @@ What each lens asks. Read at the confirmation, which names the lenses that will 
 | `comments` | Do the comments say what the code does, and does anything the work touched now lie |
 | `docs` | Does the code contradict a document that describes it — `README.md`, `AGENTS.md`, a design, an ADR — and is that document one the project may amend or one that is immutable |
 | `simplify` | Reuse it should have used, dead code, nesting that early returns would flatten |
+| `local` | Does the change add infrastructure, a dependency, a migration, or generated code, and leave the project's declared `start` and `update` scripts as they were — so the next teammate's refresh brings an environment current that the change has made stale |
 | `security` | Injection, authn/authz bypass, data exposure, secrets in the diff |
 
 ## Document lenses
@@ -55,6 +56,13 @@ docs edit — ADRs are immutable, and the only in-place change allowed is flippi
 `Superseded by <id> — <date>`. Such a finding says which it is: the code is wrong, or the decision
 changed and nobody wrote the superseding ADR. A `README.md` or an `AGENTS.md` that has fallen behind
 is an ordinary fix.
+
+**`local` looks at the diff's shape, not its code.** A compose file, a migrations directory, a
+lockfile, a codegen config, or an `.env.example` changed with no change under the commands
+`.codefall/settings.json` declares under `local` is the finding, and the fix is `codefall-equip`'s
+procedure applied to the change. A project with no `local` block gets one finding saying so, not
+one per file. A change under those scripts that drops, resets, or deletes is a finding too, against
+the contract in `codefall-equip`.
 
 **`simplify` is a lens, not a separate verb.** `codefall-implement` already ran the host's own
 simplify pass over each bead's diff, so a simplification finding on that code is either something

@@ -69,6 +69,10 @@ report; the root escalates.
 - Incremental conventional commits, each carrying the bead ID: `feat: add StageContext ({{BEAD_ID}})`.
 - Write every test this work needs — the ones the design planned and the ones you discover it
   needs. Tests are part of done, not a suggestion.
+- If this work adds infrastructure, a dependency, a migration, or generated code, change the
+  project's declared `start` and `update` scripts for it in this same branch, following the
+  `codefall-equip` skill's section *When another verb follows this skill*: the smallest revision,
+  idempotent, never destructive. Name the change in the PR body.
 - Scope is exactly this bead. Anything adjacent you find — a bug, a missing test, a refactor —
   goes in your result's `discovered` list, not in your diff.
 

@@ -146,8 +146,8 @@ concept has no upstream and is reviewed for internal consistency alone.
 
 ## The lenses
 
-Ten code lenses — `correctness`, `failures`, `behaviour`, `tests`, `types`, `conventions`,
-`comments`, `docs`, `simplify`, `security` — and, for documents, `structure` and `status` plus the
+Eleven code lenses — `correctness`, `failures`, `behaviour`, `tests`, `types`, `conventions`,
+`comments`, `docs`, `simplify`, `local`, `security` — and, for documents, `structure` and `status` plus the
 lenses for the document's kind. What each asks is in `reference/lenses.md`. Each verb owns the rules
 its documents are held to; read them there when a lens needs the detail, never restate them.
 

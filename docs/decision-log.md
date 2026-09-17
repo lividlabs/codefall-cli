@@ -706,6 +706,23 @@ Decided at scaffold, 2026-08-16.
   The README gains a **Local environment** section covering both verbs. The `SessionStart` notice
   the ADR mentions is not in this stack; the slot exists and a notice can join it later.
 
+- **The scripts stay current at the point of introduction, 2026-09-16.** The sixth code PR of the
+  ADR-005 stack, and the rule that keeps the contract from rotting. Three verbs carry it, each at
+  the moment it can act. `codefall-design` adds a criterion to any task whose predicted files
+  include a compose file, a migrations directory, a lockfile, a codegen config, or an
+  `.env.example`: the declared `start` and `update` were changed for it. `codefall-implement`
+  counts that change toward done, beside tests, and its worker prompt tells the worker to follow
+  `codefall-equip`'s *When another verb follows this skill* section — the smallest revision, never
+  destructive — in the same branch. `codefall-review` gains an eleventh code lens, `local`, in
+  group 3 with the other convention lenses: it looks at the diff's shape rather than its code, and
+  its finding is a change of that shape with nothing changed under the declared commands, or a
+  change under them that drops or resets. The lens joins the closed enum in `findings.schema.json`,
+  since a lens name that does not validate is a lens that never runs.
+  Why three places rather than one: design is where a task's file scope is predicted, so it is the
+  earliest moment the need is visible; implement is where the work happens and the only place a
+  worker reads; review is the backstop for work that came through neither. The same sentence in
+  the `AGENTS.md` section init writes covers an ad hoc session that used none of the verbs.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
