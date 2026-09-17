@@ -228,7 +228,8 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", results[0].Outcome)
 	}
 
-	want := "wrote .codefall/settings.json (tracker: github, issues repo: lividlabs/codefall-cli, issues project: 3)"
+	want := "wrote .codefall/settings.json (tracker: github, harnesses: claude-code, " +
+		"issues repo: lividlabs/codefall-cli, issues project: 3)"
 	if results[0].Detail != want {
 		t.Errorf("detail = %q, want %q", results[0].Detail, want)
 	}
@@ -274,6 +275,9 @@ func TestRunEncodesGitHubSettings(t *testing.T) {
   "$schema": "` + settings.SchemaID + `",
   "version": 1,
   "tracker": "github",
+  "harnesses": [
+    "claude-code"
+  ],
   "github": {
     "issuesRepo": "owner/name",
     "issuesProject": 3
@@ -306,6 +310,9 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 				Harnesses:  []string{harness.ClaudeCode},
 			},
 			want: `  "tracker": "github",
+  "harnesses": [
+    "claude-code"
+  ],
   "github": {
     "issuesRepo": "owner/name"
   },
@@ -319,6 +326,9 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 			name:    "beads",
 			request: Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harnesses: []string{harness.ClaudeCode}},
 			want: `  "tracker": "beads",
+  "harnesses": [
+    "claude-code"
+  ],
   "beads": {},
   "review": {
     "postToPullRequest": false

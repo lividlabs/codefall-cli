@@ -38,6 +38,37 @@ func (i *Initialize) SettingsExist(dir string) (bool, error) {
 	}
 }
 
+// ChosenHarnesses reports the harnesses .codefall/settings.json records, so a rerun installs for what
+// the project already chose rather than asking again. None means there is no settings file, or the
+// file records none — which is what a file written before the field existed looks like (ADR-GO-03).
+//
+// It decodes the one field it needs rather than the whole document: what the rest of the file may
+// hold is the format's business, and this is a question about one answer the project gave.
+func (i *Initialize) ChosenHarnesses(dir string) (mo.Option[[]string], error) {
+	data, err := i.files.ReadFile(settingsPath(dir))
+
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return mo.None[[]string](), nil
+	case err != nil:
+		return mo.None[[]string](), fmt.Errorf("read %s: %w", settingsName, err)
+	}
+
+	var document struct {
+		Harnesses []string `json:"harnesses"`
+	}
+
+	if err := json.Unmarshal(data, &document); err != nil {
+		return mo.None[[]string](), fmt.Errorf("decode %s: %w", settingsName, err)
+	}
+
+	if len(document.Harnesses) == 0 {
+		return mo.None[[]string](), nil
+	}
+
+	return mo.Some(document.Harnesses), nil
+}
+
 // settings is the first step of a run: it writes .codefall/settings.json, the file doctor checks.
 //
 // Settings that are already there are left alone unless the run asked for them to be rewritten,
@@ -53,7 +84,8 @@ func (i *Initialize) settings(_ context.Context, request Request) (domain.StepRe
 		return domain.SettingsStep.Skipped(settingsName + " already exists (use --force to rewrite it)"), nil
 	}
 
-	chosen, err := domain.NewSettings(request.Tracker, request.IssuesRepo, request.IssuesProject,
+	chosen, err := domain.NewSettings(request.Tracker, request.Harnesses, request.IssuesRepo,
+		request.IssuesProject,
 		domain.ReviewSettings{PostToPullRequest: request.ReviewPostToPullRequest.OrElse(false)})
 	if err != nil {
 		return domain.StepResult{}, err
@@ -84,7 +116,10 @@ func settingsPath(dir string) string {
 // A settings value is named `chosen` throughout this file because `settings` is now the shared
 // module that defines the format (ADR-003), and a local of that name would hide it.
 func describe(chosen domain.Settings) string {
-	parts := []string{"tracker: " + chosen.Tracker}
+	parts := []string{
+		"tracker: " + chosen.Tracker,
+		"harnesses: " + sentenceList(chosen.Harnesses),
+	}
 
 	if github, ok := chosen.GitHub.Get(); ok {
 		parts = append(parts, "issues repo: "+github.Repo)
@@ -106,12 +141,13 @@ func describe(chosen domain.Settings) string {
 // decodes in its application layer. Field order is key order, and it is chosen so the file opens
 // with what identifies it and closes with the block the tracker selects.
 type settingsDocument struct {
-	Schema  string                    `json:"$schema"`
-	Version int                       `json:"version"`
-	Tracker string                    `json:"tracker"`
-	Beads   mo.Option[beadsDocument]  `json:"beads,omitzero"`
-	GitHub  mo.Option[gitHubDocument] `json:"github,omitzero"`
-	Review  reviewDocument            `json:"review"`
+	Schema    string                    `json:"$schema"`
+	Version   int                       `json:"version"`
+	Tracker   string                    `json:"tracker"`
+	Harnesses []string                  `json:"harnesses"`
+	Beads     mo.Option[beadsDocument]  `json:"beads,omitzero"`
+	GitHub    mo.Option[gitHubDocument] `json:"github,omitzero"`
+	Review    reviewDocument            `json:"review"`
 }
 
 // reviewDocument is the review block. It is always written, including when the answer is the
@@ -145,10 +181,11 @@ func (gitHubDocument) IsZero() bool { return false }
 // newline, so the result is what a person would have written by hand and diffs a line at a time.
 func encodeSettings(chosen domain.Settings) ([]byte, error) {
 	document := settingsDocument{
-		Schema:  settings.SchemaID,
-		Version: settings.Version,
-		Tracker: chosen.Tracker,
-		Review:  reviewDocument{PostToPullRequest: chosen.Review.PostToPullRequest},
+		Schema:    settings.SchemaID,
+		Version:   settings.Version,
+		Tracker:   chosen.Tracker,
+		Harnesses: chosen.Harnesses,
+		Review:    reviewDocument{PostToPullRequest: chosen.Review.PostToPullRequest},
 	}
 
 	// One case per tracker, so adding a tracker is a case here and a block above rather than a

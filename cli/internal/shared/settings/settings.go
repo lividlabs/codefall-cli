@@ -18,6 +18,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 )
 
 // Document is a decoded settings file: the generic shape a JSON decoder produces (strings, float64
@@ -34,6 +36,11 @@ const (
 	RepoPattern   = `^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`
 	SchemaID      = "https://raw.githubusercontent.com/lividlabs/codefall-cli/main/schemas/settings.schema.json"
 	BlockReview   = "review"
+	// FieldHarnesses is the harnesses a project is set up for. It is required: which harnesses a
+	// project uses is a decision the project made, and codefall cannot work it out from which
+	// directories happen to exist — several harnesses share one, and codefall writes those
+	// directories itself.
+	FieldHarnesses = "harnesses"
 )
 
 // The .ignore file, which is not settings but is the other file init writes and doctor checks — so
@@ -85,6 +92,7 @@ var topLevelFields = []fieldSpec{
 	{"$schema", false, isString},
 	{"version", true, isVersion},
 	{"tracker", true, isTracker},
+	{FieldHarnesses, true, isHarnesses},
 	{BlockReview, false, isObject},
 }
 
@@ -331,15 +339,48 @@ func isTracker(v any) string {
 	}
 
 	if _, known := trackerFields[name]; !known {
-		expected := make([]string, 0, len(trackerFields))
-		for _, tracker := range Trackers() {
-			expected = append(expected, fmt.Sprintf("%q", tracker))
-		}
-
-		return fmt.Sprintf("unknown value %q (expected %s)", name, strings.Join(expected, ", "))
+		return unknownValue(name, Trackers())
 	}
 
 	return ""
+}
+
+// isHarnesses accepts the harnesses a project is set up for: at least one, each one codefall can set
+// up. An empty list is refused rather than read as "none", because a project codefall sets up for no
+// harness at all has nowhere to install.
+func isHarnesses(v any) string {
+	values, ok := v.([]any)
+	if !ok {
+		return "must be an array of harness names"
+	}
+
+	if len(values) == 0 {
+		return "must name at least one harness"
+	}
+
+	for _, value := range values {
+		name, ok := value.(string)
+		if !ok {
+			return "must be an array of harness names"
+		}
+
+		if _, err := harness.Parse(name); err != nil {
+			return unknownValue(name, harness.All())
+		}
+	}
+
+	return ""
+}
+
+// unknownValue is how both closed sets of names report a value that is not one of them: the value it
+// read, and the ones that would have been accepted, because that is what the reader needs next.
+func unknownValue(name string, expected []string) string {
+	quoted := make([]string, 0, len(expected))
+	for _, value := range expected {
+		quoted = append(quoted, fmt.Sprintf("%q", value))
+	}
+
+	return fmt.Sprintf("unknown value %q (expected %s)", name, strings.Join(quoted, ", "))
 }
 
 func isPositiveInteger(v any) string {

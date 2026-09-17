@@ -6,7 +6,6 @@ import (
 	"maps"
 	"path"
 	"slices"
-	"strings"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
@@ -91,12 +90,5 @@ func directoryList(dirs []string) string {
 		slashed = append(slashed, dir+"/")
 	}
 
-	switch len(slashed) {
-	case 0:
-		return ""
-	case 1:
-		return slashed[0]
-	default:
-		return strings.Join(slashed[:len(slashed)-1], ", ") + " and " + slashed[len(slashed)-1]
-	}
+	return sentenceList(slashed)
 }

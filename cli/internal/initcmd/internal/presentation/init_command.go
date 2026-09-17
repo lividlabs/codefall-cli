@@ -35,10 +35,14 @@ type InitializeUseCase interface {
 	// RepositoryRoot reports the root of the git work tree dir sits below, or None when dir is the
 	// root or not in a work tree. It is what decides whether there is a location to ask about.
 	RepositoryRoot(ctx context.Context, dir string) mo.Option[string]
-	// Installed reads what the last finished run recorded in .codefall/manifest.json, or None when
-	// there is no manifest or it names no version. The gate compares both halves: the version with
-	// the binary's own, and the harness with the one this run is for.
+	// Installed reads what finished runs recorded in .codefall/manifest.json: the version each
+	// harness was installed at, or None when there is no manifest or it records no usable version.
+	// The gate compares it one harness at a time against the binary's own tag.
 	Installed(dir string) (mo.Option[application.Installation], error)
+	// ChosenHarnesses reads the harnesses .codefall/settings.json records, or None when there are no
+	// settings or they record none. A rerun installs for what the project already chose rather than
+	// asking again.
+	ChosenHarnesses(dir string) (mo.Option[[]string], error)
 }
 
 // The trackers the survey shows but does not accept. Huh has no disabled option, so they are offered
@@ -75,10 +79,12 @@ func NewInitCommand(initialize InitializeUseCase) *cobra.Command {
 		Use:     "init",
 		Aliases: []string{"upgrade"},
 		Short:   "Set this directory up for codefall",
-		Long: "Creates .codefall/settings.json from your answers. Every question is also a flag, so " +
-			"a scripted run passes them and is never prompted. The codefall extension is installed for " +
-			"the harness: Claude Code gets it at project scope into .claude/settings.json, and a " +
-			"harness that reads the .agents/skills convention gets the extension's tree under .agents/. " +
+		Long: "Creates .codefall/settings.json from your answers, including which coding harnesses the " +
+			"project uses. Every question is also a flag, so a scripted run passes them and is never " +
+			"prompted. The codefall extension is installed for each harness chosen: Claude Code gets it " +
+			"at project scope into .claude/settings.json, and a harness that reads the .agents/skills " +
+			"convention gets the extension's tree under .agents/. A rerun installs for the harnesses " +
+			"the settings already record, so --harness is only needed the first time or to add one. " +
 			"Run below the root of a git repository, init asks whether to install there or at the " +
 			"root; --location answers without asking.",
 		Args: cobra.NoArgs,
@@ -99,7 +105,7 @@ type initFlags struct {
 	issuesRepo     string
 	issuesProject  int
 	reviewPostToPR bool
-	harness        string
+	harnesses      []string
 	location       string
 	force          bool
 	yes            bool
@@ -116,8 +122,11 @@ func (f *initFlags) register(cmd *cobra.Command) {
 		"number of the GitHub Project those issues are organised into (optional)")
 	cmd.Flags().BoolVar(&f.reviewPostToPR, "review-post-to-pr", false,
 		"let codefall-review post its findings to a pull request (optional)")
-	cmd.Flags().StringVar(&f.harness, "harness", harness.ClaudeCode,
-		"coding harness to set up ("+strings.Join(harness.All(), ", ")+")")
+	// No default: codefall cannot know which harnesses a project means to use, and a default would
+	// choose one on the user's behalf. A rerun takes them from the settings instead.
+	cmd.Flags().StringSliceVar(&f.harnesses, "harness", nil,
+		"coding harness to set up — repeat the flag, or separate names with commas, for several ("+
+			strings.Join(harness.All(), ", ")+")")
 	cmd.Flags().StringVar(&f.location, "location", "",
 		"where to install when run below the repository root ("+locationHere+" for this directory, "+
 			locationRoot+" for the root)")
@@ -166,7 +175,7 @@ func runInit(cmd *cobra.Command, initialize InitializeUseCase, flags *initFlags)
 func buildRequest(
 	cmd *cobra.Command, initialize InitializeUseCase, flags *initFlags, dir string,
 ) (application.Request, error) {
-	chosen, err := harness.Parse(flags.harness)
+	chosen, err := parseHarnesses(flags.harnesses)
 	if err != nil {
 		return application.Request{}, err
 	}
@@ -178,7 +187,7 @@ func buildRequest(
 		return application.Request{}, err
 	}
 
-	request := application.Request{Dir: dir, Harnesses: []string{chosen}, Force: flags.force,
+	request := application.Request{Dir: dir, Harnesses: chosen, Force: flags.force,
 		CLIVersion: cliVersion()}
 
 	if flags.tracker != "" {
@@ -223,6 +232,23 @@ func buildRequest(
 	settled, err := initialize.SettingsExist(dir)
 	if err != nil {
 		return application.Request{}, fmt.Errorf("init: %w", err)
+	}
+
+	// The harnesses a settled project chose are recorded in its settings, so a rerun installs for
+	// those rather than asking again — and the gate below cannot compare what it has not been told.
+	if settled && len(request.Harnesses) == 0 {
+		recorded, err := initialize.ChosenHarnesses(dir)
+		if err != nil {
+			return application.Request{}, fmt.Errorf("init: %w", err)
+		}
+
+		names, ok := recorded.Get()
+		if !ok && !request.Force {
+			return application.Request{}, errors.New("the settings here record no harnesses; " +
+				"pass --harness, or --force to answer the questions again")
+		}
+
+		request.Harnesses = names
 	}
 
 	if settled && !request.Force {
@@ -388,8 +414,26 @@ func collect(
 // needsAnswers reports whether anything the settings cannot be built without is still missing. The
 // project number is not one of those, so it is never on its own a reason to prompt.
 func needsAnswers(request application.Request) bool {
-	return request.Tracker == "" ||
+	return len(request.Harnesses) == 0 ||
+		request.Tracker == "" ||
 		(request.Tracker == settings.TrackerGitHub && request.IssuesRepo.IsAbsent())
+}
+
+// parseHarnesses validates every name the flag was given and refuses the first one codefall cannot
+// set up, in the order they were given so the message names the one the person typed.
+func parseHarnesses(names []string) ([]string, error) {
+	chosen := make([]string, 0, len(names))
+
+	for _, name := range names {
+		parsed, err := harness.Parse(strings.TrimSpace(name))
+		if err != nil {
+			return nil, err
+		}
+
+		chosen = append(chosen, parsed)
+	}
+
+	return chosen, nil
 }
 
 // mightUseGitHub reports whether a repository could still be wanted — either because the tracker is
@@ -405,6 +449,10 @@ func mightUseGitHub(request application.Request) bool {
 func withoutPrompting(
 	request application.Request, suggestion mo.Option[string],
 ) (application.Request, error) {
+	if len(request.Harnesses) == 0 {
+		return application.Request{}, missingFlag("--harness")
+	}
+
 	if request.Tracker == "" {
 		return application.Request{}, missingFlag("--tracker")
 	}
@@ -448,7 +496,15 @@ func survey(
 
 	postToPR := request.ReviewPostToPullRequest.OrElse(false)
 
+	harnesses := request.Harnesses
+
 	var groups []*huh.Group
+
+	// Which harnesses the project uses comes first: it is the question the rest of the install
+	// depends on, and the one only the person answering can settle.
+	if len(request.Harnesses) == 0 {
+		groups = append(groups, huh.NewGroup(harnessField(&harnesses)))
+	}
 
 	if request.Tracker == "" {
 		groups = append(groups, huh.NewGroup(trackerField(&tracker)))
@@ -470,8 +526,58 @@ func survey(
 	}
 
 	request.ReviewPostToPullRequest = mo.Some(postToPR)
+	request.Harnesses = harnesses
 
 	return answered(request, tracker, repo, project)
+}
+
+// harnessField asks which harnesses the project uses. Nothing is selected to begin with, and at
+// least one answer is required: codefall cannot know which harnesses a project means to use, and a
+// preselected option would be the same decision made on the user's behalf that a default flag value
+// was.
+func harnessField(harnesses *[]string) huh.Field {
+	names := harness.All()
+
+	options := make([]huh.Option[string], 0, len(names))
+	for _, name := range names {
+		options = append(options, huh.NewOption(harnessLabel(name), name))
+	}
+
+	return huh.NewMultiSelect[string]().
+		Title("Which coding harnesses should codefall set up?").
+		Description("Choose every harness this project uses. Its skills and hooks are installed for each.").
+		Options(options...).
+		Value(harnesses).
+		Validate(atLeastOneHarness)
+}
+
+// harnessLabels is how each harness is written in the survey, as its makers write it. A harness with
+// no entry here reads as its own name, which is wrong in its capitals rather than absent from the
+// list.
+var harnessLabels = map[string]string{
+	harness.Antigravity: "Antigravity",
+	harness.ClaudeCode:  "Claude Code",
+	harness.Codex:       "Codex",
+	harness.Muse:        "Muse",
+	harness.OpenCode:    "OpenCode",
+}
+
+func harnessLabel(name string) string {
+	if label, ok := harnessLabels[name]; ok {
+		return label
+	}
+
+	return name
+}
+
+// atLeastOneHarness is what makes the question unskippable. Huh accepts an empty multi-select
+// otherwise, and a run for no harness has nowhere to install.
+func atLeastOneHarness(chosen []string) error {
+	if len(chosen) == 0 {
+		return errors.New("choose at least one harness")
+	}
+
+	return nil
 }
 
 func gitHubFields(request application.Request, repo, project *string) []huh.Field {

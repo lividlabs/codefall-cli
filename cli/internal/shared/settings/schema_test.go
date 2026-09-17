@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 )
 
 // schemas/settings.schema.json is the published definition of .codefall/settings.json; this package
@@ -65,6 +67,18 @@ func TestSchemaMatchesTheFieldTables(t *testing.T) {
 
 	if got, want := schemaList(t, schemaObject(t, properties, "tracker"), "enum"), Trackers(); !slices.Equal(got, want) {
 		t.Errorf("properties.tracker.enum = %q, want %q", got, want)
+	}
+
+	harnesses := schemaObject(t, properties, FieldHarnesses)
+
+	// At least one, and only the harnesses codefall can set up — the same two rules the validator
+	// applies, so a harness added to the shared module and not to the schema fails here.
+	if got := schemaNumber(t, harnesses, "minItems"); got != 1 {
+		t.Errorf("properties.%s.minItems = %v, want 1", FieldHarnesses, got)
+	}
+
+	if got, want := schemaList(t, schemaObject(t, harnesses, "items"), "enum"), harness.All(); !slices.Equal(got, want) {
+		t.Errorf("properties.%s.items.enum = %q, want %q", FieldHarnesses, got, want)
 	}
 
 	beadsBlock := schemaObject(t, properties, TrackerBeads)

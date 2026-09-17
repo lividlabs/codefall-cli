@@ -32,6 +32,7 @@ const validSettings = `{
   "$schema": "` + settings.SchemaID + `",
   "version": 1,
   "tracker": "github",
+  "harnesses": ["claude-code"],
   "github": { "issuesRepo": "lividlabs/codefall-cli", "issuesProject": 3 }
 }`
 
@@ -267,7 +268,7 @@ func TestDiagnoseRun(t *testing.T) {
 			want: outcomes(map[string]domain.Status{domain.SettingsComplete.ID: domain.StatusFail},
 				afterSettingsDone...),
 			target:     domain.SettingsComplete.ID,
-			wantDetail: "settings.json is incomplete: version: must be 1; tracker: missing",
+			wantDetail: "settings.json is incomplete: version: must be 1; tracker: missing; harnesses: missing",
 			wantRemedy: mo.Some(fixRemedy),
 		},
 		{

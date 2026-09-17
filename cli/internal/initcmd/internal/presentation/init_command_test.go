@@ -27,6 +27,7 @@ type fakeInitialize struct {
 	suggestion mo.Option[string]
 	root       mo.Option[string]
 	installed  mo.Option[application.Installation]
+	harnesses  mo.Option[[]string]
 
 	got       application.Request
 	ran       bool
@@ -57,6 +58,12 @@ func (f *fakeInitialize) Installed(string) (mo.Option[application.Installation],
 	return f.installed, nil
 }
 
+// ChosenHarnesses reports what a settled project's settings record. None is the answer for a project
+// with no settings, and for one whose settings predate the field.
+func (f *fakeInitialize) ChosenHarnesses(string) (mo.Option[[]string], error) {
+	return f.harnesses, nil
+}
+
 func (f *fakeInitialize) SuggestIssuesRepo(context.Context, string) mo.Option[string] {
 	f.suggested = true
 
@@ -73,6 +80,7 @@ func newFakeInitialize() *fakeInitialize {
 		suggestion: mo.None[string](),
 		root:       mo.None[string](),
 		installed:  mo.None[application.Installation](),
+		harnesses:  mo.None[[]string](),
 	}
 }
 
@@ -153,10 +161,10 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 	}
 }
 
-func TestInitCommandDefaultsTheHarnessAndLeavesTheOptionalValuesAbsent(t *testing.T) {
+func TestInitCommandLeavesTheOptionalValuesAbsent(t *testing.T) {
 	initialize := newFakeInitialize()
 
-	if _, err := run(t, initialize, "--tracker", "beads"); err != nil {
+	if _, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
 
@@ -206,12 +214,12 @@ func TestInitCommandRejects(t *testing.T) {
 		},
 		{
 			name: "a repository on a tracker that has no use for one",
-			args: []string{"--tracker", "beads", "--issues-repo", "owner/name"},
+			args: []string{"--harness", harness.ClaudeCode, "--tracker", "beads", "--issues-repo", "owner/name"},
 			want: "the --issues-repo flag is only used with --tracker github",
 		},
 		{
 			name: "a project number on a tracker that has no use for one",
-			args: []string{"--tracker", "beads", "--issues-project", "3"},
+			args: []string{"--harness", harness.ClaudeCode, "--tracker", "beads", "--issues-project", "3"},
 			want: "the --issues-project flag is only used with --tracker github",
 		},
 		{
@@ -253,13 +261,20 @@ func TestInitCommandWithoutATerminalNamesTheMissingFlag(t *testing.T) {
 		want string
 	}{
 		{
-			name: "no tracker",
+			// The harnesses are asked for first, so a run that names none hears about that before
+			// anything else: nothing the run installs can be placed without them.
+			name: "no harness",
 			args: nil,
+			want: "missing --harness (stdin is not a terminal)",
+		},
+		{
+			name: "no tracker",
+			args: []string{"--harness", harness.ClaudeCode},
 			want: "missing --tracker (stdin is not a terminal)",
 		},
 		{
 			name: "github without a repository",
-			args: []string{"--tracker", "github"},
+			args: []string{"--harness", harness.ClaudeCode, "--tracker", "github"},
 			want: "missing --issues-repo (stdin is not a terminal)",
 		},
 	} {
@@ -284,7 +299,7 @@ func TestInitCommandUsesTheRepositoryGHSuggests(t *testing.T) {
 	initialize := newFakeInitialize()
 	initialize.suggestion = mo.Some("lividlabs/codefall-cli")
 
-	if _, err := run(t, initialize, "--tracker", "github"); err != nil {
+	if _, err := run(t, initialize, "--harness", harness.ClaudeCode, "--tracker", "github"); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
 
@@ -298,6 +313,7 @@ func TestInitCommandUsesTheRepositoryGHSuggests(t *testing.T) {
 func TestInitCommandAsksNothingWhenSettingsAlreadyExist(t *testing.T) {
 	initialize := newFakeInitialize()
 	initialize.exists = true
+	initialize.harnesses = mo.Some([]string{harness.ClaudeCode})
 	initialize.report = domain.NewReport(
 		domain.SettingsStep.Skipped(".codefall/settings.json already exists (use --force to rewrite it)"))
 
@@ -326,8 +342,10 @@ func TestInitCommandStillAsksWhenForcingOverExistingSettings(t *testing.T) {
 	initialize := newFakeInitialize()
 	initialize.exists = true
 
+	// The harnesses are asked for first, so that is the flag a forced run with no answers is told
+	// about — the same question order the survey puts them in.
 	out, err := run(t, initialize, "--force")
-	if err == nil || err.Error() != "missing --tracker (stdin is not a terminal)" {
+	if err == nil || err.Error() != "missing --harness (stdin is not a terminal)" {
 		t.Fatalf("Execute error = %v, want the missing flag\n%s", err, out)
 	}
 }
@@ -340,7 +358,7 @@ func TestInitCommandPrintsALineForEachFinishedStepAndWhatToRunNext(t *testing.T)
 			"the codefall marketplace is declared and codefall@codefall enabled in .claude/settings.json"),
 	)
 
-	out, err := run(t, initialize, "--tracker", "beads")
+	out, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode)
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -360,7 +378,7 @@ func TestInitCommandWrapsAUseCaseError(t *testing.T) {
 	initialize.report = domain.NewReport()
 	initialize.err = failure
 
-	out, err := run(t, initialize, "--tracker", "beads")
+	out, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode)
 	if !errors.Is(err, failure) {
 		t.Fatalf("Execute error = %v, want it to wrap %v", err, failure)
 	}
@@ -378,7 +396,7 @@ func TestInitCommandReportsSettingsItCannotRead(t *testing.T) {
 	initialize := newFakeInitialize()
 	initialize.existsErr = errors.New("permission denied")
 
-	if _, err := run(t, initialize, "--tracker", "beads"); err == nil ||
+	if _, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode); err == nil ||
 		!strings.Contains(err.Error(), "permission denied") {
 		t.Errorf("Execute error = %v, want it to carry the read failure", err)
 	}
@@ -538,7 +556,9 @@ func TestInitCommandBelowTheRepositoryRoot(t *testing.T) {
 			initialize := newFakeInitialize()
 			initialize.root = mo.Some("/repo")
 
-			out, err := run(t, initialize, append([]string{"--tracker", "beads"}, tc.args...)...)
+			args := append([]string{"--tracker", "beads", "--harness", harness.ClaudeCode}, tc.args...)
+
+			out, err := run(t, initialize, args...)
 
 			if tc.wantErr != "" {
 				if err == nil || err.Error() != tc.wantErr {
@@ -572,7 +592,7 @@ func TestInitCommandAtTheRepositoryRootNeedsNoLocation(t *testing.T) {
 
 	initialize := newFakeInitialize()
 
-	if _, err := run(t, initialize, "--tracker", "beads"); err != nil {
+	if _, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
 
@@ -622,6 +642,7 @@ func TestInitCommandIsANoOpOnlyForTheHarnessItInstalled(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			initialize := newFakeInitialize()
 			initialize.exists = true
+			initialize.harnesses = mo.Some([]string{harness.ClaudeCode})
 			initialize.installed = mo.Some(tc.installed)
 
 			out, err := run(t, initialize, tc.args...)
@@ -637,5 +658,98 @@ func TestInitCommandIsANoOpOnlyForTheHarnessItInstalled(t *testing.T) {
 				t.Errorf("output = %q, want it to report the install is current", out)
 			}
 		})
+	}
+}
+
+// Several harnesses arrive either way a repeatable flag can be written, so a scripted run is not
+// forced into one shape of the same answer.
+func TestInitCommandTakesSeveralHarnesses(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "the flag repeated",
+			args: []string{"--harness", harness.ClaudeCode, "--harness", harness.Codex},
+		},
+		{
+			name: "one flag, the names separated by commas",
+			args: []string{"--harness", harness.ClaudeCode + "," + harness.Codex},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			initialize := newFakeInitialize()
+
+			args := append([]string{"--tracker", "beads"}, tc.args...)
+
+			if _, err := run(t, initialize, args...); err != nil {
+				t.Fatalf("Execute: %v", err)
+			}
+
+			if want := []string{harness.ClaudeCode, harness.Codex}; !slices.Equal(initialize.got.Harnesses, want) {
+				t.Errorf("Harnesses = %q, want %q", initialize.got.Harnesses, want)
+			}
+		})
+	}
+}
+
+// A rerun installs for what the project already chose, because its settings record them. The flag is
+// needed the first time, and afterwards only to add a harness.
+func TestInitCommandTakesTheHarnessesFromTheSettingsOnARerun(t *testing.T) {
+	initialize := newFakeInitialize()
+	initialize.exists = true
+	initialize.harnesses = mo.Some([]string{harness.Codex, harness.Muse})
+
+	if _, err := run(t, initialize); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+
+	if want := []string{harness.Codex, harness.Muse}; !slices.Equal(initialize.got.Harnesses, want) {
+		t.Errorf("Harnesses = %q, want %q", initialize.got.Harnesses, want)
+	}
+}
+
+// Settings that record no harnesses are a file written before the field existed. There is nothing to
+// install for and nothing to read it from, so the run says which flag would answer it rather than
+// choosing a harness on the project's behalf.
+func TestInitCommandRefusesSettingsThatRecordNoHarnesses(t *testing.T) {
+	initialize := newFakeInitialize()
+	initialize.exists = true
+
+	_, err := run(t, initialize)
+	if err == nil || !strings.Contains(err.Error(), "record no harnesses") {
+		t.Fatalf("Execute error = %v, want it to say the settings record none", err)
+	}
+
+	if initialize.ran {
+		t.Error("the use case ran, want the command to stop before it")
+	}
+}
+
+// Every harness the survey offers is written the way its makers write it. A harness added to the
+// shared module and not labelled here fails this test rather than reaching a person as a bare
+// identifier.
+func TestEveryHarnessHasASurveyLabel(t *testing.T) {
+	for _, name := range harness.All() {
+		if label, ok := harnessLabels[name]; !ok || label == "" {
+			t.Errorf("harnessLabels[%q] = %q, want a label", name, label)
+		}
+	}
+
+	if got := harnessLabel("cursor"); got != "cursor" {
+		t.Errorf("harnessLabel of an unlabelled harness = %q, want %q", got, "cursor")
+	}
+}
+
+// Huh accepts an empty multi-select, so the field's own validation is what makes the question
+// unskippable — and leaving it unanswered is the one thing the survey must not allow, because there
+// is nothing to install for.
+func TestAtLeastOneHarness(t *testing.T) {
+	if err := atLeastOneHarness(nil); err == nil {
+		t.Error("atLeastOneHarness(nil) = nil, want an error")
+	}
+
+	if err := atLeastOneHarness([]string{harness.ClaudeCode}); err != nil {
+		t.Errorf("atLeastOneHarness of one harness = %v, want nil", err)
 	}
 }
