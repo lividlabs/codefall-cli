@@ -20,6 +20,7 @@ import (
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/application"
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/ui"
 )
@@ -115,8 +116,8 @@ func (f *initFlags) register(cmd *cobra.Command) {
 		"number of the GitHub Project those issues are organised into (optional)")
 	cmd.Flags().BoolVar(&f.reviewPostToPR, "review-post-to-pr", false,
 		"let codefall-review post its findings to a pull request (optional)")
-	cmd.Flags().StringVar(&f.harness, "harness", domain.HarnessClaudeCode,
-		"coding harness to set up ("+strings.Join(domain.Harnesses(), ", ")+")")
+	cmd.Flags().StringVar(&f.harness, "harness", harness.ClaudeCode,
+		"coding harness to set up ("+strings.Join(harness.All(), ", ")+")")
 	cmd.Flags().StringVar(&f.location, "location", "",
 		"where to install when run below the repository root ("+locationHere+" for this directory, "+
 			locationRoot+" for the root)")
@@ -165,7 +166,7 @@ func runInit(cmd *cobra.Command, initialize InitializeUseCase, flags *initFlags)
 func buildRequest(
 	cmd *cobra.Command, initialize InitializeUseCase, flags *initFlags, dir string,
 ) (application.Request, error) {
-	harness, err := domain.ParseHarness(flags.harness)
+	chosen, err := harness.Parse(flags.harness)
 	if err != nil {
 		return application.Request{}, err
 	}
@@ -177,7 +178,7 @@ func buildRequest(
 		return application.Request{}, err
 	}
 
-	request := application.Request{Dir: dir, Harness: harness, Force: flags.force,
+	request := application.Request{Dir: dir, Harness: chosen, Force: flags.force,
 		CLIVersion: cliVersion()}
 
 	if flags.tracker != "" {

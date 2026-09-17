@@ -11,6 +11,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 )
 
 // The two files this step knows about, named as a person reads them. AGENTS.md holds the rules;
@@ -169,7 +170,7 @@ func beadsSectionIn(existing string, present bool) (string, agentsChange, error)
 // Only when the file is missing. A CLAUDE.md the project already has says whatever its author meant
 // it to say, and replacing that with a pointer would throw the rules away rather than point at them.
 func (i *Initialize) writeClaudePointer(request Request) (bool, error) {
-	if request.Harness != domain.HarnessClaudeCode {
+	if request.Harness != harness.ClaudeCode {
 		return false, nil
 	}
 

@@ -6,14 +6,16 @@ relative to `cli/` unless it says otherwise.
 
 A Go command-line tool. One surface, one app, one module.
 
-**State: two components and four shared modules.** `internal/doctor/` (`codefall doctor`) is the
+**State: three components and five shared modules.** `internal/doctor/` (`codefall doctor`) is the
 first component and the reference for the rules below; `internal/initcmd/` (`codefall init`) is the
 second, and follows it; `internal/create/` (`codefall create`) is the third, and runs init's command
 in the directory it makes. `internal/shared/ui/` holds the palette, the marks, the colour-profile
 writer, and the spinner runner; `internal/shared/process/` holds the command runner and the file
-system. `internal/shared/settings/` holds the `.codefall/settings.json` format and
-`internal/shared/text/` the string helpers both components need — both **pure** (ADR-003), so the
-inner layers may import them. `cmd/codefall/main.go` is the composition root and builds the injector.
+system. `internal/shared/harness/` holds the harnesses codefall can set up and where each one reads
+skills, `internal/shared/settings/` holds the `.codefall/settings.json` format, and
+`internal/shared/text/` the string helpers both components need — all three **pure** (ADR-003), so
+the inner layers may import them. `cmd/codefall/main.go` is the composition root and builds the
+injector.
 
 ## Applicable ADRs
 
@@ -166,7 +168,10 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   `internal/doctor/internal/application/` and against an `internal/shared/ui` import from
   `internal/initcmd/internal/application/` and `internal/doctor/internal/domain/`. The
   `pure-shared-modules` rule was proven the same way on 2026-08-27, against a
-  `charm.land/lipgloss/v2` import in `internal/shared/settings/`.
+  `charm.land/lipgloss/v2` import in `internal/shared/settings/`. It was proven again for
+  `internal/shared/harness/` on 2026-09-16, the same way, and that run also proved the module's
+  `domain-layer` allow entry: a deliberate `harness` import from `internal/initcmd/internal/domain/`
+  compiled and was not reported.
 - **`depguard` matches `_test.go` too.** Inner-layer tests are internal test packages (`package
   domain`, `package application`), so a `domain` test cannot import `os`. The schema test that holds
   `schemas/settings.schema.json` equal to the settings constants lives in `internal/shared/settings`,

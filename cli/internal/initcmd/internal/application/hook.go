@@ -17,6 +17,7 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 )
 
 // commandKey is the one key every harness's hook format shares: the shell command to run. The merge
@@ -49,10 +50,10 @@ type hookSpec struct {
 // rather than errored: the run reports what it did not need to do. Adding a harness that reads one
 // of these formats is one row; adding one that needs a new treatment is a third value of hookFormat.
 var hookSpecs = map[string]hookSpec{
-	domain.HarnessClaudeCode:  {source: "hooks/claude/hooks.json", dest: claudeFullName, format: formatMerge},
-	domain.HarnessCodex:       {source: "hooks/codex/hooks.json", dest: ".codex/hooks.json", format: formatMerge},
-	domain.HarnessAntigravity: {source: "hooks/antigravity/hooks.json", dest: ".agents/hooks.json", format: formatMerge},
-	domain.HarnessOpenCode:    {source: "hooks/opencode/codefall.js", dest: ".opencode/plugins/codefall.js", format: formatCopy},
+	harness.ClaudeCode:  {source: "hooks/claude/hooks.json", dest: ".claude/settings.json", format: formatMerge},
+	harness.Codex:       {source: "hooks/codex/hooks.json", dest: ".codex/hooks.json", format: formatMerge},
+	harness.Antigravity: {source: "hooks/antigravity/hooks.json", dest: ".agents/hooks.json", format: formatMerge},
+	harness.OpenCode:    {source: "hooks/opencode/codefall.js", dest: ".opencode/plugins/codefall.js", format: formatCopy},
 }
 
 // hookSourceDirs is every directory of per-harness hook definitions, derived from hookSpecs so a
@@ -73,7 +74,7 @@ var hookSourceDirs = func() []string {
 // extension step has already copied the shared scripts the hooks point at, so the destination of
 // any script path in a definition exists by the time this runs.
 func (i *Initialize) hook(ctx context.Context, request Request) (domain.StepResult, error) {
-	if _, known := extensionDestDirs[request.Harness]; !known {
+	if harness.SkillsDir(request.Harness).IsAbsent() {
 		return domain.StepResult{}, fmt.Errorf("harness %q has no extension mechanism", request.Harness)
 	}
 
