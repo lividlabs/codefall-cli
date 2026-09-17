@@ -659,6 +659,28 @@ Decided at scaffold, 2026-08-16.
   The skill additions are three sentences each, in the step that already runs preflight, and
   `codefall-specify` sits at 4,780 tokens against the 5,000 guideline afterwards.
 
+- **The equip skill, 2026-09-16.** The fourth code PR of the ADR-005 stack, and the verb that
+  builds and rebuilds the local scripts. `extensions/skills/codefall-equip/` holds the `SKILL.md`,
+  a `reference/signals.md` with the entry points a project may already have, the signals that say
+  which tools its environment needs, what each maps to in `start` and `update`, and the commands
+  that fail the contract; a `templates/local.sh` for a project with no task runner idiom of its
+  own; and a `NOTES.md` with the lineage. The skill's `SKILL.md` is the one copy of the procedure:
+  a **When another verb follows this skill** section says what scaffold does at code depth and
+  what implement does on a task that introduces a tool, and neither invokes it through the
+  harness, so `disable-model-invocation: true` holds.
+  The template is equip's rather than graft's. `skills/AGENTS.md` routes a template that becomes
+  the project's document through graft, with provenance; that rule is about documents graft
+  compares against a template the extension still ships. The script has no template behind it once
+  drafted — it is filled from the project's signals, and the next change to it is a revision by
+  this verb — so graft would be a second owner of a file equip already rebuilds. No lineage row,
+  because lineage records renames of scaffold's templates.
+  Two things the skill states as rules rather than leaving to judgement. **Never destructive**: a
+  reset is not idempotent, and "bring the project up to date?" is only always-yes while it never
+  costs data, so a candidate that drops or deletes is reported and never declared. **Proving is
+  offered**: `start` brings real services up on the user's machine, the one thing here that
+  reaches outside the repository, so it is a yes-or-no, and the proof is `update` twice with the
+  second exit `0` and quick.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
