@@ -472,6 +472,30 @@ Decided at scaffold, 2026-08-16.
   `codefall create` inherits the second, because it adopts init's flags. No project has a settings
   file yet, so nothing is migrated.
 
+- **Doctor reports on the harnesses the settings name, 2026-09-16.** A fourth category, one check:
+  codefall's extension is installed for every harness `.codefall/settings.json` records. It fails
+  rather than warns, because a harness the project chose and codefall was never run for has no skills
+  and no hooks there — every codefall verb is missing in a harness somebody is using — and the remedy
+  is `codefall init`.
+  What it stats is `hooks/shared/` under each harness's own skills directory, a path the shared
+  harness module names and the initcmd facade test pins against the real embedded tree. Nothing but
+  codefall writes that directory, where `.claude/` and `.agents/` exist in plenty of projects that
+  have never run codefall — and `.agents/` is read by four of the five harnesses, so its presence
+  identifies none of them. The check is deliberately not keyed to a skill's name: the skills are
+  still being renamed, and a check that broke on a rename would fail on projects that are set up
+  correctly.
+  It reads the settings itself rather than taking them from the settings group, and runs only when
+  that group found the file complete: settings doctor has already complained about say nothing about
+  which harnesses were chosen, and a second complaint about the same file would be noise. A skipped
+  check is absent from the report, which is what every other prerequisite failure already does. No
+  presentation change was needed — `Sections()` groups by first appearance, so a new category reports
+  itself.
+  What this does not do is warn about a harness codefall finds installed that the settings do not
+  name. That needs doctor to read `.codefall/manifest.json`, which would mean promoting the manifest
+  format to a shared module, and codefall's stance is that it never removes what it wrote, so the
+  remedy would be manual. It stays for a later change, as does detecting harnesses a project uses
+  without codefall knowing: there is no signal for that which codefall does not write itself.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
