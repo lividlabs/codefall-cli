@@ -114,6 +114,24 @@ func TestSchemaMatchesTheFieldTables(t *testing.T) {
 	if slices.Contains(schemaList(t, schema, "required"), BlockReview) {
 		t.Errorf("required contains %q, want the review block to stay optional", BlockReview)
 	}
+
+	local := schemaObject(t, properties, BlockLocal)
+
+	if got, want := schemaList(t, local, "required"), RequiredLocalFields(); !slices.Equal(got, want) {
+		t.Errorf("properties.%s.required = %q, want %q", BlockLocal, got, want)
+	}
+
+	localProperties := schemaObject(t, local, "properties")
+
+	for _, field := range RequiredLocalFields() {
+		if got := schemaText(t, schemaObject(t, localProperties, field), "type"); got != "string" {
+			t.Errorf("properties.%s.properties.%s.type = %q, want string", BlockLocal, field, got)
+		}
+	}
+
+	if slices.Contains(schemaList(t, schema, "required"), BlockLocal) {
+		t.Errorf("required contains %q, want the local block to stay optional", BlockLocal)
+	}
 }
 
 // One oneOf branch per tracker, each pinning "tracker" to itself, requiring its own block, and

@@ -25,6 +25,11 @@ func (f *OSFileSystem) DirExists(path string) (bool, error) {
 	return f.files.DirExists(path)
 }
 
+// Exists reports whether anything is at path. A path that is not there is not an error either.
+func (f *OSFileSystem) Exists(path string) (bool, error) {
+	return f.files.Exists(path)
+}
+
 // ReadFile returns a file's bytes. A missing file satisfies errors.Is(err, fs.ErrNotExist), which is
 // what the use case branches on.
 func (f *OSFileSystem) ReadFile(path string) ([]byte, error) {

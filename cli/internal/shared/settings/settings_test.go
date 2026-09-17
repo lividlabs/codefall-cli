@@ -222,17 +222,54 @@ func TestValidate(t *testing.T) {
 			want: []string{"$schema: must be a string"},
 		},
 		{
+			name: "a complete local block",
+			doc:  with(complete(), BlockLocal, map[string]any{"start": "make up", "update": "make sync"}),
+		},
+		{
+			name: "local block is not an object",
+			doc:  with(complete(), BlockLocal, "make sync"),
+			want: []string{"local: must be an object"},
+		},
+		{
+			name: "review block is not an object",
+			doc:  with(complete(), BlockReview, true),
+			want: []string{"review: must be an object"},
+		},
+		{
+			// Both commands or neither: update assumes start has run (ADR-005).
+			name: "local block missing update",
+			doc:  with(complete(), BlockLocal, map[string]any{"start": "make up"}),
+			want: []string{"local.update: missing"},
+		},
+		{
+			name: "local block missing start",
+			doc:  with(complete(), BlockLocal, map[string]any{"update": "make sync"}),
+			want: []string{"local.start: missing"},
+		},
+		{
+			name: "local command empty counts as missing",
+			doc:  with(complete(), BlockLocal, map[string]any{"start": "", "update": "make sync"}),
+			want: []string{"local.start: missing"},
+		},
+		{
+			name: "local command is not a string",
+			doc:  with(complete(), BlockLocal, map[string]any{"start": "make up", "update": []any{"make", "sync"}}),
+			want: []string{"local.update: must be a string"},
+		},
+		{
 			name: "every problem is reported at once, in definition order",
 			doc: Document{
 				"$schema": 1.0,
 				"version": 2.0,
 				"tracker": "github",
 				"github":  map[string]any{"issuesRepo": "no-slash", "issuesProject": 0.0},
+				"local":   map[string]any{"start": "make up"},
 			},
 			want: []string{
 				"$schema: must be a string",
 				"version: must be 1",
 				"harnesses: missing",
+				"local.update: missing",
 				"github.issuesRepo: must match owner/name",
 				"github.issuesProject: must be a positive integer",
 			},
@@ -339,6 +376,49 @@ func TestRequiredFields(t *testing.T) {
 
 	if got := RequiredTrackerFields("nonesuch"); len(got) != 0 {
 		t.Errorf("RequiredTrackerFields(%q) = %q, want none", "nonesuch", got)
+	}
+
+	if got, want := RequiredLocalFields(), []string{"start", "update"}; !slices.Equal(got, want) {
+		t.Errorf("RequiredLocalFields() = %q, want %q", got, want)
+	}
+}
+
+func TestHarnesses(t *testing.T) {
+	if got, want := Harnesses(complete()), []string{"claude-code"}; !slices.Equal(got, want) {
+		t.Errorf("Harnesses() = %q, want %q", got, want)
+	}
+
+	// Whatever is not a name is left out rather than reported: Validate already refused it.
+	doc := with(complete(), FieldHarnesses, []any{"codex", 1.0, "opencode"})
+	if got, want := Harnesses(doc), []string{"codex", "opencode"}; !slices.Equal(got, want) {
+		t.Errorf("Harnesses() = %q, want %q", got, want)
+	}
+
+	if got := Harnesses(without(complete(), FieldHarnesses)); len(got) != 0 {
+		t.Errorf("Harnesses() without the field = %q, want none", got)
+	}
+}
+
+func TestLocalCommands(t *testing.T) {
+	declared := with(complete(), BlockLocal, map[string]any{"start": "make up", "update": "make sync"})
+
+	got, ok := LocalCommands(declared).Get()
+	if want := (Local{Start: "make up", Update: "make sync"}); !ok || got != want {
+		t.Errorf("LocalCommands() = %v, %v, want %+v, true", got, ok, want)
+	}
+
+	// A block Validate would reject is not a declaration; the caller has already been told why.
+	for name, doc := range map[string]Document{
+		"absent":          complete(),
+		"not an object":   with(complete(), BlockLocal, "make sync"),
+		"missing update":  with(complete(), BlockLocal, map[string]any{"start": "make up"}),
+		"empty start":     with(complete(), BlockLocal, map[string]any{"start": "", "update": "make sync"}),
+		"update not text": with(complete(), BlockLocal, map[string]any{"start": "make up", "update": 1.0}),
+		"null block":      with(complete(), BlockLocal, nil),
+	} {
+		if got := LocalCommands(doc); got.IsPresent() {
+			t.Errorf("LocalCommands() with the block %s = %v, want None", name, got)
+		}
 	}
 }
 

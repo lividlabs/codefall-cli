@@ -31,16 +31,17 @@ func (s Status) String() string {
 }
 
 // Category is the part of a project's setup a check belongs to. The report groups by category, so a
-// healthy project is four lines rather than twelve.
+// healthy project is five lines rather than fourteen.
 type Category struct {
 	ID    string
 	Title string
 }
 
-// The four categories, in the order doctor reports them.
+// The five categories, in the order doctor reports them.
 var (
 	CategorySettings  = Category{ID: "settings", Title: "Settings"}
 	CategoryHarnesses = Category{ID: "harnesses", Title: "Harnesses"}
+	CategoryLocal     = Category{ID: "local", Title: "Local environment"}
 	CategoryBeads     = Category{ID: "beads", Title: "Beads"}
 	CategoryGitHub    = Category{ID: "github", Title: "GitHub CLI"}
 )
@@ -82,7 +83,7 @@ func (c Check) Fail(detail string, remedy mo.Option[string]) Result {
 	return Result{Check: c, Status: StatusFail, Detail: mo.Some(detail), Remedy: remedy}
 }
 
-// The twelve checks doctor runs, in the order it runs them.
+// The fourteen checks doctor runs, in the order it runs them.
 var (
 	CodefallDir      = Check{ID: "codefall-dir", Title: ".codefall/ exists", Category: CategorySettings}
 	SettingsFile     = Check{ID: "settings-file", Title: ".codefall/settings.json exists", Category: CategorySettings}
@@ -97,6 +98,13 @@ var (
 	// settings no longer name.
 	HarnessesLeftOver = Check{ID: "harnesses-leftover",
 		Title: "no install is left over from a dropped harness", Category: CategoryHarnesses}
+	// LocalDeclared is whether the settings name the project's start and update commands (ADR-005).
+	LocalDeclared = Check{ID: "local-declared",
+		Title: "the local start and update commands are declared", Category: CategoryLocal}
+	// LocalRunnable is whether the program each declared command runs can be found: on PATH, or in
+	// the project when the command names a path.
+	LocalRunnable = Check{ID: "local-runnable",
+		Title: "the local commands name programs that exist", Category: CategoryLocal}
 	BeadsInstalled   = Check{ID: "bd-installed", Title: "bd is on PATH", Category: CategoryBeads}
 	BeadsInitialized = Check{ID: "beads-initialized", Title: "Beads is initialized here", Category: CategoryBeads}
 	GHInstalled      = Check{ID: "gh-installed", Title: "gh is on PATH", Category: CategoryGitHub}

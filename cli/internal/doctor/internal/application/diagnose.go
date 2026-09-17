@@ -16,6 +16,8 @@ import (
 type FileSystem interface {
 	// DirExists reports whether path exists and is a directory.
 	DirExists(path string) (bool, error)
+	// Exists reports whether anything is at path — a file, a directory, or a link.
+	Exists(path string) (bool, error)
 	// ReadFile returns a file's bytes. A missing file satisfies errors.Is(err, fs.ErrNotExist).
 	ReadFile(path string) ([]byte, error)
 }
@@ -59,6 +61,7 @@ func (d *Diagnose) Run(ctx context.Context, dir string) (domain.Report, error) {
 	groups := []func(context.Context, string, []domain.Result) []domain.Result{
 		d.settings,
 		d.harnesses,
+		d.local,
 		d.beads,
 		d.github,
 	}
