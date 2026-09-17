@@ -78,9 +78,10 @@ func TestWarnAndFailCarryDetailAndRemedy(t *testing.T) {
 	}
 }
 
-// allChecks is the ten checks in the order doctor runs them.
+// allChecks is the eleven checks in the order doctor runs them.
 var allChecks = []Check{
 	CodefallDir, SettingsFile, SettingsJSON, SettingsComplete, ReviewsIgnored,
+	HarnessesInstalled,
 	BeadsInstalled, BeadsInitialized, GHInstalled, GHAuthenticated, GHScopes,
 }
 
@@ -102,18 +103,19 @@ func TestCheckIdentifiersAreDistinct(t *testing.T) {
 	}
 }
 
-func TestEveryCheckBelongsToOneOfTheThreeCategories(t *testing.T) {
+func TestEveryCheckBelongsToOneOfTheFourCategories(t *testing.T) {
 	want := map[string]Category{
-		CodefallDir.ID:      CategorySettings,
-		SettingsFile.ID:     CategorySettings,
-		SettingsJSON.ID:     CategorySettings,
-		SettingsComplete.ID: CategorySettings,
-		ReviewsIgnored.ID:   CategorySettings,
-		BeadsInstalled.ID:   CategoryBeads,
-		BeadsInitialized.ID: CategoryBeads,
-		GHInstalled.ID:      CategoryGitHub,
-		GHAuthenticated.ID:  CategoryGitHub,
-		GHScopes.ID:         CategoryGitHub,
+		CodefallDir.ID:        CategorySettings,
+		SettingsFile.ID:       CategorySettings,
+		SettingsJSON.ID:       CategorySettings,
+		SettingsComplete.ID:   CategorySettings,
+		ReviewsIgnored.ID:     CategorySettings,
+		HarnessesInstalled.ID: CategoryHarnesses,
+		BeadsInstalled.ID:     CategoryBeads,
+		BeadsInitialized.ID:   CategoryBeads,
+		GHInstalled.ID:        CategoryGitHub,
+		GHAuthenticated.ID:    CategoryGitHub,
+		GHScopes.ID:           CategoryGitHub,
 	}
 
 	for _, check := range allChecks {
@@ -124,7 +126,7 @@ func TestEveryCheckBelongsToOneOfTheThreeCategories(t *testing.T) {
 }
 
 func TestCategoriesAreDistinctAndNamed(t *testing.T) {
-	categories := []Category{CategorySettings, CategoryBeads, CategoryGitHub}
+	categories := []Category{CategorySettings, CategoryHarnesses, CategoryBeads, CategoryGitHub}
 
 	seen := map[string]bool{}
 

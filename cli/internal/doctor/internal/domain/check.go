@@ -31,17 +31,18 @@ func (s Status) String() string {
 }
 
 // Category is the part of a project's setup a check belongs to. The report groups by category, so a
-// healthy project is three lines rather than ten.
+// healthy project is four lines rather than eleven.
 type Category struct {
 	ID    string
 	Title string
 }
 
-// The three categories, in the order doctor reports them.
+// The four categories, in the order doctor reports them.
 var (
-	CategorySettings = Category{ID: "settings", Title: "Settings"}
-	CategoryBeads    = Category{ID: "beads", Title: "Beads"}
-	CategoryGitHub   = Category{ID: "github", Title: "GitHub CLI"}
+	CategorySettings  = Category{ID: "settings", Title: "Settings"}
+	CategoryHarnesses = Category{ID: "harnesses", Title: "Harnesses"}
+	CategoryBeads     = Category{ID: "beads", Title: "Beads"}
+	CategoryGitHub    = Category{ID: "github", Title: "GitHub CLI"}
 )
 
 // Check identifies one thing doctor looks at. The ID is stable and machine-readable; the Title is
@@ -81,13 +82,17 @@ func (c Check) Fail(detail string, remedy mo.Option[string]) Result {
 	return Result{Check: c, Status: StatusFail, Detail: mo.Some(detail), Remedy: remedy}
 }
 
-// The ten checks doctor runs, in the order it runs them.
+// The eleven checks doctor runs, in the order it runs them.
 var (
 	CodefallDir      = Check{ID: "codefall-dir", Title: ".codefall/ exists", Category: CategorySettings}
 	SettingsFile     = Check{ID: "settings-file", Title: ".codefall/settings.json exists", Category: CategorySettings}
 	SettingsJSON     = Check{ID: "settings-json", Title: "settings.json is valid JSON", Category: CategorySettings}
 	SettingsComplete = Check{ID: "settings-complete", Title: "settings.json is complete", Category: CategorySettings}
 	ReviewsIgnored   = Check{ID: "reviews-ignored", Title: ".ignore hides review findings", Category: CategorySettings}
+	// HarnessesInstalled is whether codefall's extension is actually where each harness the settings
+	// record would read it.
+	HarnessesInstalled = Check{ID: "harnesses-installed",
+		Title: "codefall is installed for every harness", Category: CategoryHarnesses}
 	BeadsInstalled   = Check{ID: "bd-installed", Title: "bd is on PATH", Category: CategoryBeads}
 	BeadsInitialized = Check{ID: "beads-initialized", Title: "Beads is initialized here", Category: CategoryBeads}
 	GHInstalled      = Check{ID: "gh-installed", Title: "gh is on PATH", Category: CategoryGitHub}

@@ -80,3 +80,24 @@ func TestSkillsDirIsAbsentForAHarnessCodefallCannotSetUp(t *testing.T) {
 		t.Errorf("SkillsDir(%q) = %v, want None", "aider", got)
 	}
 }
+
+// The shared hook scripts land under each harness's own skills directory, which is what lets a reader
+// tell an install apart from a skills directory that was already there.
+func TestSharedHooksDirSitsUnderTheSkillsDirectory(t *testing.T) {
+	for _, name := range All() {
+		got, known := SharedHooksDir(name).Get()
+		if !known {
+			t.Errorf("SharedHooksDir(%q) = None, want a directory", name)
+
+			continue
+		}
+
+		if want := SkillsDir(name).OrEmpty() + "/" + SharedHooksPath; got != want {
+			t.Errorf("SharedHooksDir(%q) = %q, want %q", name, got, want)
+		}
+	}
+
+	if got := SharedHooksDir("aider"); got.IsPresent() {
+		t.Errorf("SharedHooksDir(%q) = %v, want None", "aider", got)
+	}
+}
