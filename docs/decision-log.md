@@ -524,6 +524,68 @@ Decided at scaffold, 2026-08-16.
   import from `internal/initcmd/internal/domain/` unreported. That second proof matters here in a way
   it did not for `harness`: no `domain/` package imports the manifest format, so nothing else would
   have exercised the entry.
+- **Local environment: equip and refresh, 2026-09-16.** Pulling `main` before starting work has
+  consequences the pull itself does not perform — a migration the local database needs, a
+  dependency to install, code to regenerate, a container to rebuild — and a teammate who does not
+  read diffs has no way to know which. A skill written for one project can close the gap because
+  it knows that project's tools; codefall serves many project shapes and needs a version that
+  knows none of them.
+  The job splits in two. Bringing the **checkout** current is generic and codefall owns it.
+  Bringing the **environment** current is project-specific and the project owns it, as two plain
+  scripts declared under a `local` block in `.codefall/settings.json`: `start` brings the services
+  up, `update` makes the environment match the checkout. Both are idempotent and cheap when nothing
+  changed, so the answer to "bring the project up to date?" is always yes, and both are runnable by
+  hand, by CI, and by a harness without the extension. Codefall never generates them at run time;
+  a script re-derived by a model on every run varies between runs and cannot be run by anyone else.
+  **`codefall-equip`** builds and rebuilds them. Every run does the same thing — read the repo, read
+  the scripts if they exist, propose the draft or the revision, confirm, write, record the entry
+  points — so there is no one-time operation and the verb is not named like one. It is invoked
+  explicitly on adoption, and followed as a reference procedure by `codefall-scaffold` at code
+  depth and by `codefall-implement` when a task introduces infrastructure, a dependency, a
+  migration, or generated code. Its `SKILL.md` is the only copy of the procedure; the other verbs
+  read `../codefall-equip/SKILL.md` the way graft reads scaffold's templates, and no skill invokes
+  another through the harness, so `disable-model-invocation: true` holds everywhere.
+  **`codefall-refresh`** runs them: start what is down, run `update`, record the stamp, and turn a
+  failure into a sentence — "the database is not running, start Docker and I'll retry." When
+  nothing is declared it names `equip` and stops, the same shape as preflight naming `bd init`. It
+  never drafts: a verb that runs daily and also does one-time inference is the overload this design
+  spent the most turns removing.
+  **The check is frequent and read-only; the action runs at boundaries.** `shared/preflight.sh`
+  fetches and reports commits behind the default branch, a dirty tree, and whether the stamp
+  matches `HEAD`, and every verb reports what it found. A pull moves the working tree under
+  whatever the session is doing, so no hook ever pulls; a `SessionStart` notice is free because the
+  slot already exists for `bd prime`. The **stamp** is the commit at which `update` last exited
+  clean, written by `refresh` and not by the script, in a machine-local git-ignored file under
+  `.codefall/` — per working directory, so each worktree has its own. A stale stamp always means
+  run it; a hand run of the script leaves the stamp behind and costs one idempotent re-run.
+  **The scripts stay current at the point of introduction**, the same rule as documentation:
+  `design` names the change in the task when a bead's predicted file scope touches a compose file,
+  a migrations directory, a lockfile, or a codegen config; `implement` counts it toward done in the
+  same PR; `review` carries a lens for work that skipped design. `init` writes the generic rule
+  into `AGENTS.md` through the same marker mechanism as the Beads section, so an already-equipped
+  project gets it at the next `codefall init`. On an existing project, `init`'s report and `doctor`
+  both name `equip` as owed work so the adopter drafts the scripts in the adoption PR and the next
+  teammate gets a run, not an interview.
+  One thing named and left to the project: implement's workers live in worktrees, but the local
+  database is usually shared across every checkout on the machine, so a migration applied from a
+  feature branch leaves the primary checkout's environment ahead of its code. `update` brings the
+  environment level with the checkout it runs in; per-branch databases are the project's call.
+  Alternatives seen and not taken. A shared procedure file under `extensions/shared/`, followed by
+  three verbs: in this repo that is the same file as a skill minus the slash command, and the
+  adopter needs the slash command. A one-time onboarding verb (`codefall-onboard`) that drafts and
+  `refresh` that runs: withdrawn once implement became a caller, because first draft and revision
+  are one procedure. Repurposing `codefall-graft`: its mechanics are hash comparison against
+  templates the extension ships, the scripts have no template behind them, and its "never chained
+  into" rule would have to go. `refresh` drafting on its own first run: the one case where a
+  non-technical teammate sees the drafting interview. Names rejected: `sync` (git, `bd dolt push`),
+  `update-local` and `update` (collide with `init`'s upgrade and with graft, which also bring
+  something current), `catch-up`, `provision`. `equip` because the repository is being equipped
+  with the tools it needs to run; `refresh` because nothing else in codefall refreshes anything,
+  and it describes the routine whether or not anything changed.
+  Lands as a stack of seven PRs; the order is in [`PLAN.md`](PLAN.md). The contract with projects —
+  the `local` block, the two script names, idempotency, the stamp — is a breaking-change surface
+  once any project declares it, and is recorded as
+  [`ADR-005`](adrs/ADR-005-local-environment-scripts.md).
 
 ## Open
 
