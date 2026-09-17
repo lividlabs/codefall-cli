@@ -637,6 +637,28 @@ Decided at scaffold, 2026-08-16.
   which is a use-case method for one sentence; the section it writes names `equip` instead, and
   doctor is one command away.
 
+- **Preflight reports the checkout and the stamp, 2026-09-16.** The third code PR of the ADR-005
+  stack. `shared/preflight.sh` now opens with a checkout report before the Beads precondition:
+  the branch, whether the tree is dirty, a fetch, the default branch, commits behind and ahead of
+  it, whether settings declare a `local` block, the refresh stamp, and the stamp against `HEAD`.
+  Nothing in it changes the exit code — the three verbs that run preflight read the lines, say what
+  they found, and offer `/codefall-refresh`; `refresh=undeclared` names `/codefall-equip` instead.
+  The fetch runs with `GIT_TERMINAL_PROMPT=0` and ssh in batch mode, because a skill runs this with
+  nobody at the keyboard to answer a credential prompt, and a fetch that fails is reported as
+  `fetch=failed` rather than stopping anything. The default branch is what `origin/HEAD` names,
+  and `main` or `master` when that ref is missing, as it is in a remote added by hand. Whether the
+  `local` block is declared is read with jq when jq is there; without it, a `local` key anywhere in
+  the file counts, and doctor is the check that reads the shape properly.
+  The **stamp** is `.codefall/refresh.stamp`: one line, the commit `update` last exited clean at,
+  written by refresh and read here. `refresh=current` means the stamp matches `HEAD`; anything
+  else, while a block is declared, is `stale`. It is a per-machine file, so `codefall init`'s
+  ignore step now writes two entries rather than one — the `.ignore` line for review findings it
+  already wrote, and `.gitignore` gains the stamp — and doctor's Settings category gains a sixth
+  check that warns when `.gitignore` does not name it. Committed, the stamp would tell every other
+  clone it was current at a commit it never refreshed at, which is the one way the design can lie.
+  The skill additions are three sentences each, in the step that already runs preflight, and
+  `codefall-specify` sits at 4,780 tokens against the 5,000 guideline afterwards.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

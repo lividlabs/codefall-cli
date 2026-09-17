@@ -23,16 +23,19 @@ var (
 	codefallDir = filepath.Join(workingDir, ".codefall")
 	// The directories codefall's own files land in, which is what tells an install apart from a
 	// skills directory that was already there.
-	claudeShared = filepath.Join(workingDir, ".claude", "hooks", "shared")
-	agentsShared = filepath.Join(workingDir, ".agents", "hooks", "shared")
-	settingsPath = filepath.Join(codefallDir, "settings.json")
-	manifestPath = filepath.Join(workingDir, manifest.Name)
-	ignorePath   = filepath.Join(workingDir, settings.IgnoreName)
+	claudeShared  = filepath.Join(workingDir, ".claude", "hooks", "shared")
+	agentsShared  = filepath.Join(workingDir, ".agents", "hooks", "shared")
+	settingsPath  = filepath.Join(codefallDir, "settings.json")
+	manifestPath  = filepath.Join(workingDir, manifest.Name)
+	ignorePath    = filepath.Join(workingDir, settings.IgnoreName)
+	gitIgnorePath = filepath.Join(workingDir, settings.GitIgnoreName)
 	// The script the fixture's local block names, by the relative path the block uses.
 	localScript  = filepath.Join(workingDir, "scripts", "local.sh")
 	schemaRemedy = "create .codefall/settings.json; schema: " + settings.SchemaID
 	fixRemedy    = "fix the fields above; schema: " + settings.SchemaID
 	ignoreRemedy = "add " + settings.IgnoreEntry + " to " + settings.IgnoreName +
+		", or run codefall init again"
+	stampRemedy = "add " + settings.RefreshStamp + " to " + settings.GitIgnoreName +
 		", or run codefall init again"
 	leftoverRemedy = "remove the files " + manifest.Name +
 		" lists for codex; codefall never deletes what it wrote"
@@ -169,10 +172,11 @@ func healthy() (*fakeFileSystem, *fakeCommandRunner) {
 	files := &fakeFileSystem{
 		dirs: map[string]bool{codefallDir: true, claudeShared: true},
 		files: map[string][]byte{
-			settingsPath: []byte(validSettings),
-			manifestPath: []byte(installedManifest),
-			ignorePath:   []byte(settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n"),
-			localScript:  []byte("#!/usr/bin/env bash\n"),
+			settingsPath:  []byte(validSettings),
+			manifestPath:  []byte(installedManifest),
+			ignorePath:    []byte(settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n"),
+			gitIgnorePath: []byte("node_modules/\n\n" + settings.GitIgnoreComment + "\n" + settings.RefreshStamp + "\n"),
+			localScript:   []byte("#!/usr/bin/env bash\n"),
 		},
 		errs: map[string]error{},
 	}
@@ -211,6 +215,7 @@ var allPass = []outcome{
 	{domain.SettingsJSON.ID, domain.StatusPass},
 	{domain.SettingsComplete.ID, domain.StatusPass},
 	{domain.ReviewsIgnored.ID, domain.StatusPass},
+	{domain.StampIgnored.ID, domain.StatusPass},
 	{domain.HarnessesInstalled.ID, domain.StatusPass},
 	{domain.HarnessesLeftOver.ID, domain.StatusPass},
 	{domain.LocalDeclared.ID, domain.StatusPass},
@@ -248,20 +253,23 @@ var (
 	// skips those checks skips them too.
 	afterCodefallDir = []string{
 		domain.SettingsFile.ID, domain.SettingsJSON.ID, domain.SettingsComplete.ID,
-		domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
+		domain.ReviewsIgnored.ID, domain.StampIgnored.ID,
+		domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
 		domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 	}
 	afterSettingsFile = []string{
 		domain.SettingsJSON.ID, domain.SettingsComplete.ID, domain.ReviewsIgnored.ID,
-		domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
+		domain.StampIgnored.ID, domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
 		domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 	}
 	afterSettingsJSON = []string{
-		domain.SettingsComplete.ID, domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID,
-		domain.HarnessesLeftOver.ID, domain.LocalDeclared.ID, domain.LocalRunnable.ID,
+		domain.SettingsComplete.ID, domain.ReviewsIgnored.ID, domain.StampIgnored.ID,
+		domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
+		domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 	}
 	afterSettingsDone = []string{
-		domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
+		domain.ReviewsIgnored.ID, domain.StampIgnored.ID,
+		domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
 		domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 	}
 	afterLocalUndeclared = []string{domain.LocalRunnable.ID}
@@ -385,6 +393,28 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:   allPass,
 			target: domain.ReviewsIgnored.ID,
+		},
+		{
+			// A committed stamp would tell every other clone it was current at a commit it never
+			// refreshed at. Nothing is wrong until refresh writes one, so it warns.
+			name: ".gitignore is missing, so a refresh stamp would be committed",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				delete(f.files, gitIgnorePath)
+			},
+			want:       outcomes(map[string]domain.Status{domain.StampIgnored.ID: domain.StatusWarn}),
+			target:     domain.StampIgnored.ID,
+			wantDetail: ".gitignore not found",
+			wantRemedy: mo.Some(stampRemedy),
+		},
+		{
+			name: ".gitignore is there but does not name the stamp",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[gitIgnorePath] = []byte("node_modules/\n")
+			},
+			want:       outcomes(map[string]domain.Status{domain.StampIgnored.ID: domain.StatusWarn}),
+			target:     domain.StampIgnored.ID,
+			wantDetail: ".gitignore does not name " + settings.RefreshStamp,
+			wantRemedy: mo.Some(stampRemedy),
 		},
 		{
 			// The skills directory a harness reads may well exist for its own reasons; what says

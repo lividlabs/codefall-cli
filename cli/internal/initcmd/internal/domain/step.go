@@ -13,15 +13,15 @@ type Step struct {
 // its local environment current fifth. The hook step follows the extension step because the
 // scripts the hooks run are what the extension step copies. The agents step follows Beads because
 // bd init commits what it staged, and codefall's edit to AGENTS.md belongs in the author's own
-// commit rather than bd's — which is the same reason the ignore step comes last: .ignore is the
-// author's file to commit, not bd's.
+// commit rather than bd's — which is the same reason the ignore step comes last: .ignore and
+// .gitignore are the author's files to commit, not bd's.
 var (
 	SettingsStep  = Step{ID: "settings", Title: "Writing .codefall/settings.json"}
 	ExtensionStep = Step{ID: "extension", Title: "Installing the codefall extension"}
 	BeadsStep     = Step{ID: "beads", Title: "Initializing Beads"}
 	HookStep      = Step{ID: "hook", Title: "Registering codefall's hooks"}
 	AgentsStep    = Step{ID: "agents", Title: "Writing codefall's sections to AGENTS.md"}
-	IgnoreStep    = Step{ID: "ignore", Title: "Hiding review findings from codebase search"}
+	IgnoreStep    = Step{ID: "ignore", Title: "Writing the ignore entries"}
 )
 
 // Outcome is what a step did. A step that could not do its work returns an error instead: there is

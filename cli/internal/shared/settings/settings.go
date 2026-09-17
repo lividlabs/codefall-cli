@@ -68,14 +68,37 @@ const (
 	IgnoreComment = "# codefall review findings: tracked in git, skipped by ripgrep."
 )
 
+// The refresh stamp and the .gitignore entry that keeps it out of the repository (ADR-005). The
+// stamp is the commit the local environment was last brought current at, on this machine: refresh
+// writes it, preflight reads it, and it means nothing on any other machine, so it is never
+// committed. init adds the entry and doctor warns when it is missing.
+const (
+	// GitIgnoreName is git's own ignore file, at the same level as .codefall/.
+	GitIgnoreName = ".gitignore"
+	// RefreshStamp is the stamp's path, which is also the .gitignore entry.
+	RefreshStamp = ".codefall/refresh.stamp"
+	// GitIgnoreComment says why the line is there, for whoever finds the file later.
+	GitIgnoreComment = "# codefall refresh stamp: the commit this machine's local environment was last brought current at."
+)
+
 // IgnoresReviews reports whether a .ignore file's contents already name the reviews directory.
 //
 // The comparison is per line and ignores surrounding space, so an entry someone indented still
 // counts and a commented-out one does not — ripgrep does not read the comment either. Both
 // components need the same answer: init decides whether to append, doctor decides whether to fail.
 func IgnoresReviews(body string) bool {
+	return namesEntry(body, IgnoreEntry)
+}
+
+// IgnoresStamp reports whether a .gitignore file's contents already name the refresh stamp, by the
+// same rule.
+func IgnoresStamp(body string) bool {
+	return namesEntry(body, RefreshStamp)
+}
+
+func namesEntry(body, entry string) bool {
 	for line := range strings.SplitSeq(body, "\n") {
-		if strings.TrimSpace(line) == IgnoreEntry {
+		if strings.TrimSpace(line) == entry {
 			return true
 		}
 	}

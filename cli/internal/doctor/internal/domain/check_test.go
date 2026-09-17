@@ -78,9 +78,9 @@ func TestWarnAndFailCarryDetailAndRemedy(t *testing.T) {
 	}
 }
 
-// allChecks is the fourteen checks in the order doctor runs them.
+// allChecks is the fifteen checks in the order doctor runs them.
 var allChecks = []Check{
-	CodefallDir, SettingsFile, SettingsJSON, SettingsComplete, ReviewsIgnored,
+	CodefallDir, SettingsFile, SettingsJSON, SettingsComplete, ReviewsIgnored, StampIgnored,
 	HarnessesInstalled, HarnessesLeftOver,
 	LocalDeclared, LocalRunnable,
 	BeadsInstalled, BeadsInitialized, GHInstalled, GHAuthenticated, GHScopes,
@@ -111,6 +111,7 @@ func TestEveryCheckBelongsToOneOfTheFiveCategories(t *testing.T) {
 		SettingsJSON.ID:       CategorySettings,
 		SettingsComplete.ID:   CategorySettings,
 		ReviewsIgnored.ID:     CategorySettings,
+		StampIgnored.ID:       CategorySettings,
 		HarnessesInstalled.ID: CategoryHarnesses,
 		HarnessesLeftOver.ID:  CategoryHarnesses,
 		LocalDeclared.ID:      CategoryLocal,
