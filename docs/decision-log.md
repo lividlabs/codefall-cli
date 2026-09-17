@@ -612,6 +612,31 @@ Decided at scaffold, 2026-08-16.
   The category sits between Harnesses and Beads: the first three are about the project and the
   last two are about tools on the machine.
 
+- **Init writes the Local environment section, 2026-09-16.** The second code PR of the ADR-005
+  stack. `codefall init`'s agents step now writes two marked sections into `AGENTS.md` rather
+  than one: the Beads section it already wrote, and a **Local environment** section that tells an
+  agent to run `refresh` before starting new work and rather than pulling by hand, to change the
+  `start` and `update` scripts in the same pull request as the change that makes them stale, and to
+  run `equip` when no `local` block is declared. The words live in
+  `internal/initcmd/internal/domain/local_section.md`, embedded beside the Beads section for the
+  same reason. The section has markers of its own, `<!-- BEGIN CODEFALL LOCAL -->` and
+  `<!-- END CODEFALL LOCAL -->`, rather than widening the Beads pair: a project set up before this
+  section existed has the Beads markers and nothing else, and a widened pair would never be found
+  in that file, so init would append a second copy of the Beads words for ever. With its own pair,
+  the next `codefall init` on such a project reports "added the Local environment section to
+  AGENTS.md" and leaves the Beads section byte for byte — which is how the rule reaches every
+  project without a scaffold, and the whole reason the marker mechanism was chosen for it.
+  The step reads the file once and writes it once however many sections change, and a section that
+  is not there yet goes at the end, after the project's own words, never beside the section it
+  belongs with: the step does not move what somebody else wrote. An unclosed marker for either
+  section stops the run before anything is written, so a file with one good section and one broken
+  one comes back untouched. The step's title is now "Writing codefall's sections to AGENTS.md" and
+  its skip reads "codefall's sections in AGENTS.md are current"; the step ID is unchanged.
+  Init's closing line still says "Next: codefall doctor", and doctor is what names `equip` when
+  nothing is declared. Init could only say so itself by reading the settings it has just written,
+  which is a use-case method for one sentence; the section it writes names `equip` instead, and
+  doctor is one command away.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

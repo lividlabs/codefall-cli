@@ -24,28 +24,44 @@ const (
 	claudePointer    = "See [AGENTS.md](AGENTS.md) — the rules for this repo live there, and there only.\n"
 )
 
-// agentsChange is what the step did to AGENTS.md, which is most of what it has to report.
-type agentsChange int
+// section is one of codefall's marked sections of AGENTS.md: the name a person reads it by, the
+// markers that delimit it wherever it has been written, and the words themselves.
+type section struct {
+	name  string
+	begin string
+	end   string
+	body  string
+}
+
+// sections is every section the step writes, in the order a file that has none gains them. Each
+// pair of markers is its own, so a project that has one section and not the other gains the one
+// it is missing beside the one it has.
+var sections = []section{
+	{name: "Beads", begin: domain.BeadsSectionBegin, end: domain.BeadsSectionEnd, body: domain.BeadsSection},
+	{name: "Local environment", begin: domain.LocalSectionBegin, end: domain.LocalSectionEnd, body: domain.LocalSection},
+}
+
+// sectionChange is what the step did to one section, which is most of what it has to report.
+type sectionChange int
 
 const (
-	agentsCurrent agentsChange = iota
-	agentsCreated
-	agentsAppended
-	agentsReplaced
+	sectionCurrent sectionChange = iota
+	sectionAdded
+	sectionReplaced
 )
 
-// agents is the last step of a run: it writes codefall's own Beads section into AGENTS.md, and gives
+// agents is the fifth step of a run: it writes codefall's own sections into AGENTS.md, and gives
 // Claude Code the CLAUDE.md pointer to it when the project has no CLAUDE.md at all.
 //
 // bd would have written a section of its own here, and init runs `bd init --skip-agents` because
-// that text describes a setup codefall does not create. So the section is codefall's, and this is
-// what writes it.
+// that text describes a setup codefall does not create. So the sections are codefall's, and this
+// is what writes them.
 //
 // It runs after the Beads step on purpose. bd init stages AGENTS.md and CLAUDE.md when they exist
 // and commits what it staged under its own message, so an edit made before it ran would land in
 // bd's commit rather than the author's.
 func (i *Initialize) agents(_ context.Context, request Request) (domain.StepResult, error) {
-	change, err := i.writeBeadsSection(request.Dir)
+	done, err := i.writeSections(request.Dir)
 	if err != nil {
 		return domain.StepResult{}, err
 	}
@@ -55,115 +71,145 @@ func (i *Initialize) agents(_ context.Context, request Request) (domain.StepResu
 		return domain.StepResult{}, err
 	}
 
-	detail := agentsDetail(change, pointed)
-	if detail == "" {
+	if pointed {
+		done = append(done, "created "+claudeMemoryName)
+	}
+
+	// Nothing done is the skip: every section was already what codefall would have written, and
+	// CLAUDE.md was not this run's to make.
+	if len(done) == 0 {
 		return domain.AgentsStep.Skipped(
-			fmt.Sprintf("the Beads section in %s is current", agentsName)), nil
+			fmt.Sprintf("codefall's sections in %s are current", agentsName)), nil
 	}
 
-	return domain.AgentsStep.Done(detail), nil
+	return domain.AgentsStep.Done(sentenceList(done)), nil
 }
 
-// agentsDetail is what the step reports it did. An empty string is the skip: nothing was written,
-// because the section was already what codefall would have written and CLAUDE.md was not this run's
-// to make.
-func agentsDetail(change agentsChange, pointed bool) string {
-	var detail string
-
-	switch change {
-	case agentsCreated:
-		detail = fmt.Sprintf("created %s with the Beads section", agentsName)
-	case agentsAppended:
-		detail = fmt.Sprintf("added the Beads section to %s", agentsName)
-	case agentsReplaced:
-		detail = fmt.Sprintf("updated the Beads section in %s", agentsName)
-	case agentsCurrent:
-	}
-
-	if !pointed {
-		return detail
-	}
-
-	created := "created " + claudeMemoryName
-
-	if detail == "" {
-		return created
-	}
-
-	return detail + " and " + created
-}
-
-// writeBeadsSection puts codefall's section in AGENTS.md and reports what that took.
+// writeSections puts codefall's sections in AGENTS.md and reports what that took, as the clauses of
+// the sentence the step says about it — none when the file already said everything.
 //
 // The file belongs to the project, so the step changes as little of it as it can: a section already
 // marked is replaced between its markers and everything on either side survives byte for byte, and
-// a file with no markers keeps what it says and gains the section at the end. A file that is already
-// what would be written is not written at all, which is what makes a second run a skip.
-func (i *Initialize) writeBeadsSection(dir string) (agentsChange, error) {
+// a file with no markers for a section keeps what it says and gains that section at the end. A file
+// that is already what would be written is not written at all, which is what makes a second run a
+// skip. The file is read once and written once, however many sections change.
+func (i *Initialize) writeSections(dir string) ([]string, error) {
 	body, err := i.readProjectFile(dir, agentsName)
 	if err != nil {
-		return agentsCurrent, err
+		return nil, err
 	}
 
 	existing, present := body.Get()
+	next := existing
 
-	next, change, err := beadsSectionIn(existing, present)
-	if err != nil {
-		return agentsCurrent, err
+	changes := make([]sectionChange, 0, len(sections))
+
+	for _, s := range sections {
+		var change sectionChange
+
+		next, change, err = sectionIn(next, s)
+		if err != nil {
+			return nil, err
+		}
+
+		changes = append(changes, change)
 	}
 
-	if change == agentsCurrent {
-		return agentsCurrent, nil
+	if next == existing {
+		return nil, nil
 	}
 
 	if err := i.files.WriteFile(filepath.Join(dir, agentsName), []byte(next)); err != nil {
-		return agentsCurrent, fmt.Errorf("write %s: %w", agentsName, err)
+		return nil, fmt.Errorf("write %s: %w", agentsName, err)
 	}
 
-	return change, nil
+	return sectionsDone(changes, present), nil
 }
 
-// beadsSectionIn is the string surgery: what AGENTS.md should say, given what it says now. The
-// encoding of the section is here rather than in the domain, which holds the words and the markers
-// and nothing about how they are spliced into somebody's file.
-func beadsSectionIn(existing string, present bool) (string, agentsChange, error) {
+// sectionsDone is what happened to the sections, one clause each. A file that was not there was
+// created with every section; otherwise the sections that changed are named with what happened to
+// them, in section order.
+func sectionsDone(changes []sectionChange, present bool) []string {
+	if !present {
+		names := make([]string, 0, len(sections))
+		for _, s := range sections {
+			names = append(names, s.name)
+		}
+
+		return []string{fmt.Sprintf("created %s with %s", agentsName, sectionPhrase(names))}
+	}
+
+	var added, replaced []string
+
+	for at, change := range changes {
+		switch change {
+		case sectionAdded:
+			added = append(added, sections[at].name)
+		case sectionReplaced:
+			replaced = append(replaced, sections[at].name)
+		case sectionCurrent:
+		}
+	}
+
+	var done []string
+
+	if len(replaced) > 0 {
+		done = append(done, fmt.Sprintf("updated %s in %s", sectionPhrase(replaced), agentsName))
+	}
+
+	if len(added) > 0 {
+		done = append(done, fmt.Sprintf("added %s to %s", sectionPhrase(added), agentsName))
+	}
+
+	return done
+}
+
+// sectionPhrase names some sections the way a sentence does: "the Beads section", or "the Beads and
+// Local environment sections".
+func sectionPhrase(names []string) string {
+	if len(names) == 1 {
+		return "the " + names[0] + " section"
+	}
+
+	return "the " + sentenceList(names) + " sections"
+}
+
+// sectionIn is the string surgery: what the file should say, given what it says now and one section.
+// The encoding of a section is here rather than in the domain, which holds the words and the
+// markers and nothing about how they are spliced into somebody's file.
+func sectionIn(existing string, s section) (string, sectionChange, error) {
 	// The embedded file ends with a newline after its closing marker. What is spliced into a file
 	// does not carry it, because where it lands decides what follows.
-	section := strings.TrimSuffix(domain.BeadsSection, "\n")
+	body := strings.TrimSuffix(s.body, "\n")
 
-	begin := strings.Index(existing, domain.BeadsSectionBegin)
+	begin := strings.Index(existing, s.begin)
 	if begin >= 0 {
 		// A file with an opening marker and no closing one cannot be edited without guessing where
 		// codefall's words stop and the project's resume, and a guess here silently eats somebody's
 		// prose.
-		offset := strings.Index(existing[begin:], domain.BeadsSectionEnd)
+		offset := strings.Index(existing[begin:], s.end)
 		if offset < 0 {
-			return "", agentsCurrent, fmt.Errorf("%s has %s with no %s after it",
-				agentsName, domain.BeadsSectionBegin, domain.BeadsSectionEnd)
+			return "", sectionCurrent, fmt.Errorf("%s has %s with no %s after it", agentsName, s.begin, s.end)
 		}
 
-		end := begin + offset + len(domain.BeadsSectionEnd)
+		end := begin + offset + len(s.end)
 
-		next := existing[:begin] + section + existing[end:]
+		next := existing[:begin] + body + existing[end:]
 		if next == existing {
-			return existing, agentsCurrent, nil
+			return existing, sectionCurrent, nil
 		}
 
-		return next, agentsReplaced, nil
+		return next, sectionReplaced, nil
 	}
 
 	// One blank line between what the file said and the section, however the file ended, and a
 	// single newline at the end of it.
-	next := section + "\n"
+	next := body + "\n"
 	if trimmed := strings.TrimRight(existing, "\n"); trimmed != "" {
 		next = trimmed + "\n\n" + next
 	}
 
-	if !present {
-		return next, agentsCreated, nil
-	}
-
-	return next, agentsAppended, nil
+	return next, sectionAdded, nil
 }
 
 // writeClaudePointer creates CLAUDE.md for the harness that reads it, and reports whether it did.

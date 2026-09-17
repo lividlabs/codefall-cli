@@ -15,8 +15,14 @@ var (
 	claudeMemoryFull = filepath.Join(workingDir, "CLAUDE.md")
 )
 
-// section is what a file that has been through the step says, without the newline that ends it.
-var section = strings.TrimSuffix(domain.BeadsSection, "\n")
+// What a file that has been through the step says, without the newline that ends each section:
+// the Beads section, the Local environment section, and the two together as a file that had
+// nothing else gains them.
+var (
+	beadsSection = strings.TrimSuffix(domain.BeadsSection, "\n")
+	localSection = strings.TrimSuffix(domain.LocalSection, "\n")
+	bothSections = beadsSection + "\n\n" + localSection
+)
 
 // agentsResult is what the fifth step did in a run that got that far.
 func agentsResult(t *testing.T, report domain.Report) domain.StepResult {
@@ -48,8 +54,8 @@ func run(t *testing.T, markdown map[string][]byte) (*fakeFileSystem, domain.Step
 	return files, agentsResult(t, report)
 }
 
-// A project with no AGENTS.md gets one that is the section and nothing else, and the CLAUDE.md that
-// points at it.
+// A project with no AGENTS.md gets one that is the two sections and nothing else, and the CLAUDE.md
+// that points at it.
 func TestAgentsStepCreatesTheFilesThatAreNotThere(t *testing.T) {
 	files, result := run(t, nil)
 
@@ -57,13 +63,13 @@ func TestAgentsStepCreatesTheFilesThatAreNotThere(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	want := "created AGENTS.md with the Beads section and created CLAUDE.md"
+	want := "created AGENTS.md with the Beads and Local environment sections and created CLAUDE.md"
 	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
-	if got := string(files.files[agentsFull]); got != section+"\n" {
-		t.Errorf("AGENTS.md =\n%s\nwant\n%s", got, section+"\n")
+	if got := string(files.files[agentsFull]); got != bothSections+"\n" {
+		t.Errorf("AGENTS.md =\n%s\nwant\n%s", got, bothSections+"\n")
 	}
 
 	want = "See [AGENTS.md](AGENTS.md) — the rules for this repo live there, and there only.\n"
@@ -72,7 +78,7 @@ func TestAgentsStepCreatesTheFilesThatAreNotThere(t *testing.T) {
 	}
 }
 
-// A file that already says something keeps every word of it and gains the section at the end, with
+// A file that already says something keeps every word of it and gains the sections at the end, with
 // one blank line in between however the file happened to end.
 func TestAgentsStepAppendsToAFileThatAlreadySaysSomething(t *testing.T) {
 	for _, tc := range []struct {
@@ -90,11 +96,12 @@ func TestAgentsStepAppendsToAFileThatAlreadySaysSomething(t *testing.T) {
 				t.Errorf("outcome = %v, want DONE", result.Outcome)
 			}
 
-			if want := "added the Beads section to AGENTS.md and created CLAUDE.md"; result.Detail != want {
+			want := "added the Beads and Local environment sections to AGENTS.md and created CLAUDE.md"
+			if result.Detail != want {
 				t.Errorf("detail = %q, want %q", result.Detail, want)
 			}
 
-			want := "# Project\n\nWhat it is.\n\n" + section + "\n"
+			want = "# Project\n\nWhat it is.\n\n" + bothSections + "\n"
 			if got := string(files.files[agentsFull]); got != want {
 				t.Errorf("AGENTS.md =\n%q\nwant\n%q", got, want)
 			}
@@ -103,7 +110,9 @@ func TestAgentsStepAppendsToAFileThatAlreadySaysSomething(t *testing.T) {
 }
 
 // A section that is already there is rewritten between its markers, and what the file says on either
-// side comes back byte for byte.
+// side comes back byte for byte. A section that is not there yet goes at the end, after the
+// project's own words rather than beside the section it belongs with, because the step never moves
+// what somebody else wrote.
 func TestAgentsStepReplacesTheSectionInPlace(t *testing.T) {
 	const before = "# Project\n\nWhat it is.\n\n" +
 		domain.BeadsSectionBegin + "\n## Beads\n\nSomething older.\n" + domain.BeadsSectionEnd +
@@ -115,22 +124,49 @@ func TestAgentsStepReplacesTheSectionInPlace(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	if want := "updated the Beads section in AGENTS.md and created CLAUDE.md"; result.Detail != want {
+	want := "updated the Beads section in AGENTS.md, added the Local environment section to AGENTS.md " +
+		"and created CLAUDE.md"
+	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
-	want := "# Project\n\nWhat it is.\n\n" + section +
-		"\n\n## Afterwards\n\nMore of the project's own words.\n"
+	want = "# Project\n\nWhat it is.\n\n" + beadsSection +
+		"\n\n## Afterwards\n\nMore of the project's own words.\n\n" + localSection + "\n"
 
 	if got := string(files.files[agentsFull]); got != want {
 		t.Errorf("AGENTS.md =\n%q\nwant\n%q", got, want)
 	}
 }
 
-// A second run has nothing to do: the section is what codefall would have written, and the file is
+// A project set up before the Local environment section existed has the Beads section and nothing
+// else of codefall's. The next run adds the one it is missing and leaves the one it has alone,
+// which is how the section reaches every project without a scaffold.
+func TestAgentsStepAddsTheSectionAProjectIsMissing(t *testing.T) {
+	before := "# Project\n\n" + beadsSection + "\n"
+
+	files, result := run(t, map[string][]byte{
+		agentsFull:       []byte(before),
+		claudeMemoryFull: []byte("See [AGENTS.md](AGENTS.md).\n"),
+	})
+
+	if result.Outcome != domain.OutcomeDone {
+		t.Errorf("outcome = %v, want DONE", result.Outcome)
+	}
+
+	if want := "added the Local environment section to AGENTS.md"; result.Detail != want {
+		t.Errorf("detail = %q, want %q", result.Detail, want)
+	}
+
+	want := "# Project\n\n" + bothSections + "\n"
+	if got := string(files.files[agentsFull]); got != want {
+		t.Errorf("AGENTS.md =\n%q\nwant\n%q", got, want)
+	}
+}
+
+// A second run has nothing to do: every section is what codefall would have written, and the file is
 // not touched. This is what makes init safe to run again.
-func TestAgentsStepSkipsASectionThatIsCurrent(t *testing.T) {
-	before := "# Project\n\n" + section + "\n"
+func TestAgentsStepSkipsSectionsThatAreCurrent(t *testing.T) {
+	before := "# Project\n\n" + bothSections + "\n"
 
 	files, result := run(t, map[string][]byte{
 		agentsFull:       []byte(before),
@@ -141,7 +177,7 @@ func TestAgentsStepSkipsASectionThatIsCurrent(t *testing.T) {
 		t.Errorf("outcome = %v, want SKIPPED", result.Outcome)
 	}
 
-	if want := "the Beads section in AGENTS.md is current"; result.Detail != want {
+	if want := "codefall's sections in AGENTS.md are current"; result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
@@ -150,10 +186,10 @@ func TestAgentsStepSkipsASectionThatIsCurrent(t *testing.T) {
 	}
 }
 
-// The section is current and CLAUDE.md is not there: the step has one thing to report, and it is
+// The sections are current and CLAUDE.md is not there: the step has one thing to report, and it is
 // that one thing rather than a sentence about AGENTS.md that would not be true.
 func TestAgentsStepReportsTheOneThingItDid(t *testing.T) {
-	_, result := run(t, map[string][]byte{agentsFull: []byte(section + "\n")})
+	_, result := run(t, map[string][]byte{agentsFull: []byte(bothSections + "\n")})
 
 	if result.Outcome != domain.OutcomeDone {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
@@ -189,7 +225,7 @@ func TestAgentsStepWritesClaudeMdOnlyForClaudeCode(t *testing.T) {
 		t.Fatalf("agents: %v", err)
 	}
 
-	if want := "created AGENTS.md with the Beads section"; result.Detail != want {
+	if want := "created AGENTS.md with the Beads and Local environment sections"; result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
@@ -200,21 +236,43 @@ func TestAgentsStepWritesClaudeMdOnlyForClaudeCode(t *testing.T) {
 }
 
 // An opening marker with no closing one is a file the step cannot edit without guessing where
-// codefall's words stop, so it stops the run instead and says which marker it wanted.
+// codefall's words stop, so it stops the run instead and says which marker it wanted — for either
+// section, and before anything is written, so a file with one good section and one broken one
+// comes back untouched.
 func TestAgentsStepRefusesAnUnclosedSection(t *testing.T) {
-	const before = "# Project\n\n" + domain.BeadsSectionBegin + "\n## Beads\n\nHalf a section.\n"
+	for _, tc := range []struct {
+		name   string
+		before string
+		begin  string
+		end    string
+	}{
+		{
+			name:   "the Beads section",
+			before: "# Project\n\n" + domain.BeadsSectionBegin + "\n## Beads\n\nHalf a section.\n",
+			begin:  domain.BeadsSectionBegin,
+			end:    domain.BeadsSectionEnd,
+		},
+		{
+			name: "the Local environment section, after a Beads section that is out of date",
+			before: "# Project\n\n" + domain.BeadsSectionBegin + "\nOlder.\n" + domain.BeadsSectionEnd +
+				"\n\n" + domain.LocalSectionBegin + "\nHalf a section.\n",
+			begin: domain.LocalSectionBegin,
+			end:   domain.LocalSectionEnd,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			files := settled("{}")
+			files.files[agentsFull] = []byte(tc.before)
 
-	files := settled("{}")
-	files.files[agentsFull] = []byte(before)
+			_, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).agents(t.Context(), beadsRequest())
+			if err == nil || !strings.Contains(err.Error(), "AGENTS.md has "+tc.begin+" with no "+tc.end+" after it") {
+				t.Errorf("agents error = %v, want it to name the file and the missing marker", err)
+			}
 
-	_, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).agents(t.Context(), beadsRequest())
-	if err == nil || !strings.Contains(err.Error(), "AGENTS.md has "+domain.BeadsSectionBegin+
-		" with no "+domain.BeadsSectionEnd+" after it") {
-		t.Errorf("agents error = %v, want it to name the file and the missing marker", err)
-	}
-
-	if got := string(files.files[agentsFull]); got != before {
-		t.Errorf("AGENTS.md = %q, want it untouched", got)
+			if got := string(files.files[agentsFull]); got != tc.before {
+				t.Errorf("AGENTS.md = %q, want it untouched", got)
+			}
+		})
 	}
 }
 
