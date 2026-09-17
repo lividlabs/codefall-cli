@@ -58,6 +58,7 @@ func (d *Diagnose) Run(ctx context.Context, dir string) (domain.Report, error) {
 
 	groups := []func(context.Context, string, []domain.Result) []domain.Result{
 		d.settings,
+		d.harnesses,
 		d.beads,
 		d.github,
 	}

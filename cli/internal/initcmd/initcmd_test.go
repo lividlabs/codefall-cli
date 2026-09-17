@@ -9,6 +9,7 @@ import (
 	"github.com/samber/do/v2"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 	"github.com/lividlabs/codefall-cli/extensions"
 )
 
@@ -103,6 +104,17 @@ func TestOpenCodePluginPointsAtTheSharedScript(t *testing.T) {
 
 	if _, err := fs.Stat(tree, "hooks/shared/codefall-block-merge-to-main.sh"); err != nil {
 		t.Errorf("hooks/shared/codefall-block-merge-to-main.sh: %v", err)
+	}
+}
+
+// The extension step copies hooks/shared/ into every harness's skills directory, and doctor stats
+// that directory to report whether codefall is installed for a harness. A tree that stopped shipping
+// it would leave that check failing on a project that is set up correctly, so the path the shared
+// module names is pinned against the real tree here.
+func TestTheTreeShipsTheDirectoryDoctorLooksFor(t *testing.T) {
+	if _, err := fs.Stat(extensions.Files(), harness.SharedHooksPath); err != nil {
+		t.Errorf("%s: %v — doctor stats this directory to find codefall's install",
+			harness.SharedHooksPath, err)
 	}
 }
 

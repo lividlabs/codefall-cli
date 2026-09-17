@@ -37,8 +37,9 @@ func NewDoctorCommand(diagnose DiagnoseUseCase) *cobra.Command {
 	return &cobra.Command{
 		Use:   "doctor",
 		Short: "Check that this directory and your tools are ready for codefall",
-		Long:  "Reports on .codefall/settings.json, Beads, and gh. It never changes anything.",
-		Args:  cobra.NoArgs,
+		Long: "Reports on .codefall/settings.json, whether codefall is installed for each harness it " +
+			"records, Beads, and gh. It never changes anything.",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			// The working directory is the one piece of environment the command reads; the use case
 			// receives it as a value.

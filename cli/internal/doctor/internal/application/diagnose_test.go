@@ -19,7 +19,11 @@ import (
 const workingDir = "/work"
 
 var (
-	codefallDir  = filepath.Join(workingDir, ".codefall")
+	codefallDir = filepath.Join(workingDir, ".codefall")
+	// The directories codefall's own files land in, which is what tells an install apart from a
+	// skills directory that was already there.
+	claudeShared = filepath.Join(workingDir, ".claude", "hooks", "shared")
+	agentsShared = filepath.Join(workingDir, ".agents", "hooks", "shared")
 	settingsPath = filepath.Join(codefallDir, "settings.json")
 	ignorePath   = filepath.Join(workingDir, settings.IgnoreName)
 	schemaRemedy = "create .codefall/settings.json; schema: " + settings.SchemaID
@@ -33,6 +37,15 @@ const validSettings = `{
   "version": 1,
   "tracker": "github",
   "harnesses": ["claude-code"],
+  "github": { "issuesRepo": "lividlabs/codefall-cli", "issuesProject": 3 }
+}`
+
+// twoHarnessSettings is the same project set up for a second harness, which reads a second directory.
+const twoHarnessSettings = `{
+  "$schema": "` + settings.SchemaID + `",
+  "version": 1,
+  "tracker": "github",
+  "harnesses": ["claude-code", "codex"],
   "github": { "issuesRepo": "lividlabs/codefall-cli", "issuesProject": 3 }
 }`
 
@@ -101,7 +114,7 @@ func (r *fakeCommandRunner) Run(
 // healthy is the fixture where every check passes; each case mutates it.
 func healthy() (*fakeFileSystem, *fakeCommandRunner) {
 	files := &fakeFileSystem{
-		dirs: map[string]bool{codefallDir: true},
+		dirs: map[string]bool{codefallDir: true, claudeShared: true},
 		files: map[string][]byte{
 			settingsPath: []byte(validSettings),
 			ignorePath:   []byte(settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n"),
@@ -140,6 +153,7 @@ var allPass = []outcome{
 	{domain.SettingsJSON.ID, domain.StatusPass},
 	{domain.SettingsComplete.ID, domain.StatusPass},
 	{domain.ReviewsIgnored.ID, domain.StatusPass},
+	{domain.HarnessesInstalled.ID, domain.StatusPass},
 	{domain.BeadsInstalled.ID, domain.StatusPass},
 	{domain.BeadsInitialized.ID, domain.StatusPass},
 	{domain.GHInstalled.ID, domain.StatusPass},
@@ -169,15 +183,20 @@ func outcomes(changes map[string]domain.Status, absent ...string) []outcome {
 
 // The skip rules, named so each case reads as the rule it exercises.
 var (
+	// The harnesses check reads the same settings the group above validates, so whatever skips those
+	// checks skips it too.
 	afterCodefallDir = []string{
 		domain.SettingsFile.ID, domain.SettingsJSON.ID, domain.SettingsComplete.ID,
-		domain.ReviewsIgnored.ID,
+		domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID,
 	}
 	afterSettingsFile = []string{
 		domain.SettingsJSON.ID, domain.SettingsComplete.ID, domain.ReviewsIgnored.ID,
+		domain.HarnessesInstalled.ID,
 	}
-	afterSettingsJSON = []string{domain.SettingsComplete.ID, domain.ReviewsIgnored.ID}
-	afterSettingsDone = []string{domain.ReviewsIgnored.ID}
+	afterSettingsJSON = []string{
+		domain.SettingsComplete.ID, domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID,
+	}
+	afterSettingsDone = []string{domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID}
 	afterBeadsMissing = []string{domain.BeadsInitialized.ID}
 	afterGHMissing    = []string{domain.GHAuthenticated.ID, domain.GHScopes.ID}
 	afterGHAuth       = []string{domain.GHScopes.ID}
@@ -298,6 +317,48 @@ func TestDiagnoseRun(t *testing.T) {
 			},
 			want:   allPass,
 			target: domain.ReviewsIgnored.ID,
+		},
+		{
+			// The skills directory a harness reads may well exist for its own reasons; what says
+			// codefall is installed there is codefall's own files under it.
+			name: "codefall is not installed for the harness the settings name",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				delete(f.dirs, claudeShared)
+			},
+			want:       outcomes(map[string]domain.Status{domain.HarnessesInstalled.ID: domain.StatusFail}),
+			target:     domain.HarnessesInstalled.ID,
+			wantDetail: "codefall is not installed for claude-code",
+			wantRemedy: mo.Some("codefall init"),
+		},
+		{
+			name: "one of two harnesses has nothing installed",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[settingsPath] = []byte(twoHarnessSettings)
+			},
+			want:       outcomes(map[string]domain.Status{domain.HarnessesInstalled.ID: domain.StatusFail}),
+			target:     domain.HarnessesInstalled.ID,
+			wantDetail: "codefall is not installed for codex",
+			wantRemedy: mo.Some("codefall init"),
+		},
+		{
+			name: "both harnesses are installed",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[settingsPath] = []byte(twoHarnessSettings)
+				f.dirs[agentsShared] = true
+			},
+			want:       allPass,
+			target:     domain.HarnessesInstalled.ID,
+			wantDetail: "claude-code, codex",
+		},
+		{
+			name: "a harness directory cannot be stat'd",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.errs[claudeShared] = errors.New("permission denied")
+			},
+			want:       outcomes(map[string]domain.Status{domain.HarnessesInstalled.ID: domain.StatusFail}),
+			target:     domain.HarnessesInstalled.ID,
+			wantDetail: "Cannot stat " + claudeShared + ": permission denied",
+			wantRemedy: mo.None[string](),
 		},
 		{
 			name: "bd is not installed",
