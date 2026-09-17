@@ -31,7 +31,7 @@ func (s Status) String() string {
 }
 
 // Category is the part of a project's setup a check belongs to. The report groups by category, so a
-// healthy project is four lines rather than eleven.
+// healthy project is four lines rather than twelve.
 type Category struct {
 	ID    string
 	Title string
@@ -82,7 +82,7 @@ func (c Check) Fail(detail string, remedy mo.Option[string]) Result {
 	return Result{Check: c, Status: StatusFail, Detail: mo.Some(detail), Remedy: remedy}
 }
 
-// The eleven checks doctor runs, in the order it runs them.
+// The twelve checks doctor runs, in the order it runs them.
 var (
 	CodefallDir      = Check{ID: "codefall-dir", Title: ".codefall/ exists", Category: CategorySettings}
 	SettingsFile     = Check{ID: "settings-file", Title: ".codefall/settings.json exists", Category: CategorySettings}
@@ -93,6 +93,10 @@ var (
 	// record would read it.
 	HarnessesInstalled = Check{ID: "harnesses-installed",
 		Title: "codefall is installed for every harness", Category: CategoryHarnesses}
+	// HarnessesLeftOver is the other direction: an install the manifest records for a harness the
+	// settings no longer name.
+	HarnessesLeftOver = Check{ID: "harnesses-leftover",
+		Title: "no install is left over from a dropped harness", Category: CategoryHarnesses}
 	BeadsInstalled   = Check{ID: "bd-installed", Title: "bd is on PATH", Category: CategoryBeads}
 	BeadsInitialized = Check{ID: "beads-initialized", Title: "Beads is initialized here", Category: CategoryBeads}
 	GHInstalled      = Check{ID: "gh-installed", Title: "gh is on PATH", Category: CategoryGitHub}

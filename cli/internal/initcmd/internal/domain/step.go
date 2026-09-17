@@ -23,15 +23,6 @@ var (
 	IgnoreStep    = Step{ID: "ignore", Title: "Hiding review findings from codebase search"}
 )
 
-// What codefall's extension for Claude Code is called and where it comes from. These are facts about
-// codefall itself, which is why they live here; how the harness CLI is asked to install them is the
-// application layer's business.
-const (
-	// ManifestName is the install record the extension step writes, so upgrade and drift checks can
-	// know exactly which files belong to it. It lives in .codefall/, next to settings.json.
-	ManifestName = ".codefall/manifest.json"
-)
-
 // Outcome is what a step did. A step that could not do its work returns an error instead: there is
 // no failed outcome, because a failure stops the run.
 //
