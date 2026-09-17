@@ -298,12 +298,19 @@ config, it enforces all five rules.
 Docs-only output leaves the boundary-enforcement obligation unmet. Say so plainly in the report and
 name it as the first task the user owes the project.
 
+**Either code tier also equips the project**, per the `codefall-equip` skill's section *When
+another verb follows this skill* and the profile's depth notes: draft from what this run emitted,
+`start` exits `0` with nothing to bring up yet, and declare both under `local` in
+`.codefall/settings.json` when it exists — otherwise report the declaration as owed once
+`codefall init` has run. Docs-only output writes no scripts and names `codefall-equip` as owed.
+
 ### 6. Verify
 
 Whatever you emitted must actually work. If there are project files, run install, lint, and test —
 and confirm the boundary rules **fail on a deliberate violation**, because a lint config that catches
-nothing is the common failure here. Do not assume; run it. If there are only docs, check that every
-ADR cross-link and every `AGENTS.md` link resolves.
+nothing is the common failure here. Do not assume; run it. Prove the local scripts too: `update`
+twice, the second exiting `0` and quickly. If there are only docs, check that every ADR cross-link
+and every `AGENTS.md` link resolves.
 
 ### 7. Report
 
@@ -312,7 +319,8 @@ ADR cross-link and every `AGENTS.md` link resolves.
 - Any ADR amended, and what changed — this is what `.codefall/scaffold.json` records as `amended`,
   so the report and the file must agree.
 - Files created.
-- What the user still owes the project — always including boundary enforcement if it is not wired.
+- What the user still owes the project — always including boundary enforcement if it is not wired,
+  and `codefall-equip` after a docs-only run.
 
 ## Rules
 
@@ -330,6 +338,7 @@ ADR cross-link and every `AGENTS.md` link resolves.
 - **Provenance is written every time and never hand-edited.** Hashes are computed, never invented.
 - **Never scaffold into a non-empty directory unannounced, and never overwrite an existing path.**
 - **Boundary enforcement is owed on day one.** Docs-only output says so in the report.
+- **A code tier equips the project**, per `codefall-equip`; docs-only output names it as owed.
 - **Verify what you emitted**, including that the boundary rules fail on a deliberate violation.
 - **The doc workflow this seeds: discuss → decision-log → ADR → scoped `AGENTS.md` → code.**
   `codefall-design` picks up from here.
