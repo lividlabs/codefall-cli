@@ -9,7 +9,17 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
-var ignoreFull = filepath.Join(workingDir, settings.IgnoreName)
+var (
+	ignoreFull    = filepath.Join(workingDir, settings.IgnoreName)
+	gitIgnoreFull = filepath.Join(workingDir, settings.GitIgnoreName)
+)
+
+// stampIgnored is a .gitignore that already names the stamp, for the tests about the other file.
+func stampIgnored(files *fakeFileSystem) *fakeFileSystem {
+	files.files[gitIgnoreFull] = []byte(settings.RefreshStamp + "\n")
+
+	return files
+}
 
 // ignoreResult is the last result of a run, which is the ignore step's: it runs last so that
 // .ignore is the author's file to commit rather than one bd init sweeps up.
@@ -28,7 +38,7 @@ func ignoreResult(t *testing.T, files *fakeFileSystem) domain.StepResult {
 	return results[len(results)-1]
 }
 
-func TestIgnoreStepWritesTheFileWhenThereIsNone(t *testing.T) {
+func TestIgnoreStepWritesTheFilesWhenThereAreNone(t *testing.T) {
 	files := settled("{}")
 
 	result := ignoreResult(t, files)
@@ -41,9 +51,45 @@ func TestIgnoreStepWritesTheFileWhenThereIsNone(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
+	if want := "wrote .ignore and wrote .gitignore"; result.Detail != want {
+		t.Errorf("detail = %q, want %q", result.Detail, want)
+	}
+
 	want := settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n"
 	if got := string(files.files[ignoreFull]); got != want {
 		t.Errorf("%s =\n%q\nwant\n%q", settings.IgnoreName, got, want)
+	}
+
+	want = settings.GitIgnoreComment + "\n" + settings.RefreshStamp + "\n"
+	if got := string(files.files[gitIgnoreFull]); got != want {
+		t.Errorf("%s =\n%q\nwant\n%q", settings.GitIgnoreName, got, want)
+	}
+}
+
+// A project's .gitignore is nearly always its own already, so the stamp entry is appended to it,
+// and the .ignore file that is already right is left alone and left out of the sentence.
+func TestIgnoreStepAddsTheStampToAGitignoreThatIsAlreadyThere(t *testing.T) {
+	files := settled("{}")
+	files.files[ignoreFull] = []byte(settings.IgnoreEntry + "\n")
+	files.files[gitIgnoreFull] = []byte("node_modules/\ndist/\n")
+
+	result := ignoreResult(t, files)
+
+	if result.Outcome != domain.OutcomeDone {
+		t.Errorf("outcome = %v, want DONE", result.Outcome)
+	}
+
+	if want := "added " + settings.RefreshStamp + " to .gitignore"; result.Detail != want {
+		t.Errorf("detail = %q, want %q", result.Detail, want)
+	}
+
+	want := "node_modules/\ndist/\n\n" + settings.GitIgnoreComment + "\n" + settings.RefreshStamp + "\n"
+	if got := string(files.files[gitIgnoreFull]); got != want {
+		t.Errorf("%s =\n%q\nwant\n%q", settings.GitIgnoreName, got, want)
+	}
+
+	if got := string(files.files[ignoreFull]); got != settings.IgnoreEntry+"\n" {
+		t.Errorf("%s =\n%q\nwant it untouched", settings.IgnoreName, got)
 	}
 }
 
@@ -58,7 +104,7 @@ func TestIgnoreStepAppendsToAFileThatAlreadySaysSomething(t *testing.T) {
 		{name: "the file does not", existing: "vendor/\nnode_modules/"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			files := settled("{}")
+			files := stampIgnored(settled("{}"))
 			files.files[ignoreFull] = []byte(tc.existing)
 
 			result := ignoreResult(t, files)
@@ -98,7 +144,7 @@ func TestIgnoreStepLeavesAFileThatAlreadyNamesTheDirectory(t *testing.T) {
 		{name: "commented out", existing: "# " + settings.IgnoreEntry + "\n", skipped: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			files := settled("{}")
+			files := stampIgnored(settled("{}"))
 			files.files[ignoreFull] = []byte(tc.existing)
 
 			result := ignoreResult(t, files)
@@ -106,6 +152,12 @@ func TestIgnoreStepLeavesAFileThatAlreadyNamesTheDirectory(t *testing.T) {
 			if tc.skipped {
 				if result.Outcome != domain.OutcomeSkipped {
 					t.Errorf("outcome = %v, want SKIPPED", result.Outcome)
+				}
+
+				want := ".ignore already names " + settings.IgnoreEntry +
+					" and .gitignore already names " + settings.RefreshStamp
+				if result.Detail != want {
+					t.Errorf("detail = %q, want %q", result.Detail, want)
 				}
 
 				if got := string(files.files[ignoreFull]); got != tc.existing {

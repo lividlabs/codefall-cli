@@ -176,6 +176,10 @@ over the command that fixes it, and **stop**:
 | `not_initialized` | this repository has no beads database | `bd init` |
 | `unreadable` | bd found a database and could not read it | quote `beads_detail` |
 
+Then read the checkout lines. `behind` above `0` or `refresh=stale` means the environment may not
+match `main`: say so and offer `/codefall-refresh` before continuing. `refresh=undeclared` names
+`/codefall-equip` instead. Never pull the checkout or run the local commands from here.
+
 **Never run the remedy.** `bd init` writes `.beads/`, git hooks, `.claude/settings.json`, and a
 block in `AGENTS.md` and `CLAUDE.md`, then commits all of it. That is the user's decision.
 

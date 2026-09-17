@@ -231,6 +231,11 @@ command that fixes it, and stop:
 
 **Never run the remedy.** `bd init` writes and commits real files; that is the user's decision.
 
+Then read the checkout lines. `behind` above `0` or `refresh=stale` means the environment may not
+match what the work will build on: say so and offer `/codefall-refresh` before continuing.
+`refresh=undeclared` names `/codefall-equip` instead. Never pull the checkout or run the local
+commands from here; `refresh` owns both.
+
 Then read the project's `AGENTS.md` (root and scoped) and `.codefall/skills/implement/CUSTOMIZE.md`
 — workflow constraints, verify commands, pinned board IDs, a standing strategy preference.
 

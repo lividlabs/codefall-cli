@@ -106,18 +106,50 @@ func (d *Diagnose) reviewsIgnored(dir string, results []domain.Result) []domain.
 
 	data, err := d.files.ReadFile(path)
 
+	// The stamp check is independent of this one — a different file — so it runs whatever this
+	// one found.
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		return append(results, domain.ReviewsIgnored.Warn(settings.IgnoreName+" not found", remedy))
+		results = append(results, domain.ReviewsIgnored.Warn(settings.IgnoreName+" not found", remedy))
 	case err != nil:
-		return append(results, domain.ReviewsIgnored.Warn(
+		results = append(results, domain.ReviewsIgnored.Warn(
 			fmt.Sprintf("Cannot read %s: %v", settings.IgnoreName, err), mo.None[string]()))
+	case settings.IgnoresReviews(string(data)):
+		results = append(results, domain.ReviewsIgnored.Pass())
+	default:
+		results = append(results, domain.ReviewsIgnored.Warn(
+			settings.IgnoreName+" does not name "+settings.IgnoreEntry, remedy))
 	}
 
-	if settings.IgnoresReviews(string(data)) {
-		return append(results, domain.ReviewsIgnored.Pass())
+	return d.stampIgnored(dir, results)
+}
+
+// stampIgnored is check 6: the .gitignore entry that keeps the refresh stamp out of the repository
+// (ADR-005). The stamp says which commit this machine's environment was last brought current at,
+// and committed it would say that about every machine, so every other clone would skip a refresh
+// it needed.
+//
+// It warns rather than fails, for the same reason as the check before it: the stamp is not there
+// until refresh has run, and until then nothing is wrong, only unguarded.
+func (d *Diagnose) stampIgnored(dir string, results []domain.Result) []domain.Result {
+	path := filepath.Join(dir, settings.GitIgnoreName)
+	remedy := mo.Some("add " + settings.RefreshStamp + " to " + settings.GitIgnoreName +
+		", or run codefall init again")
+
+	data, err := d.files.ReadFile(path)
+
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return append(results, domain.StampIgnored.Warn(settings.GitIgnoreName+" not found", remedy))
+	case err != nil:
+		return append(results, domain.StampIgnored.Warn(
+			fmt.Sprintf("Cannot read %s: %v", settings.GitIgnoreName, err), mo.None[string]()))
 	}
 
-	return append(results, domain.ReviewsIgnored.Warn(
-		settings.IgnoreName+" does not name "+settings.IgnoreEntry, remedy))
+	if settings.IgnoresStamp(string(data)) {
+		return append(results, domain.StampIgnored.Pass())
+	}
+
+	return append(results, domain.StampIgnored.Warn(
+		settings.GitIgnoreName+" does not name "+settings.RefreshStamp, remedy))
 }

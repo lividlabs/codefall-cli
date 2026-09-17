@@ -31,7 +31,7 @@ func (s Status) String() string {
 }
 
 // Category is the part of a project's setup a check belongs to. The report groups by category, so a
-// healthy project is five lines rather than fourteen.
+// healthy project is five lines rather than fifteen.
 type Category struct {
 	ID    string
 	Title string
@@ -83,13 +83,15 @@ func (c Check) Fail(detail string, remedy mo.Option[string]) Result {
 	return Result{Check: c, Status: StatusFail, Detail: mo.Some(detail), Remedy: remedy}
 }
 
-// The fourteen checks doctor runs, in the order it runs them.
+// The fifteen checks doctor runs, in the order it runs them.
 var (
 	CodefallDir      = Check{ID: "codefall-dir", Title: ".codefall/ exists", Category: CategorySettings}
 	SettingsFile     = Check{ID: "settings-file", Title: ".codefall/settings.json exists", Category: CategorySettings}
 	SettingsJSON     = Check{ID: "settings-json", Title: "settings.json is valid JSON", Category: CategorySettings}
 	SettingsComplete = Check{ID: "settings-complete", Title: "settings.json is complete", Category: CategorySettings}
 	ReviewsIgnored   = Check{ID: "reviews-ignored", Title: ".ignore hides review findings", Category: CategorySettings}
+	// StampIgnored is whether the refresh stamp, a per-machine file, is kept out of the repository.
+	StampIgnored = Check{ID: "stamp-ignored", Title: ".gitignore hides the refresh stamp", Category: CategorySettings}
 	// HarnessesInstalled is whether codefall's extension is actually where each harness the settings
 	// record would read it.
 	HarnessesInstalled = Check{ID: "harnesses-installed",

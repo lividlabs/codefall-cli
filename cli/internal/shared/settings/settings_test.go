@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -380,6 +381,34 @@ func TestRequiredFields(t *testing.T) {
 
 	if got, want := RequiredLocalFields(), []string{"start", "update"}; !slices.Equal(got, want) {
 		t.Errorf("RequiredLocalFields() = %q, want %q", got, want)
+	}
+}
+
+// The two ignore files are read by one rule: a whole line, surrounding space ignored, and a comment
+// is not an entry — neither ripgrep nor git reads it as one.
+func TestIgnoresEntries(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		body  string
+		names bool
+	}{
+		{name: "written plainly", body: "vendor/\n%s\n", names: true},
+		{name: "indented", body: "  %s  \n", names: true},
+		{name: "without a trailing newline", body: "%s", names: true},
+		{name: "commented out", body: "# %s\n", names: false},
+		{name: "as a prefix of a longer entry", body: "%s.bak\n", names: false},
+		{name: "absent", body: "vendor/\nnode_modules/\n", names: false},
+		{name: "empty", body: "", names: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := IgnoresReviews(fmt.Sprintf(tc.body, IgnoreEntry)); got != tc.names {
+				t.Errorf("IgnoresReviews(%q) = %v, want %v", fmt.Sprintf(tc.body, IgnoreEntry), got, tc.names)
+			}
+
+			if got := IgnoresStamp(fmt.Sprintf(tc.body, RefreshStamp)); got != tc.names {
+				t.Errorf("IgnoresStamp(%q) = %v, want %v", fmt.Sprintf(tc.body, RefreshStamp), got, tc.names)
+			}
+		})
 	}
 }
 
