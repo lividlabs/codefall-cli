@@ -178,7 +178,7 @@ func buildRequest(
 		return application.Request{}, err
 	}
 
-	request := application.Request{Dir: dir, Harness: chosen, Force: flags.force,
+	request := application.Request{Dir: dir, Harnesses: []string{chosen}, Force: flags.force,
 		CLIVersion: cliVersion()}
 
 	if flags.tracker != "" {
@@ -233,14 +233,15 @@ func buildRequest(
 
 		if recorded, ok := previous.Get(); ok {
 			// A run for a harness the project has never been set up for is work to do, however
-			// current the version that installed the other one is.
-			if recorded.Version == request.CLIVersion && recorded.Harness == request.Harness {
+			// current the version that installed the others is.
+			if installedEverything(recorded, request.Harnesses, request.CLIVersion) {
 				request.NoOp = true
 				return request, nil
 			}
 
-			// The question is about moving a version, so it is asked only when the version moves.
-			if recorded.Version != request.CLIVersion && !flags.yes {
+			// The question is about moving a version, so it is asked only when a version moves. A
+			// harness with no record at all is work rather than an upgrade, and is not asked about.
+			if versionMoves(recorded, request.Harnesses, request.CLIVersion) && !flags.yes {
 				if err := confirmUpgrade(cmd.Context(), request.CLIVersion); err != nil {
 					return application.Request{}, err
 				}
@@ -262,6 +263,33 @@ func buildRequest(
 	}
 
 	return request, nil
+}
+
+// installedEverything reports whether every harness this run is for is already installed at this
+// binary's version, which is what makes a rerun a no-op. A run for no harness has nothing installed
+// rather than everything.
+func installedEverything(
+	recorded application.Installation, harnesses []string, version string,
+) bool {
+	for _, name := range harnesses {
+		if recorded.Versions[name] != version {
+			return false
+		}
+	}
+
+	return len(harnesses) > 0
+}
+
+// versionMoves reports whether any harness this run is for is installed at a different version,
+// which is the one thing the upgrade confirmation is about.
+func versionMoves(recorded application.Installation, harnesses []string, version string) bool {
+	for _, name := range harnesses {
+		if installed, recorded := recorded.Versions[name]; recorded && installed != version {
+			return true
+		}
+	}
+
+	return false
 }
 
 // chooseLocation settles which directory the run installs into. Only a run below the repository root

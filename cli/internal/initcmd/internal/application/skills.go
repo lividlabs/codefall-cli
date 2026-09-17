@@ -13,47 +13,49 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 )
 
-// skillsDirExtension is the extension step for every harness. dest is where that harness reads
-// skills, which the caller has already taken from the shared harness module. It copies the embedded
-// extension tree, minus the per-harness hook definitions the hook step consumes, and hands back what
-// it wrote for the manifest the run records at the end.
-func (i *Initialize) skillsDirExtension(
-	ctx context.Context, request Request, dest string,
-) (domain.StepResult, []string, error) {
-	installed, err := i.source.Fetch(ctx, filepath.Join(request.Dir, dest), hookSourceDirs)
+// fetchSkills copies the embedded extension tree into one skills directory, minus the per-harness
+// hook definitions the hook step consumes, and hands back what it wrote relative to that directory.
+func (i *Initialize) fetchSkills(ctx context.Context, dir, dest string) ([]string, error) {
+	installed, err := i.source.Fetch(ctx, filepath.Join(dir, dest), hookSourceDirs)
 	if err != nil {
-		return domain.StepResult{}, nil, fmt.Errorf("install the embedded extension: %w", err)
+		return nil, fmt.Errorf("install the embedded extension: %w", err)
 	}
 
-	return domain.ExtensionStep.Done(fmt.Sprintf(
-		"installed codefall's skills into %s/", dest)), installed, nil
+	return installed, nil
 }
 
-// manifest is the install record. Files are relative to the harness's skills directory, sorted,
-// and the version is the binary that wrote them, so "from/to" is readable both ways.
+// manifest is the install record: what each harness has installed, and which binary installed it.
+//
+// A run updates the entries for the harnesses it installed for and leaves every other entry as it
+// was. A project set up for two harnesses therefore keeps both records, where a file naming one
+// harness lost the first record as soon as the second install finished — and the next run for that
+// first harness repeated work it had already done.
 type manifest struct {
-	Harness string   `json:"harness"`
+	Harnesses map[string]harnessInstall `json:"harnesses"`
+}
+
+// harnessInstall is one harness's entry: the binary that wrote its files, and the files, relative to
+// the directory init installed in.
+type harnessInstall struct {
 	Version string   `json:"version"`
 	Files   []string `json:"files"`
 }
 
-// Installation is what a finished run recorded about itself, as presentation reads it back: the
-// binary that installed and the harness it installed for. Both are what the upgrade gate compares,
-// and neither answers the question on its own — a matching version for another harness is a project
-// that has never been set up for the harness in front of it (ADR-001).
+// Installation is what finished runs recorded, as presentation reads it back: the version each
+// harness was installed at. The gate compares it per harness, because a current version for one
+// harness says nothing about a project that has never been set up for the harness in front of it
+// (ADR-001).
 type Installation struct {
-	Harness string
-	Version string
+	Versions map[string]string
 }
 
 // Installed is the manifest through the use-case boundary, so presentation can compare it with the
-// binary's own tag and the harness it was asked for without knowing the manifest's path. A manifest
-// naming no version records nothing a comparison can use, so it reads the same as no manifest at
-// all (ADR-GO-03).
+// binary's own tag without knowing the manifest's path. A harness recorded with no version records
+// nothing a comparison can use, so it is left out; a manifest that records no usable version at all
+// reads the same as no manifest (ADR-GO-03).
 func (i *Initialize) Installed(dir string) (mo.Option[Installation], error) {
-	path := filepath.Join(dir, domain.ManifestName)
+	data, err := i.files.ReadFile(filepath.Join(dir, domain.ManifestName))
 
-	data, err := i.files.ReadFile(path)
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		return mo.None[Installation](), nil
@@ -61,24 +63,43 @@ func (i *Initialize) Installed(dir string) (mo.Option[Installation], error) {
 		return mo.None[Installation](), fmt.Errorf("read %s: %w", domain.ManifestName, err)
 	}
 
-	var previous manifest
-	if err := json.Unmarshal(data, &previous); err != nil {
-		return mo.None[Installation](), fmt.Errorf("decode %s: %w", domain.ManifestName, err)
+	previous, err := decodeManifest(data)
+	if err != nil {
+		return mo.None[Installation](), err
 	}
 
-	if previous.Version == "" {
+	versions := map[string]string{}
+
+	for name, install := range previous.Harnesses {
+		if install.Version != "" {
+			versions[name] = install.Version
+		}
+	}
+
+	if len(versions) == 0 {
 		return mo.None[Installation](), nil
 	}
 
-	return mo.Some(Installation{Harness: previous.Harness, Version: previous.Version}), nil
+	return mo.Some(Installation{Versions: versions}), nil
 }
 
-// writeManifest writes .codefall/manifest.json in the project's directory. The run calls it once
-// every step has succeeded: the file says an install of this version for this harness is complete,
-// and the upgrade gate takes it at its word.
-func (i *Initialize) writeManifest(dir, harness, version string, files []string) error {
-	body, err := json.MarshalIndent(manifest{Harness: harness, Version: version, Files: files},
-		"", "  ")
+// writeManifest records this run in .codefall/manifest.json. The run calls it once every step has
+// succeeded: the entries it writes say an install of this version, for those harnesses, is complete,
+// and the upgrade gate takes them at their word.
+//
+// It merges into what is already recorded rather than replacing it. A run for one harness has done
+// nothing to another harness's install and has no business erasing the record of it.
+func (i *Initialize) writeManifest(dir, version string, installed map[string][]string) error {
+	recorded, err := i.recordedManifest(dir)
+	if err != nil {
+		return err
+	}
+
+	for name, files := range installed {
+		recorded.Harnesses[name] = harnessInstall{Version: version, Files: files}
+	}
+
+	body, err := json.MarshalIndent(recorded, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -88,4 +109,42 @@ func (i *Initialize) writeManifest(dir, harness, version string, files []string)
 	}
 
 	return nil
+}
+
+// recordedManifest is what the file already says, with an entry map ready to write into. A file that
+// is not there is an empty record rather than an error, because this is what creates it.
+func (i *Initialize) recordedManifest(dir string) (manifest, error) {
+	recorded := manifest{Harnesses: map[string]harnessInstall{}}
+
+	data, err := i.files.ReadFile(filepath.Join(dir, domain.ManifestName))
+
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return recorded, nil
+	case err != nil:
+		return manifest{}, fmt.Errorf("read %s: %w", domain.ManifestName, err)
+	}
+
+	previous, err := decodeManifest(data)
+	if err != nil {
+		return manifest{}, err
+	}
+
+	for name, install := range previous.Harnesses {
+		recorded.Harnesses[name] = install
+	}
+
+	return recorded, nil
+}
+
+// decodeManifest reads the record. A manifest written before harnesses were recorded per install
+// names none of them, which decodes cleanly to an empty record: the run then repeats every step,
+// which they are all built to tolerate.
+func decodeManifest(data []byte) (manifest, error) {
+	var previous manifest
+	if err := json.Unmarshal(data, &previous); err != nil {
+		return manifest{}, fmt.Errorf("decode %s: %w", domain.ManifestName, err)
+	}
+
+	return previous, nil
 }

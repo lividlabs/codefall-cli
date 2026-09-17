@@ -415,6 +415,35 @@ Decided at scaffold, 2026-08-16.
   `domain-layer` allow entry names the module. The `application-layer` entry needs no throwaway
   proof: the extension and hook steps import the module, and lint passes.
 
+- **A run installs for a set of harnesses, 2026-09-16.** `Request.Harness` is `Request.Harnesses`,
+  and the extension and hook steps each do their work once per harness the run is for. This
+  supersedes the closing note of **What the manifest asserts, 2026-09-11**, which set recording a
+  harness per install aside as a larger change to what the file is for. This is that change.
+  `.codefall/manifest.json` now holds an entry per harness — the version that installed it and the
+  files it wrote — and a run updates the entries for the harnesses it installed for while leaving
+  every other entry as it was. A project set up for two keeps both records, where the file naming one
+  harness lost the first record as soon as the second install finished, and the next run for that
+  first harness repeated work it had already done. The recorded paths are relative to the directory
+  init installed in rather than to the harness's own skills directory: four of the five harnesses
+  read `.agents/`, so a bare `skills/…` would not say which directory it landed in.
+  Every step reads the set through one function that sorts it and drops repeats, so the order a flag
+  or a survey happened to collect them in cannot change what a step does or what it reports. The
+  extension step copies once per directory rather than once per harness, because four of them share
+  one, and every harness that reads a directory records the files in it. The hook step registers with
+  each harness in turn and folds the outcomes: Done when any registration changed something, with
+  every harness's own sentence in the detail. A run for one harness reports exactly what it reported
+  before, which is what keeps this change invisible. The `CLAUDE.md` pointer is written whenever
+  Claude Code is among the harnesses rather than when it is the harness. A run for no harness is
+  refused by preflight, where nothing has been touched yet, rather than by six steps in turn
+  reporting they had nothing to do.
+  The no-op gate compares per harness: a rerun is a no-op when every harness it is for is recorded at
+  this binary's version, and the upgrade question is asked only when one of them is recorded at a
+  different version — a harness with no record at all is work to do rather than an upgrade.
+  Nothing a user can see changes yet, because presentation still passes the one harness `--harness`
+  names and that flag still defaults to `claude-code`. Choosing several is the next change in the
+  stack. A manifest written before this one decodes to an empty record, so the next run repeats every
+  step, which they are all built to tolerate; no project has a manifest yet, so nothing is migrated.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

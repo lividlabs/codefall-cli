@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"os"
+	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -136,12 +138,12 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 		Tracker:       settings.TrackerGitHub,
 		IssuesRepo:    mo.Some("lividlabs/codefall-cli"),
 		IssuesProject: mo.Some(3),
-		Harness:       harness.ClaudeCode,
+		Harnesses:     []string{harness.ClaudeCode},
 		CLIVersion:    cliVersion(),
 		Force:         true,
 	}
 
-	if initialize.got != want {
+	if !reflect.DeepEqual(initialize.got, want) {
 		t.Errorf("request = %+v, want %+v", initialize.got, want)
 	}
 
@@ -158,8 +160,8 @@ func TestInitCommandDefaultsTheHarnessAndLeavesTheOptionalValuesAbsent(t *testin
 		t.Fatalf("Execute: %v", err)
 	}
 
-	if initialize.got.Harness != harness.ClaudeCode {
-		t.Errorf("Harness = %q, want %q", initialize.got.Harness, harness.ClaudeCode)
+	if want := []string{harness.ClaudeCode}; !slices.Equal(initialize.got.Harnesses, want) {
+		t.Errorf("Harnesses = %q, want %q", initialize.got.Harnesses, want)
 	}
 
 	if initialize.got.IssuesRepo.IsPresent() || initialize.got.IssuesProject.IsPresent() {
@@ -579,10 +581,10 @@ func TestInitCommandAtTheRepositoryRootNeedsNoLocation(t *testing.T) {
 	}
 }
 
-// The manifest records which harness a finished run installed for, and the gate compares it: a
-// project set up for one harness has had nothing done for the next one, whatever version installed
-// it. Comparing the version alone reported "already up to date" and left the second harness with no
-// skills, no hooks, and no way in short of --force.
+// The manifest records the version each harness was installed at, and the gate compares them one
+// harness at a time: a project set up for one harness has had nothing done for the next one, whatever
+// version installed it. Comparing the version alone reported "already up to date" and left the second
+// harness with no skills, no hooks, and no way in short of --force.
 func TestInitCommandIsANoOpOnlyForTheHarnessItInstalled(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
@@ -592,18 +594,27 @@ func TestInitCommandIsANoOpOnlyForTheHarnessItInstalled(t *testing.T) {
 	}{
 		{
 			name:      "the same harness at the same version",
-			installed: application.Installation{Harness: harness.ClaudeCode, Version: cliVersion()},
+			installed: application.Installation{Versions: map[string]string{harness.ClaudeCode: cliVersion()}},
 			wantRun:   false,
 		},
 		{
 			name:      "another harness at the same version",
-			installed: application.Installation{Harness: harness.ClaudeCode, Version: cliVersion()},
+			installed: application.Installation{Versions: map[string]string{harness.ClaudeCode: cliVersion()}},
 			args:      []string{"--harness", harness.Antigravity},
 			wantRun:   true,
 		},
 		{
+			// A record naming several harnesses is read per harness, so the one this run is for is
+			// what decides — not whichever install happened to finish last.
+			name: "one of several recorded harnesses, at the same version",
+			installed: application.Installation{Versions: map[string]string{
+				harness.ClaudeCode: cliVersion(), harness.Codex: cliVersion()}},
+			args:    []string{"--harness", harness.Codex},
+			wantRun: false,
+		},
+		{
 			name:      "the same harness at an older version",
-			installed: application.Installation{Harness: harness.ClaudeCode, Version: "v0.1.0"},
+			installed: application.Installation{Versions: map[string]string{harness.ClaudeCode: "v0.1.0"}},
 			args:      []string{"--yes"},
 			wantRun:   true,
 		},

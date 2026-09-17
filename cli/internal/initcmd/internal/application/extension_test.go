@@ -15,7 +15,7 @@ import (
 // extensionRequest is a run that has nothing to do but install the extension: the settings are already
 // there, so the first step skips and what the test watches is the second.
 func extensionRequest() Request {
-	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: harness.ClaudeCode}
+	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harnesses: []string{harness.ClaudeCode}}
 }
 
 // settled is a file system whose .codefall/settings.json is already written, with whatever
@@ -90,7 +90,7 @@ func TestExtensionStepStopsTheRunWhenTheCopyFails(t *testing.T) {
 // it, so this is a path a run should never take.
 func TestExtensionStepRefusesAHarnessItDoesNotKnow(t *testing.T) {
 	request := extensionRequest()
-	request.Harness = "aider"
+	request.Harnesses = []string{"aider"}
 
 	_, err := NewInitialize(settled(""), toolsInstalled(), newFakeExtensionSource()).Run(t.Context(), request, nil)
 	if err == nil || !strings.Contains(err.Error(), `harness "aider" has no extension mechanism`) {

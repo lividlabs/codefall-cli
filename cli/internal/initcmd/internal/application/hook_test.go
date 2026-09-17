@@ -85,7 +85,7 @@ func TestHookRegistersWhatTheTableSays(t *testing.T) {
 // beadsRequestHarness is beadsRequest with the harness the test wants.
 func beadsRequestHarness(name string) Request {
 	request := beadsRequest()
-	request.Harness = name
+	request.Harnesses = []string{name}
 	return request
 }
 

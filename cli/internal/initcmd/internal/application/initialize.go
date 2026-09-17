@@ -5,6 +5,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/samber/mo"
 
@@ -71,7 +72,11 @@ type Request struct {
 	// None means nobody was asked — a scripted run that gave no flag — and the file records the
 	// default rather than leaving the block out.
 	ReviewPostToPullRequest mo.Option[bool]
-	Harness                 string
+	// Harnesses is every harness this run installs for, in whatever order presentation collected
+	// them and possibly with repeats. Every step reads it through chosen, which sorts it and drops
+	// the repeats, so a name given twice is one install and each step reports the same order. A run
+	// that names none is refused by preflight rather than quietly installing nothing.
+	Harnesses []string
 	// NoOp is true when everything the run would write matches what is already installed: same
 	// version recorded in the manifest, nothing the survey would need to ask. The use case is not
 	// asked at all. A Force run resets it.
@@ -126,9 +131,10 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 		return domain.Report{}, err
 	}
 
-	// What the extension step copied, for the manifest the run writes at the end. It is a local of
-	// this run rather than a field of the use case, which every run of the process shares.
-	var installed []string
+	// What the extension step copied for each harness, for the manifest the run writes at the end. It
+	// is a local of this run rather than a field of the use case, which every run of the process
+	// shares.
+	installed := map[string][]string{}
 
 	steps := []step{
 		{Step: domain.SettingsStep, run: i.settings},
@@ -166,11 +172,18 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 	// The manifest is the last thing a run writes, because it says the install is complete and the
 	// upgrade gate believes it: written any earlier, a run that failed a later step would leave a
 	// record claiming work it never did, and the next run would report there was nothing to do.
-	if err := i.writeManifest(request.Dir, request.Harness, request.CLIVersion, installed); err != nil {
+	if err := i.writeManifest(request.Dir, request.CLIVersion, installed); err != nil {
 		return domain.Report{}, fmt.Errorf("record the installation to %s: %w", domain.ManifestName, err)
 	}
 
 	return domain.NewReport(results...), nil
+}
+
+// chosen is the harnesses a run installs for, sorted and without repeats. Every step reads the set
+// through this, so the order a flag or a survey happened to collect them in cannot change what a
+// step does or what it reports.
+func chosen(request Request) []string {
+	return slices.Compact(slices.Sorted(slices.Values(request.Harnesses)))
 }
 
 // silentObserver stands in for a caller that has nothing to show, so Run has no nil check in its

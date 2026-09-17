@@ -18,7 +18,7 @@ import (
 
 // skillsRequest is a run on a harness that reads the .agents/skills convention.
 func skillsRequest() Request {
-	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: harness.Codex}
+	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harnesses: []string{harness.Codex}}
 }
 
 // The step copies the embedded extension tree into the project's .agents/, one Fetch call, one
@@ -118,8 +118,9 @@ func TestTheManifestRecordsOnlyARunThatFinished(t *testing.T) {
 			t.Fatalf("decode %s: %v", domain.ManifestName, err)
 		}
 
-		want := manifest{Harness: harness.ClaudeCode, Version: "v1.2.3",
-			Files: []string{"skills/design/SKILL.md"}}
+		want := manifest{Harnesses: map[string]harnessInstall{
+			harness.ClaudeCode: {Version: "v1.2.3", Files: []string{".claude/skills/design/SKILL.md"}},
+		}}
 		if !reflect.DeepEqual(recorded, want) {
 			t.Errorf("manifest = %+v, want %+v", recorded, want)
 		}
@@ -139,20 +140,36 @@ func TestTheManifestRecordsOnlyARunThatFinished(t *testing.T) {
 	})
 }
 
-// Installed is the record through the use-case boundary: what a finished run installed, and which
-// harness it installed for. Both are what the gate compares; neither is any use on its own.
-func TestInstalledReportsWhatAFinishedRunRecorded(t *testing.T) {
+// Installed is the record through the use-case boundary: the version each harness was installed at.
+// The gate compares it per harness, because a current version recorded for one harness is no answer
+// about another.
+func TestInstalledReportsWhatFinishedRunsRecorded(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		body    string
 		missing bool
 		want    mo.Option[Installation]
 	}{
-		{name: "a manifest", body: `{"harness": "codex", "version": "v1.2.3"}`,
-			want: mo.Some(Installation{Harness: "codex", Version: "v1.2.3"})},
+		{
+			name: "a manifest recording two harnesses, each at the version that installed it",
+			body: `{"harnesses": {"claude-code": {"version": "v1.2.3"}, "codex": {"version": "v1.1.0"}}}`,
+			want: mo.Some(Installation{Versions: map[string]string{
+				harness.ClaudeCode: "v1.2.3", harness.Codex: "v1.1.0"}}),
+		},
 		{name: "no manifest", missing: true, want: mo.None[Installation]()},
-		{name: "a manifest naming no version", body: `{"harness": "codex"}`,
-			want: mo.None[Installation]()},
+		{
+			name: "a harness recorded with no version, which is nothing a comparison can use",
+			body: `{"harnesses": {"codex": {"files": [".agents/skills/design/SKILL.md"]}}}`,
+			want: mo.None[Installation](),
+		},
+		{
+			// The shape written before a run recorded a version per harness. It decodes cleanly and
+			// records nothing, so the next run repeats every step rather than trusting a record it
+			// cannot read.
+			name: "a manifest from before harnesses were recorded per install",
+			body: `{"harness": "codex", "version": "v1.2.3"}`,
+			want: mo.None[Installation](),
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			files := newFakeFileSystem()
@@ -165,7 +182,7 @@ func TestInstalledReportsWhatAFinishedRunRecorded(t *testing.T) {
 				t.Fatalf("Installed: %v", err)
 			}
 
-			if got != tc.want {
+			if !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("Installed = %v, want %v", got, tc.want)
 			}
 		})
