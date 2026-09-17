@@ -34,6 +34,16 @@
         "postToPullRequest": { "type": "boolean" }
       },
       "additionalProperties": true
+    },
+    "local": {
+      "description": "The project's local-environment commands, each a shell command run from the project root (ADR-005).",
+      "type": "object",
+      "required": ["start", "update"],
+      "properties": {
+        "start": { "type": "string", "description": "Brings up what the project needs running locally. Idempotent." },
+        "update": { "type": "string", "description": "Makes the local environment match the checkout. Idempotent; may assume start has run." }
+      },
+      "additionalProperties": true
     }
   },
   "oneOf": [

@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"slices"
@@ -13,6 +12,7 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/doctor/internal/domain"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/manifest"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
 // initRemedy is what to do about a harness the project chose and codefall was never run for.
@@ -143,22 +143,18 @@ func settingsAreComplete(results []domain.Result) bool {
 	return false
 }
 
-// chosenHarnesses is the harnesses the settings record. The file has already been read and found
-// complete by the settings group, so anything unexpected here is nothing to report a second time —
-// it is simply no answer, and the check is skipped.
+// chosenHarnesses is the harnesses the settings record. A document that cannot be read again, or
+// names none, is no answer rather than a second complaint, and the check is skipped.
 func (d *Diagnose) chosenHarnesses(dir string) ([]string, bool) {
-	data, err := d.files.ReadFile(filepath.Join(dir, ".codefall", "settings.json"))
-	if err != nil {
+	doc, read := d.settingsDocument(dir)
+	if !read {
 		return nil, false
 	}
 
-	var document struct {
-		Harnesses []string `json:"harnesses"`
-	}
-
-	if err := json.Unmarshal(data, &document); err != nil || len(document.Harnesses) == 0 {
+	chosen := settings.Harnesses(doc)
+	if len(chosen) == 0 {
 		return nil, false
 	}
 
-	return document.Harnesses, true
+	return chosen, true
 }

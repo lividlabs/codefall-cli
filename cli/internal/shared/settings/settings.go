@@ -19,6 +19,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/samber/mo"
+
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 )
 
@@ -36,6 +38,13 @@ const (
 	RepoPattern   = `^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`
 	SchemaID      = "https://raw.githubusercontent.com/lividlabs/codefall-cli/main/schemas/settings.schema.json"
 	BlockReview   = "review"
+	// BlockLocal is the project's two local-environment commands (ADR-005): what brings the services
+	// it develops against up, and what makes the local environment match the checkout. Both are
+	// shell commands run from the project root, so a project may point at a Makefile target, a
+	// package script, or a script of its own.
+	BlockLocal       = "local"
+	FieldLocalStart  = "start"
+	FieldLocalUpdate = "update"
 	// FieldHarnesses is the harnesses a project is set up for. It is required: which harnesses a
 	// project uses is a decision the project made, and codefall cannot work it out from which
 	// directories happen to exist — several harnesses share one, and codefall writes those
@@ -86,14 +95,16 @@ type fieldSpec struct {
 
 // topLevelFields is the settings file's own shape. Definition order is report order.
 //
-// The review block is optional at the top level and complete when it is there: a project set up
-// before the block existed is still valid settings, and one that carries it carries every field.
+// The review and local blocks are optional at the top level and complete when they are there: a
+// project set up before a block existed is still valid settings, and one that carries it carries
+// every field.
 var topLevelFields = []fieldSpec{
 	{"$schema", false, isString},
 	{"version", true, isVersion},
 	{"tracker", true, isTracker},
 	{FieldHarnesses, true, isHarnesses},
 	{BlockReview, false, isObject},
+	{BlockLocal, false, isObject},
 }
 
 // reviewFields is the shape of the review block, which codefall-review reads and nothing else
@@ -101,6 +112,20 @@ var topLevelFields = []fieldSpec{
 // make that a decision the project made rather than a default it inherited.
 var reviewFields = []fieldSpec{
 	{"postToPullRequest", true, isBool},
+}
+
+// localFields is the shape of the local block. Both commands are required once the block is there:
+// update assumes start has run, so a project that declares one without the other has declared
+// half of a contract (ADR-005).
+var localFields = []fieldSpec{
+	{FieldLocalStart, true, isString},
+	{FieldLocalUpdate, true, isString},
+}
+
+// Local is the local block's two commands, read out of a document that Validate accepts.
+type Local struct {
+	Start  string
+	Update string
 }
 
 // trackerFields is the shape of each known tracker's block, keyed by the value of "tracker" that
@@ -139,6 +164,60 @@ func RequiredTrackerFields(tracker string) []string {
 // definition order.
 func RequiredReviewFields() []string {
 	return requiredNames(reviewFields)
+}
+
+// RequiredLocalFields returns the fields the local block must carry once it is present, in
+// definition order.
+func RequiredLocalFields() []string {
+	return requiredNames(localFields)
+}
+
+// Harnesses returns the harnesses a document names, in the order it names them. A document whose
+// harnesses field is missing or not a list of names yields none; Validate is what says so.
+func Harnesses(doc Document) []string {
+	values, _ := doc[FieldHarnesses].([]any)
+
+	names := make([]string, 0, len(values))
+
+	for _, value := range values {
+		if name, ok := value.(string); ok {
+			names = append(names, name)
+		}
+	}
+
+	return names
+}
+
+// LocalCommands returns the local block's commands when the document declares a block with both,
+// and None otherwise. A block Validate would reject — missing a field, or holding something other
+// than a string — is None here too: the caller has already been told what is wrong with it, and a
+// half-declared block is not a declaration (ADR-005).
+func LocalCommands(doc Document) mo.Option[Local] {
+	value, present := lookup(doc, BlockLocal)
+	if !present {
+		return mo.None[Local]()
+	}
+
+	block, ok := value.(map[string]any)
+	if !ok {
+		return mo.None[Local]()
+	}
+
+	start, startOK := lookup(block, FieldLocalStart)
+	update, updateOK := lookup(block, FieldLocalUpdate)
+
+	if !startOK || !updateOK {
+		return mo.None[Local]()
+	}
+
+	startText, startIsText := start.(string)
+	updateText, updateIsText := update.(string)
+
+	if !startIsText || !updateIsText {
+		return mo.None[Local]()
+	}
+
+	return mo.Some(Local{Start: startText, Update: updateText})
 }
 
 func requiredNames(fields []fieldSpec) []string {
@@ -192,6 +271,9 @@ func Validate(doc Document) []string {
 	var problems []string
 
 	selected := ""
+	// The top-level fields that were there and were wrong. A block the top level has already called
+	// something other than an object is not looked inside, which would only say so a second time.
+	rejected := map[string]bool{}
 
 	for _, field := range topLevelFields {
 		value, ok := lookup(doc, field.Name)
@@ -205,6 +287,7 @@ func Validate(doc Document) []string {
 
 		if reason := field.Check(value); reason != "" {
 			problems = append(problems, field.Name+": "+reason)
+			rejected[field.Name] = true
 
 			continue
 		}
@@ -214,10 +297,18 @@ func Validate(doc Document) []string {
 		}
 	}
 
-	// The review block is independent of the tracker, so it is checked before the tracker's own
-	// block decides whether there is anything further to say.
-	if _, present := lookup(doc, BlockReview); present {
-		problems = append(problems, validateBlock(doc, BlockReview, reviewFields)...)
+	// The review and local blocks are independent of the tracker, so they are checked before the
+	// tracker's own block decides whether there is anything further to say.
+	for _, block := range []struct {
+		name   string
+		fields []fieldSpec
+	}{
+		{BlockReview, reviewFields},
+		{BlockLocal, localFields},
+	} {
+		if _, present := lookup(doc, block.name); present && !rejected[block.name] {
+			problems = append(problems, validateBlock(doc, block.name, block.fields)...)
+		}
 	}
 
 	// A missing or unknown tracker selects no block, so there is nothing further to say.

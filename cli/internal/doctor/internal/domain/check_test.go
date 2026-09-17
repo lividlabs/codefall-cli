@@ -78,10 +78,11 @@ func TestWarnAndFailCarryDetailAndRemedy(t *testing.T) {
 	}
 }
 
-// allChecks is the twelve checks in the order doctor runs them.
+// allChecks is the fourteen checks in the order doctor runs them.
 var allChecks = []Check{
 	CodefallDir, SettingsFile, SettingsJSON, SettingsComplete, ReviewsIgnored,
 	HarnessesInstalled, HarnessesLeftOver,
+	LocalDeclared, LocalRunnable,
 	BeadsInstalled, BeadsInitialized, GHInstalled, GHAuthenticated, GHScopes,
 }
 
@@ -103,7 +104,7 @@ func TestCheckIdentifiersAreDistinct(t *testing.T) {
 	}
 }
 
-func TestEveryCheckBelongsToOneOfTheFourCategories(t *testing.T) {
+func TestEveryCheckBelongsToOneOfTheFiveCategories(t *testing.T) {
 	want := map[string]Category{
 		CodefallDir.ID:        CategorySettings,
 		SettingsFile.ID:       CategorySettings,
@@ -112,6 +113,8 @@ func TestEveryCheckBelongsToOneOfTheFourCategories(t *testing.T) {
 		ReviewsIgnored.ID:     CategorySettings,
 		HarnessesInstalled.ID: CategoryHarnesses,
 		HarnessesLeftOver.ID:  CategoryHarnesses,
+		LocalDeclared.ID:      CategoryLocal,
+		LocalRunnable.ID:      CategoryLocal,
 		BeadsInstalled.ID:     CategoryBeads,
 		BeadsInitialized.ID:   CategoryBeads,
 		GHInstalled.ID:        CategoryGitHub,
@@ -127,7 +130,7 @@ func TestEveryCheckBelongsToOneOfTheFourCategories(t *testing.T) {
 }
 
 func TestCategoriesAreDistinctAndNamed(t *testing.T) {
-	categories := []Category{CategorySettings, CategoryHarnesses, CategoryBeads, CategoryGitHub}
+	categories := []Category{CategorySettings, CategoryHarnesses, CategoryLocal, CategoryBeads, CategoryGitHub}
 
 	seen := map[string]bool{}
 

@@ -587,6 +587,31 @@ Decided at scaffold, 2026-08-16.
   once any project declares it, and is recorded as
   [`ADR-005`](adrs/ADR-005-local-environment-scripts.md).
 
+- **The local block and doctor's fifth category, 2026-09-16.** The first PR of the ADR-005 stack:
+  `.codefall/settings.json` gains an optional `local` block with two required string fields,
+  `start` and `update`, and `codefall doctor` gains a **Local environment** category with two
+  checks. The block is optional at the top level and complete when present, the same rule as the
+  review block, so every project set up before it existed is still valid settings. The shared
+  settings module carries the field table, `RequiredLocalFields`, and `LocalCommands`, which reads
+  the two commands out of a document and answers None for any block `Validate` would reject —
+  a half-declared block is not a declaration. `Harnesses` joined it for the same reason: doctor's
+  harnesses check was decoding the file into a struct of its own, and a second reader of the same
+  file should read it through the format module rather than name the field again.
+  Fixing the double report along the way: a block the top level had already called "not an object"
+  was then looked inside, which said "must be an object" a second time. The review block had this
+  latent since it landed, untested; both are now reported once, and the test pins it for both.
+  The first check, `local-declared`, **warns** when the block is absent, because nothing else stops
+  working without it — what is missing is refresh, and the remedy names `equip`, the verb that
+  fills the block in. The second, `local-runnable`, **fails** when the program a declared command
+  runs cannot be found: the project declared it and refresh will run it, so a program that is not
+  there is a declaration nothing can act on. The program is the command's first word after any
+  leading `VAR=value`; a word carrying a slash is looked for in the project, a bare word on `PATH`.
+  Doctor never runs either command. Both fields usually name the same script, so a missing program
+  is reported once with every field that names it beside it, rather than once per field. Doctor's
+  file-system gateway gained `Exists` for the path case; the shared module already had it.
+  The category sits between Harnesses and Beads: the first three are about the project and the
+  last two are about tools on the machine.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

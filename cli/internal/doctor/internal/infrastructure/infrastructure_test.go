@@ -77,4 +77,14 @@ func TestOSFileSystemDelegates(t *testing.T) {
 	if err != nil || !exists {
 		t.Errorf("DirExists(%q) = %v, %v, want true, nil", root, exists, err)
 	}
+
+	exists, err = files.Exists(path)
+	if err != nil || !exists {
+		t.Errorf("Exists(%q) = %v, %v, want true, nil", path, exists, err)
+	}
+
+	exists, err = files.Exists(filepath.Join(root, "missing.sh"))
+	if err != nil || exists {
+		t.Errorf("Exists of a missing file = %v, %v, want false, nil", exists, err)
+	}
 }

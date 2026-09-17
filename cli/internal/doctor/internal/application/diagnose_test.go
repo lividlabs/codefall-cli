@@ -28,6 +28,8 @@ var (
 	settingsPath = filepath.Join(codefallDir, "settings.json")
 	manifestPath = filepath.Join(workingDir, manifest.Name)
 	ignorePath   = filepath.Join(workingDir, settings.IgnoreName)
+	// The script the fixture's local block names, by the relative path the block uses.
+	localScript  = filepath.Join(workingDir, "scripts", "local.sh")
 	schemaRemedy = "create .codefall/settings.json; schema: " + settings.SchemaID
 	fixRemedy    = "fix the fields above; schema: " + settings.SchemaID
 	ignoreRemedy = "add " + settings.IgnoreEntry + " to " + settings.IgnoreName +
@@ -54,7 +56,8 @@ const validSettings = `{
   "version": 1,
   "tracker": "github",
   "harnesses": ["claude-code"],
-  "github": { "issuesRepo": "lividlabs/codefall-cli", "issuesProject": 3 }
+  "github": { "issuesRepo": "lividlabs/codefall-cli", "issuesProject": 3 },
+  "local": { "start": "scripts/local.sh start", "update": "scripts/local.sh update" }
 }`
 
 // twoHarnessSettings is the same project set up for a second harness, which reads a second directory.
@@ -63,8 +66,31 @@ const twoHarnessSettings = `{
   "version": 1,
   "tracker": "github",
   "harnesses": ["claude-code", "codex"],
+  "github": { "issuesRepo": "lividlabs/codefall-cli", "issuesProject": 3 },
+  "local": { "start": "scripts/local.sh start", "update": "scripts/local.sh update" }
+}`
+
+// undeclaredSettings is a project that has never been equipped: complete settings with no local
+// block, which is every project set up before the block existed.
+const undeclaredSettings = `{
+  "$schema": "` + settings.SchemaID + `",
+  "version": 1,
+  "tracker": "github",
+  "harnesses": ["claude-code"],
   "github": { "issuesRepo": "lividlabs/codefall-cli", "issuesProject": 3 }
 }`
+
+// withLocal is the fixture's settings with a different local block.
+func withLocal(start, update string) string {
+	return `{
+  "$schema": "` + settings.SchemaID + `",
+  "version": 1,
+  "tracker": "github",
+  "harnesses": ["claude-code"],
+  "github": { "issuesRepo": "lividlabs/codefall-cli", "issuesProject": 3 },
+  "local": { "start": ` + fmt.Sprintf("%q", start) + `, "update": ` + fmt.Sprintf("%q", update) + ` }
+}`
+}
 
 // --- fakes -------------------------------------------------------------------------------------
 
@@ -80,6 +106,16 @@ func (f *fakeFileSystem) DirExists(path string) (bool, error) {
 	}
 
 	return f.dirs[path], nil
+}
+
+func (f *fakeFileSystem) Exists(path string) (bool, error) {
+	if err, ok := f.errs[path]; ok {
+		return false, err
+	}
+
+	_, isFile := f.files[path]
+
+	return isFile || f.dirs[path], nil
 }
 
 func (f *fakeFileSystem) ReadFile(path string) ([]byte, error) {
@@ -136,12 +172,16 @@ func healthy() (*fakeFileSystem, *fakeCommandRunner) {
 			settingsPath: []byte(validSettings),
 			manifestPath: []byte(installedManifest),
 			ignorePath:   []byte(settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n"),
+			localScript:  []byte("#!/usr/bin/env bash\n"),
 		},
 		errs: map[string]error{},
 	}
 
 	runner := &fakeCommandRunner{
-		paths: map[string]string{"bd": "/opt/homebrew/bin/bd", "gh": "/opt/homebrew/bin/gh"},
+		paths: map[string]string{
+			"bd": "/opt/homebrew/bin/bd", "gh": "/opt/homebrew/bin/gh",
+			"make": "/usr/bin/make", "docker": "/usr/local/bin/docker",
+		},
 		runs: map[string]CommandResult{
 			"bd version":                  {Stdout: "bd version 1.2.2 (Homebrew)\n"},
 			"bd info":                     {Stdout: "beads: 12 issues open\n"},
@@ -173,6 +213,8 @@ var allPass = []outcome{
 	{domain.ReviewsIgnored.ID, domain.StatusPass},
 	{domain.HarnessesInstalled.ID, domain.StatusPass},
 	{domain.HarnessesLeftOver.ID, domain.StatusPass},
+	{domain.LocalDeclared.ID, domain.StatusPass},
+	{domain.LocalRunnable.ID, domain.StatusPass},
 	{domain.BeadsInstalled.ID, domain.StatusPass},
 	{domain.BeadsInitialized.ID, domain.StatusPass},
 	{domain.GHInstalled.ID, domain.StatusPass},
@@ -202,26 +244,30 @@ func outcomes(changes map[string]domain.Status, absent ...string) []outcome {
 
 // The skip rules, named so each case reads as the rule it exercises.
 var (
-	// The harnesses check reads the same settings the group above validates, so whatever skips those
-	// checks skips it too.
+	// The harnesses and local checks read the same settings the group above validates, so whatever
+	// skips those checks skips them too.
 	afterCodefallDir = []string{
 		domain.SettingsFile.ID, domain.SettingsJSON.ID, domain.SettingsComplete.ID,
 		domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
+		domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 	}
 	afterSettingsFile = []string{
 		domain.SettingsJSON.ID, domain.SettingsComplete.ID, domain.ReviewsIgnored.ID,
 		domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
+		domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 	}
 	afterSettingsJSON = []string{
 		domain.SettingsComplete.ID, domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID,
-		domain.HarnessesLeftOver.ID,
+		domain.HarnessesLeftOver.ID, domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 	}
 	afterSettingsDone = []string{
 		domain.ReviewsIgnored.ID, domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
+		domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 	}
-	afterBeadsMissing = []string{domain.BeadsInitialized.ID}
-	afterGHMissing    = []string{domain.GHAuthenticated.ID, domain.GHScopes.ID}
-	afterGHAuth       = []string{domain.GHScopes.ID}
+	afterLocalUndeclared = []string{domain.LocalRunnable.ID}
+	afterBeadsMissing    = []string{domain.BeadsInitialized.ID}
+	afterGHMissing       = []string{domain.GHAuthenticated.ID, domain.GHScopes.ID}
+	afterGHAuth          = []string{domain.GHScopes.ID}
 )
 
 func TestDiagnoseRun(t *testing.T) {
@@ -404,6 +450,88 @@ func TestDiagnoseRun(t *testing.T) {
 				delete(f.files, manifestPath)
 			},
 			want: outcomes(nil, domain.HarnessesLeftOver.ID),
+		},
+		{
+			// Every project set up before the local block existed looks like this. Nothing else
+			// stops working, so it warns, and the remedy is the verb that fills the block in.
+			name: "the local commands are not declared",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[settingsPath] = []byte(undeclaredSettings)
+			},
+			want: outcomes(map[string]domain.Status{domain.LocalDeclared.ID: domain.StatusWarn},
+				afterLocalUndeclared...),
+			target:     domain.LocalDeclared.ID,
+			wantDetail: "no local start and update commands are declared in settings.json",
+			wantRemedy: mo.Some(equipRemedy),
+		},
+		{
+			// Both commands name the same script, which is the usual shape, so it is reported once
+			// with both fields beside it.
+			name: "the declared script is not in the project",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				delete(f.files, localScript)
+			},
+			want:       outcomes(map[string]domain.Status{domain.LocalRunnable.ID: domain.StatusFail}),
+			target:     domain.LocalRunnable.ID,
+			wantDetail: "scripts/local.sh is not in the project (local.start, local.update)",
+			wantRemedy: mo.Some(equipRemedy),
+		},
+		{
+			name: "the declared commands name programs on PATH",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[settingsPath] = []byte(withLocal("docker compose up -d", "make sync"))
+			},
+			want:   allPass,
+			target: domain.LocalRunnable.ID,
+		},
+		{
+			name: "a declared command names a program that is not on PATH",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[settingsPath] = []byte(withLocal("docker compose up -d", "npm run db:migrate"))
+			},
+			want:       outcomes(map[string]domain.Status{domain.LocalRunnable.ID: domain.StatusFail}),
+			target:     domain.LocalRunnable.ID,
+			wantDetail: "npm is not on PATH (local.update)",
+			wantRemedy: mo.Some(equipRemedy),
+		},
+		{
+			// A leading VAR=value sets the environment for the program after it; the program is the
+			// next word.
+			name: "a declared command sets a variable before the program",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[settingsPath] = []byte(withLocal("COMPOSE_PROFILES=dev docker compose up -d", "make sync"))
+			},
+			want:   allPass,
+			target: domain.LocalRunnable.ID,
+		},
+		{
+			name: "a declared command is only spaces",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[settingsPath] = []byte(withLocal("   ", "make sync"))
+			},
+			want:       outcomes(map[string]domain.Status{domain.LocalRunnable.ID: domain.StatusFail}),
+			target:     domain.LocalRunnable.ID,
+			wantDetail: "local.start runs nothing",
+			wantRemedy: mo.Some(equipRemedy),
+		},
+		{
+			name: "a declared command names an absolute path that exists",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[settingsPath] = []byte(withLocal("/opt/tools/up.sh", "make sync"))
+				f.files["/opt/tools/up.sh"] = []byte("#!/bin/sh\n")
+			},
+			want:   allPass,
+			target: domain.LocalRunnable.ID,
+		},
+		{
+			name: "the declared script cannot be stat'd",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.errs[localScript] = errors.New("permission denied")
+			},
+			want:       outcomes(map[string]domain.Status{domain.LocalRunnable.ID: domain.StatusFail}),
+			target:     domain.LocalRunnable.ID,
+			wantDetail: "Cannot stat scripts/local.sh: permission denied",
+			wantRemedy: mo.None[string](),
 		},
 		{
 			name: "bd is not installed",
