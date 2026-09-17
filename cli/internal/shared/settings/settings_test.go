@@ -9,9 +9,10 @@ import (
 // complete returns the settings from the schema's example, which every case here mutates.
 func complete() Document {
 	return Document{
-		"$schema": SchemaID,
-		"version": 1.0,
-		"tracker": "github",
+		"$schema":      SchemaID,
+		"version":      1.0,
+		"tracker":      "github",
+		FieldHarnesses: []any{"claude-code"},
 		"github": map[string]any{
 			"issuesRepo":    "lividlabs/codefall-cli",
 			"issuesProject": 3.0,
@@ -32,33 +33,69 @@ func TestValidate(t *testing.T) {
 		{
 			name: "complete without the optional fields",
 			doc: Document{
-				"version": 1.0,
-				"tracker": "github",
-				"github":  map[string]any{"issuesRepo": "lividlabs/codefall-cli"},
+				"version":      1.0,
+				"tracker":      "github",
+				FieldHarnesses: []any{"claude-code"},
+				"github":       map[string]any{"issuesRepo": "lividlabs/codefall-cli"},
 			},
+		},
+		{
+			name: "every harness codefall can set up, at once",
+			doc: with(complete(), FieldHarnesses,
+				[]any{"antigravity", "claude-code", "codex", "muse", "opencode"}),
 		},
 		{
 			name: "unknown top-level keys are ignored",
 			doc: Document{
-				"version":  1.0,
-				"tracker":  "github",
-				"github":   map[string]any{"issuesRepo": "a/b"},
-				"nonsense": "ignored",
+				"version":      1.0,
+				"tracker":      "github",
+				FieldHarnesses: []any{"claude-code"},
+				"github":       map[string]any{"issuesRepo": "a/b"},
+				"nonsense":     "ignored",
 			},
 		},
 		{
 			name: "a block for a tracker nobody knows about is ignored",
 			doc: Document{
-				"version": 1.0,
-				"tracker": "github",
-				"github":  map[string]any{"issuesRepo": "a/b"},
-				"gitlab":  map[string]any{"project": "x"},
+				"version":      1.0,
+				"tracker":      "github",
+				FieldHarnesses: []any{"claude-code"},
+				"github":       map[string]any{"issuesRepo": "a/b"},
+				"gitlab":       map[string]any{"project": "x"},
 			},
 		},
 		{
 			name: "empty document",
 			doc:  Document{},
-			want: []string{"version: missing", "tracker: missing"},
+			want: []string{"version: missing", "tracker: missing", "harnesses: missing"},
+		},
+		{
+			name: "harnesses missing",
+			doc:  without(complete(), FieldHarnesses),
+			want: []string{"harnesses: missing"},
+		},
+		{
+			name: "harnesses is not an array",
+			doc:  with(complete(), FieldHarnesses, "claude-code"),
+			want: []string{"harnesses: must be an array of harness names"},
+		},
+		{
+			name: "harnesses holds something that is not a name",
+			doc:  with(complete(), FieldHarnesses, []any{1.0}),
+			want: []string{"harnesses: must be an array of harness names"},
+		},
+		{
+			// An empty list is refused rather than read as "none": a project codefall set up for no
+			// harness at all has nowhere to install.
+			name: "harnesses is empty",
+			doc:  with(complete(), FieldHarnesses, []any{}),
+			want: []string{"harnesses: must name at least one harness"},
+		},
+		{
+			name: "a harness codefall cannot set up",
+			doc:  with(complete(), FieldHarnesses, []any{"claude-code", "cursor"}),
+			want: []string{`harnesses: unknown value "cursor" ` +
+				`(expected "antigravity", "claude-code", "codex", "muse", "opencode")`},
 		},
 		{
 			name: "version missing",
@@ -103,26 +140,29 @@ func TestValidate(t *testing.T) {
 		{
 			name: "beads tracker with an empty beads block is complete",
 			doc: Document{
-				"version": 1.0,
-				"tracker": "beads",
-				"beads":   map[string]any{},
+				"version":      1.0,
+				"tracker":      "beads",
+				FieldHarnesses: []any{"codex"},
+				"beads":        map[string]any{},
 			},
 		},
 		{
 			name: "beads block missing",
 			doc: Document{
-				"version": 1.0,
-				"tracker": "beads",
+				"version":      1.0,
+				"tracker":      "beads",
+				FieldHarnesses: []any{"codex"},
 			},
 			want: []string{`beads: missing (required when tracker is "beads")`},
 		},
 		{
 			name: "github block present while tracker is beads",
 			doc: Document{
-				"version": 1.0,
-				"tracker": "beads",
-				"beads":   map[string]any{},
-				"github":  map[string]any{"issuesRepo": "a/b"},
+				"version":      1.0,
+				"tracker":      "beads",
+				FieldHarnesses: []any{"codex"},
+				"beads":        map[string]any{},
+				"github":       map[string]any{"issuesRepo": "a/b"},
 			},
 			want: []string{`github: present but tracker is "beads" — remove it`},
 		},
@@ -192,6 +232,7 @@ func TestValidate(t *testing.T) {
 			want: []string{
 				"$schema: must be a string",
 				"version: must be 1",
+				"harnesses: missing",
 				"github.issuesRepo: must match owner/name",
 				"github.issuesProject: must be a positive integer",
 			},
@@ -284,7 +325,7 @@ func TestValidateProject(t *testing.T) {
 }
 
 func TestRequiredFields(t *testing.T) {
-	if got, want := RequiredFields(), []string{"version", "tracker"}; !slices.Equal(got, want) {
+	if got, want := RequiredFields(), []string{"version", "tracker", "harnesses"}; !slices.Equal(got, want) {
 		t.Errorf("RequiredFields() = %q, want %q", got, want)
 	}
 

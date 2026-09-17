@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/samber/mo"
 
@@ -184,6 +185,19 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 // step does or what it reports.
 func chosen(request Request) []string {
 	return slices.Compact(slices.Sorted(slices.Values(request.Harnesses)))
+}
+
+// sentenceList joins names the way a person reads a list, for the sentences the steps report about
+// themselves.
+func sentenceList(items []string) string {
+	switch len(items) {
+	case 0:
+		return ""
+	case 1:
+		return items[0]
+	default:
+		return strings.Join(items[:len(items)-1], ", ") + " and " + items[len(items)-1]
+	}
 }
 
 // silentObserver stands in for a caller that has nothing to show, so Run has no nil check in its

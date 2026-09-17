@@ -444,6 +444,34 @@ Decided at scaffold, 2026-08-16.
   stack. A manifest written before this one decodes to an empty record, so the next run repeats every
   step, which they are all built to tolerate; no project has a manifest yet, so nothing is migrated.
 
+- **The project says which harnesses it uses, 2026-09-16.** `.codefall/settings.json` records a
+  required `harnesses` array, `init` asks which harnesses to set up, and `--harness` no longer
+  defaults to `claude-code`. The default was the whole of the old decision: a pflag carrying one
+  cannot be told apart from one the user typed, so every run that did not pass the flag installed for
+  Claude Code silently, and the survey had no harness question at all. Which harnesses a project uses
+  is not something codefall can work out — four of the five share one directory, and codefall writes
+  those directories itself — so it is asked, and the answer is recorded.
+  The field lives in the shared settings module beside the tracker, because both components need it:
+  init writes it and doctor is about to report on it (ADR-003). The validator refuses an empty array
+  rather than reading it as "none", and refuses a name codefall cannot set up; the schema says the
+  same two things with `minItems` and an enum, and the schema test holds the two definitions equal.
+  This is also `internal/shared/harness/`'s first consumer outside initcmd: `settings` imports it to
+  validate the names, which is the pure-module-importing-a-pure-module case ADR-003 allows and the
+  fourth `.golangci.yml` entry permits.
+  The survey asks for the harnesses first, as a multi-select with nothing selected and at least one
+  answer required. Nothing is preselected on purpose: a preselected option is the same decision made
+  on someone's behalf that the flag's default was. A scripted run passes `--harness`, repeated or
+  comma-separated, and a run with no terminal and no flag fails naming it, which is the rule every
+  other prompted value already follows (ADR-002).
+  A rerun does not ask again, because the harnesses are in the settings and init reads them back — so
+  the flag is needed the first time, or to add one. Settings that record none, which is what a file
+  written before the field existed looks like, are refused with the flag named rather than filled in
+  with a guess.
+  This breaks twice over: a settings file without `harnesses` fails doctor's completeness check until
+  init is run again, and a scripted run that relied on the flag's default now fails naming the flag.
+  `codefall create` inherits the second, because it adopts init's flags. No project has a settings
+  file yet, so nothing is migrated.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

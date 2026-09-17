@@ -1,16 +1,23 @@
 package domain
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/samber/mo"
 
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
+// oneHarness is the harness every case that is not about harnesses passes, so a settings value can be
+// built at all.
+var oneHarness = []string{harness.ClaudeCode}
+
 func TestNewSettingsForGitHub(t *testing.T) {
-	value, err := NewSettings(settings.TrackerGitHub, mo.Some("lividlabs/codefall-cli"), mo.Some(3), ReviewSettings{})
+	value, err := NewSettings(settings.TrackerGitHub, oneHarness, mo.Some("lividlabs/codefall-cli"),
+		mo.Some(3), ReviewSettings{})
 	if err != nil {
 		t.Fatalf("NewSettings: %v", err)
 	}
@@ -34,7 +41,8 @@ func TestNewSettingsForGitHub(t *testing.T) {
 }
 
 func TestNewSettingsForGitHubWithoutAProject(t *testing.T) {
-	value, err := NewSettings(settings.TrackerGitHub, mo.Some("owner/name"), mo.None[int](), ReviewSettings{})
+	value, err := NewSettings(settings.TrackerGitHub, oneHarness, mo.Some("owner/name"),
+		mo.None[int](), ReviewSettings{})
 	if err != nil {
 		t.Fatalf("NewSettings: %v", err)
 	}
@@ -46,7 +54,8 @@ func TestNewSettingsForGitHubWithoutAProject(t *testing.T) {
 }
 
 func TestNewSettingsForBeadsCarriesNoGitHubBlock(t *testing.T) {
-	value, err := NewSettings(settings.TrackerBeads, mo.None[string](), mo.None[int](), ReviewSettings{})
+	value, err := NewSettings(settings.TrackerBeads, oneHarness, mo.None[string](), mo.None[int](),
+		ReviewSettings{})
 	if err != nil {
 		t.Fatalf("NewSettings: %v", err)
 	}
@@ -60,59 +69,97 @@ func TestNewSettingsForBeadsCarriesNoGitHubBlock(t *testing.T) {
 	}
 }
 
+// The set is sorted and repeats are dropped, so the file records one line per harness in an order
+// that does not depend on how the answers were collected.
+func TestNewSettingsSortsTheHarnessesAndDropsRepeats(t *testing.T) {
+	value, err := NewSettings(settings.TrackerBeads,
+		[]string{harness.Codex, harness.ClaudeCode, harness.Codex},
+		mo.None[string](), mo.None[int](), ReviewSettings{})
+	if err != nil {
+		t.Fatalf("NewSettings: %v", err)
+	}
+
+	if want := []string{harness.ClaudeCode, harness.Codex}; !slices.Equal(value.Harnesses, want) {
+		t.Errorf("Harnesses = %q, want %q", value.Harnesses, want)
+	}
+}
+
 func TestNewSettingsRejects(t *testing.T) {
 	for _, tc := range []struct {
-		name    string
-		tracker string
-		repo    mo.Option[string]
-		project mo.Option[int]
-		want    string
+		name      string
+		tracker   string
+		harnesses []string
+		repo      mo.Option[string]
+		project   mo.Option[int]
+		want      string
 	}{
 		{
-			name:    "an unknown tracker",
-			tracker: "linear",
-			repo:    mo.None[string](),
-			project: mo.None[int](),
-			want:    "unknown tracker",
+			name:      "an unknown tracker",
+			tracker:   "linear",
+			harnesses: oneHarness,
+			repo:      mo.None[string](),
+			project:   mo.None[int](),
+			want:      "unknown tracker",
 		},
 		{
-			name:    "github without a repository",
-			tracker: settings.TrackerGitHub,
-			repo:    mo.None[string](),
-			project: mo.None[int](),
-			want:    "needs a repository",
+			name:      "no harness at all, which would install nowhere",
+			tracker:   settings.TrackerBeads,
+			harnesses: nil,
+			repo:      mo.None[string](),
+			project:   mo.None[int](),
+			want:      "at least one harness",
 		},
 		{
-			name:    "a repository that is not owner/name",
-			tracker: settings.TrackerGitHub,
-			repo:    mo.Some("codefall-cli"),
-			project: mo.None[int](),
-			want:    "owner/name",
+			name:      "a harness codefall cannot set up",
+			tracker:   settings.TrackerBeads,
+			harnesses: []string{harness.ClaudeCode, "cursor"},
+			repo:      mo.None[string](),
+			project:   mo.None[int](),
+			want:      `harness "cursor" is not supported yet`,
 		},
 		{
-			name:    "a project number below one",
-			tracker: settings.TrackerGitHub,
-			repo:    mo.Some("owner/name"),
-			project: mo.Some(0),
-			want:    "positive integer",
+			name:      "github without a repository",
+			tracker:   settings.TrackerGitHub,
+			harnesses: oneHarness,
+			repo:      mo.None[string](),
+			project:   mo.None[int](),
+			want:      "needs a repository",
 		},
 		{
-			name:    "a repository under beads",
-			tracker: settings.TrackerBeads,
-			repo:    mo.Some("owner/name"),
-			project: mo.None[int](),
-			want:    "a repository is only used",
+			name:      "a repository that is not owner/name",
+			tracker:   settings.TrackerGitHub,
+			harnesses: oneHarness,
+			repo:      mo.Some("codefall-cli"),
+			project:   mo.None[int](),
+			want:      "owner/name",
 		},
 		{
-			name:    "a project number under beads",
-			tracker: settings.TrackerBeads,
-			repo:    mo.None[string](),
-			project: mo.Some(3),
-			want:    "a project number is only used",
+			name:      "a project number below one",
+			tracker:   settings.TrackerGitHub,
+			harnesses: oneHarness,
+			repo:      mo.Some("owner/name"),
+			project:   mo.Some(0),
+			want:      "positive integer",
+		},
+		{
+			name:      "a repository under beads",
+			tracker:   settings.TrackerBeads,
+			harnesses: oneHarness,
+			repo:      mo.Some("owner/name"),
+			project:   mo.None[int](),
+			want:      "a repository is only used",
+		},
+		{
+			name:      "a project number under beads",
+			tracker:   settings.TrackerBeads,
+			harnesses: oneHarness,
+			repo:      mo.None[string](),
+			project:   mo.Some(3),
+			want:      "a project number is only used",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			value, err := NewSettings(tc.tracker, tc.repo, tc.project, ReviewSettings{})
+			value, err := NewSettings(tc.tracker, tc.harnesses, tc.repo, tc.project, ReviewSettings{})
 			if err == nil {
 				t.Fatalf("NewSettings = %+v, want an error", value)
 			}
