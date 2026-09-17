@@ -8,13 +8,14 @@ import (
 	"testing"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
 // extensionRequest is a run that has nothing to do but install the extension: the settings are already
 // there, so the first step skips and what the test watches is the second.
 func extensionRequest() Request {
-	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessClaudeCode}
+	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: harness.ClaudeCode}
 }
 
 // settled is a file system whose .codefall/settings.json is already written, with whatever

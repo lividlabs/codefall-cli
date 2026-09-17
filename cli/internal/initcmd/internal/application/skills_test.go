@@ -12,12 +12,13 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
 // skillsRequest is a run on a harness that reads the .agents/skills convention.
 func skillsRequest() Request {
-	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: domain.HarnessCodex}
+	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harness: harness.Codex}
 }
 
 // The step copies the embedded extension tree into the project's .agents/, one Fetch call, one
@@ -117,7 +118,7 @@ func TestTheManifestRecordsOnlyARunThatFinished(t *testing.T) {
 			t.Fatalf("decode %s: %v", domain.ManifestName, err)
 		}
 
-		want := manifest{Harness: domain.HarnessClaudeCode, Version: "v1.2.3",
+		want := manifest{Harness: harness.ClaudeCode, Version: "v1.2.3",
 			Files: []string{"skills/design/SKILL.md"}}
 		if !reflect.DeepEqual(recorded, want) {
 			t.Errorf("manifest = %+v, want %+v", recorded, want)

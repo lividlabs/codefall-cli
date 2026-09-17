@@ -13,12 +13,13 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
 )
 
-// skillsDirExtension is the extension step for every harness — each own directory comes from
-// extensionDestDirs. It copies the embedded extension tree, minus the per-harness hook definitions
-// the hook step consumes, and hands back what it wrote for the manifest the run records at the end.
-func (i *Initialize) skillsDirExtension(ctx context.Context, request Request) (domain.StepResult, []string, error) {
-	dest := extensionDestDirs[request.Harness]
-
+// skillsDirExtension is the extension step for every harness. dest is where that harness reads
+// skills, which the caller has already taken from the shared harness module. It copies the embedded
+// extension tree, minus the per-harness hook definitions the hook step consumes, and hands back what
+// it wrote for the manifest the run records at the end.
+func (i *Initialize) skillsDirExtension(
+	ctx context.Context, request Request, dest string,
+) (domain.StepResult, []string, error) {
 	installed, err := i.source.Fetch(ctx, filepath.Join(request.Dir, dest), hookSourceDirs)
 	if err != nil {
 		return domain.StepResult{}, nil, fmt.Errorf("install the embedded extension: %w", err)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/application"
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/ui"
 )
@@ -135,7 +136,7 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 		Tracker:       settings.TrackerGitHub,
 		IssuesRepo:    mo.Some("lividlabs/codefall-cli"),
 		IssuesProject: mo.Some(3),
-		Harness:       domain.HarnessClaudeCode,
+		Harness:       harness.ClaudeCode,
 		CLIVersion:    cliVersion(),
 		Force:         true,
 	}
@@ -157,8 +158,8 @@ func TestInitCommandDefaultsTheHarnessAndLeavesTheOptionalValuesAbsent(t *testin
 		t.Fatalf("Execute: %v", err)
 	}
 
-	if initialize.got.Harness != domain.HarnessClaudeCode {
-		t.Errorf("Harness = %q, want %q", initialize.got.Harness, domain.HarnessClaudeCode)
+	if initialize.got.Harness != harness.ClaudeCode {
+		t.Errorf("Harness = %q, want %q", initialize.got.Harness, harness.ClaudeCode)
 	}
 
 	if initialize.got.IssuesRepo.IsPresent() || initialize.got.IssuesProject.IsPresent() {
@@ -591,18 +592,18 @@ func TestInitCommandIsANoOpOnlyForTheHarnessItInstalled(t *testing.T) {
 	}{
 		{
 			name:      "the same harness at the same version",
-			installed: application.Installation{Harness: domain.HarnessClaudeCode, Version: cliVersion()},
+			installed: application.Installation{Harness: harness.ClaudeCode, Version: cliVersion()},
 			wantRun:   false,
 		},
 		{
 			name:      "another harness at the same version",
-			installed: application.Installation{Harness: domain.HarnessClaudeCode, Version: cliVersion()},
-			args:      []string{"--harness", domain.HarnessAntigravity},
+			installed: application.Installation{Harness: harness.ClaudeCode, Version: cliVersion()},
+			args:      []string{"--harness", harness.Antigravity},
 			wantRun:   true,
 		},
 		{
 			name:      "the same harness at an older version",
-			installed: application.Installation{Harness: domain.HarnessClaudeCode, Version: "v0.1.0"},
+			installed: application.Installation{Harness: harness.ClaudeCode, Version: "v0.1.0"},
 			args:      []string{"--yes"},
 			wantRun:   true,
 		},

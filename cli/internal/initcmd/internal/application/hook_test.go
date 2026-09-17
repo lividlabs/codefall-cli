@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 )
 
 // The definitions the embedded tree serves, one per harness. They mirror extensions/hooks/<harness>/,
@@ -56,10 +57,10 @@ func TestHookRegistersWhatTheTableSays(t *testing.T) {
 		harness string
 		dest    string
 	}{
-		{domain.HarnessClaudeCode, claudeFull},
-		{domain.HarnessCodex, filepath.Join(workingDir, ".codex/hooks.json")},
-		{domain.HarnessAntigravity, filepath.Join(workingDir, ".agents/hooks.json")},
-		{domain.HarnessOpenCode, filepath.Join(workingDir, ".opencode/plugins/codefall.js")},
+		{harness.ClaudeCode, claudeFull},
+		{harness.Codex, filepath.Join(workingDir, ".codex/hooks.json")},
+		{harness.Antigravity, filepath.Join(workingDir, ".agents/hooks.json")},
+		{harness.OpenCode, filepath.Join(workingDir, ".opencode/plugins/codefall.js")},
 	} {
 		t.Run(tc.harness, func(t *testing.T) {
 			files := settled("")
@@ -82,9 +83,9 @@ func TestHookRegistersWhatTheTableSays(t *testing.T) {
 }
 
 // beadsRequestHarness is beadsRequest with the harness the test wants.
-func beadsRequestHarness(harness string) Request {
+func beadsRequestHarness(name string) Request {
 	request := beadsRequest()
-	request.Harness = harness
+	request.Harness = name
 	return request
 }
 
@@ -268,7 +269,7 @@ func TestHookMergeKeepsTheProjectsAntigravityFlags(t *testing.T) {
 	files.files[filepath.Join(workingDir, ".agents/hooks.json")] = []byte(
 		`{"codefall-merge-guard": {"enabled": false}}`)
 
-	request := beadsRequestHarness(domain.HarnessAntigravity)
+	request := beadsRequestHarness(harness.Antigravity)
 	report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Run(t.Context(), request, nil)
 	if err != nil {
 		t.Fatalf("Run: %v", err)
@@ -290,7 +291,7 @@ func TestHookMergeKeepsTheProjectsAntigravityFlags(t *testing.T) {
 // The OpenCode plugin is copied, and a rerun with nothing new is a skip, not a rewrite.
 func TestHookCopySkipsAnInstallationItAlreadyHas(t *testing.T) {
 	files := settled("")
-	request := beadsRequestHarness(domain.HarnessOpenCode)
+	request := beadsRequestHarness(harness.OpenCode)
 
 	if _, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Run(t.Context(), request, nil); err != nil {
 		t.Fatalf("first run: %v", err)
@@ -318,7 +319,7 @@ func TestHookCopyReportsAFileItCannotRead(t *testing.T) {
 	path := filepath.Join(workingDir, ".opencode/plugins/codefall.js")
 	files.errs[path] = errors.New("permission denied")
 
-	_, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).hook(t.Context(), beadsRequestHarness(domain.HarnessOpenCode))
+	_, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).hook(t.Context(), beadsRequestHarness(harness.OpenCode))
 	if err == nil || !strings.Contains(err.Error(), "read .opencode/plugins/codefall.js") {
 		t.Errorf("hook error = %v, want it to say the file could not be read", err)
 	}
@@ -341,37 +342,37 @@ func TestHookMergeReportsAFileItCannotWorkWith(t *testing.T) {
 	}{
 		{
 			name:     "the file is not JSON",
-			harness:  domain.HarnessClaudeCode,
+			harness:  harness.ClaudeCode,
 			settings: "{ not json",
 			want:     "decode .claude/settings.json",
 		},
 		{
 			name:     "the file is a JSON array",
-			harness:  domain.HarnessClaudeCode,
+			harness:  harness.ClaudeCode,
 			settings: `[{"hooks": {}}]`,
 			want:     "decode .claude/settings.json",
 		},
 		{
 			name:     "the file is a JSON string",
-			harness:  domain.HarnessClaudeCode,
+			harness:  harness.ClaudeCode,
 			settings: `"hooks"`,
 			want:     "decode .claude/settings.json",
 		},
 		{
 			name:     "hooks is not an object",
-			harness:  domain.HarnessClaudeCode,
+			harness:  harness.ClaudeCode,
 			settings: `{"hooks": ["SessionStart"]}`,
 			want:     ".claude/settings.json: hooks is not an object",
 		},
 		{
 			name:     "the event is not an array",
-			harness:  domain.HarnessClaudeCode,
+			harness:  harness.ClaudeCode,
 			settings: `{"hooks": {"SessionStart": {"matcher": ""}}}`,
 			want:     ".claude/settings.json: hooks.SessionStart is not an array",
 		},
 		{
 			name:    "an event is not an array under antigravity's hook name",
-			harness: domain.HarnessAntigravity,
+			harness: harness.Antigravity,
 			have:    map[string][]byte{filepath.Join(workingDir, ".agents/hooks.json"): []byte(`{"codefall-merge-guard": {"PreToolUse": {"matcher": ""}}}`)},
 			want:    ".agents/hooks.json: codefall-merge-guard.PreToolUse is not an array",
 		},
@@ -434,7 +435,7 @@ func TestHookMergeDoesNotEscapeWhatTheFileAlreadySays(t *testing.T) {
 // A harness that takes codefall only as skills has no hook definition, and the step says so rather
 // than writing somewhere it should not.
 func TestHookSkipsAHarnessWithNoDefinition(t *testing.T) {
-	request := beadsRequestHarness(domain.HarnessMuse)
+	request := beadsRequestHarness(harness.Muse)
 
 	report, err := NewInitialize(settled(""), toolsInstalled(), newFakeExtensionSource()).Run(t.Context(), request, nil)
 	if err != nil {
