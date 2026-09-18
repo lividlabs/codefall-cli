@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
 var (
@@ -15,13 +16,14 @@ var (
 	claudeMemoryFull = filepath.Join(workingDir, "CLAUDE.md")
 )
 
-// What a file that has been through the step says, without the newline that ends each section:
-// the Beads section, the Local environment section, and the two together as a file that had
-// nothing else gains them.
+// What a file that has been through the step says, without the newline that ends each section: the
+// Beads section, the Local environment section, the Testing section for the root the fixture
+// declares, and the three together as a file that had nothing else gains them.
 var (
-	beadsSection = strings.TrimSuffix(domain.BeadsSection, "\n")
-	localSection = strings.TrimSuffix(domain.LocalSection, "\n")
-	bothSections = beadsSection + "\n\n" + localSection
+	beadsSection   = strings.TrimSuffix(domain.BeadsSection, "\n")
+	localSection   = strings.TrimSuffix(domain.LocalSection, "\n")
+	testingSection = strings.TrimSuffix(domain.TestingSection(settings.DefaultTestDir), "\n")
+	allSections    = beadsSection + "\n\n" + localSection + "\n\n" + testingSection
 )
 
 // agentsResult is what the fifth step did in a run that got that far.
@@ -29,8 +31,8 @@ func agentsResult(t *testing.T, report domain.Report) domain.StepResult {
 	t.Helper()
 
 	results := report.Results()
-	if len(results) != 6 {
-		t.Fatalf("Results() = %+v, want a result for each of the six steps", results)
+	if len(results) != 7 {
+		t.Fatalf("Results() = %+v, want a result for each of the seven steps", results)
 	}
 
 	return results[4]
@@ -63,13 +65,13 @@ func TestAgentsStepCreatesTheFilesThatAreNotThere(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	want := "created AGENTS.md with the Beads and Local environment sections and created CLAUDE.md"
+	want := "created AGENTS.md with the Beads, Local environment and Testing sections and created CLAUDE.md"
 	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
-	if got := string(files.files[agentsFull]); got != bothSections+"\n" {
-		t.Errorf("AGENTS.md =\n%s\nwant\n%s", got, bothSections+"\n")
+	if got := string(files.files[agentsFull]); got != allSections+"\n" {
+		t.Errorf("AGENTS.md =\n%s\nwant\n%s", got, allSections+"\n")
 	}
 
 	want = "See [AGENTS.md](AGENTS.md) — the rules for this repo live there, and there only.\n"
@@ -96,12 +98,12 @@ func TestAgentsStepAppendsToAFileThatAlreadySaysSomething(t *testing.T) {
 				t.Errorf("outcome = %v, want DONE", result.Outcome)
 			}
 
-			want := "added the Beads and Local environment sections to AGENTS.md and created CLAUDE.md"
+			want := "added the Beads, Local environment and Testing sections to AGENTS.md and created CLAUDE.md"
 			if result.Detail != want {
 				t.Errorf("detail = %q, want %q", result.Detail, want)
 			}
 
-			want = "# Project\n\nWhat it is.\n\n" + bothSections + "\n"
+			want = "# Project\n\nWhat it is.\n\n" + allSections + "\n"
 			if got := string(files.files[agentsFull]); got != want {
 				t.Errorf("AGENTS.md =\n%q\nwant\n%q", got, want)
 			}
@@ -124,23 +126,24 @@ func TestAgentsStepReplacesTheSectionInPlace(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	want := "updated the Beads section in AGENTS.md, added the Local environment section to AGENTS.md " +
-		"and created CLAUDE.md"
+	want := "updated the Beads section in AGENTS.md, added the Local environment and Testing sections " +
+		"to AGENTS.md and created CLAUDE.md"
 	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
 	want = "# Project\n\nWhat it is.\n\n" + beadsSection +
-		"\n\n## Afterwards\n\nMore of the project's own words.\n\n" + localSection + "\n"
+		"\n\n## Afterwards\n\nMore of the project's own words.\n\n" + localSection + "\n\n" +
+		testingSection + "\n"
 
 	if got := string(files.files[agentsFull]); got != want {
 		t.Errorf("AGENTS.md =\n%q\nwant\n%q", got, want)
 	}
 }
 
-// A project set up before the Local environment section existed has the Beads section and nothing
-// else of codefall's. The next run adds the one it is missing and leaves the one it has alone,
-// which is how the section reaches every project without a scaffold.
+// A project set up before the Local environment and Testing sections existed has the Beads section
+// and nothing else of codefall's. The next run adds the ones it is missing and leaves the one it has
+// alone, which is how a section reaches every project without a scaffold.
 func TestAgentsStepAddsTheSectionAProjectIsMissing(t *testing.T) {
 	before := "# Project\n\n" + beadsSection + "\n"
 
@@ -153,11 +156,11 @@ func TestAgentsStepAddsTheSectionAProjectIsMissing(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	if want := "added the Local environment section to AGENTS.md"; result.Detail != want {
+	if want := "added the Local environment and Testing sections to AGENTS.md"; result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
-	want := "# Project\n\n" + bothSections + "\n"
+	want := "# Project\n\n" + allSections + "\n"
 	if got := string(files.files[agentsFull]); got != want {
 		t.Errorf("AGENTS.md =\n%q\nwant\n%q", got, want)
 	}
@@ -166,7 +169,7 @@ func TestAgentsStepAddsTheSectionAProjectIsMissing(t *testing.T) {
 // A second run has nothing to do: every section is what codefall would have written, and the file is
 // not touched. This is what makes init safe to run again.
 func TestAgentsStepSkipsSectionsThatAreCurrent(t *testing.T) {
-	before := "# Project\n\n" + bothSections + "\n"
+	before := "# Project\n\n" + allSections + "\n"
 
 	files, result := run(t, map[string][]byte{
 		agentsFull:       []byte(before),
@@ -189,7 +192,7 @@ func TestAgentsStepSkipsSectionsThatAreCurrent(t *testing.T) {
 // The sections are current and CLAUDE.md is not there: the step has one thing to report, and it is
 // that one thing rather than a sentence about AGENTS.md that would not be true.
 func TestAgentsStepReportsTheOneThingItDid(t *testing.T) {
-	_, result := run(t, map[string][]byte{agentsFull: []byte(bothSections + "\n")})
+	_, result := run(t, map[string][]byte{agentsFull: []byte(allSections + "\n")})
 
 	if result.Outcome != domain.OutcomeDone {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
@@ -225,7 +228,7 @@ func TestAgentsStepWritesClaudeMdOnlyForClaudeCode(t *testing.T) {
 		t.Fatalf("agents: %v", err)
 	}
 
-	if want := "created AGENTS.md with the Beads and Local environment sections"; result.Detail != want {
+	if want := "created AGENTS.md with the Beads, Local environment and Testing sections"; result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 

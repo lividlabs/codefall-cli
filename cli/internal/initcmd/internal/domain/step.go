@@ -9,18 +9,24 @@ type Step struct {
 
 // The steps an init run performs, in the order it performs them. The settings file comes first, the
 // harness extension second, Beads third, the hooks that tell the harness about Beads and guard the
-// default branch fourth, and the sections that tell an agent how the project uses Beads and keeps
-// its local environment current fifth. The hook step follows the extension step because the
-// scripts the hooks run are what the extension step copies. The agents step follows Beads because
-// bd init commits what it staged, and codefall's edit to AGENTS.md belongs in the author's own
-// commit rather than bd's — which is the same reason the ignore step comes last: .ignore and
-// .gitignore are the author's files to commit, not bd's.
+// default branch fourth, and the sections that tell an agent how the project uses Beads, keeps its
+// local environment current, and writes its test cases fifth. The hook step follows the extension
+// step because the scripts the hooks run are what the extension step copies. The agents step follows
+// Beads because bd init commits what it staged, and codefall's edit to AGENTS.md belongs in the
+// author's own commit rather than bd's — which is the same reason the last two steps come last:
+// the testing tree, .ignore, and .gitignore are the author's files to commit, not bd's.
+//
+// The testing step is sixth, after the agents step and before the ignore step. It belongs beside the
+// agents step because the two write the same pair of documents under the same rule — an AGENTS.md
+// and the CLAUDE.md that points at it — and it has to come before the ignore step, which keeps the
+// testing root's run output out of the repository and cannot name a root before it is declared.
 var (
 	SettingsStep  = Step{ID: "settings", Title: "Writing .codefall/settings.json"}
 	ExtensionStep = Step{ID: "extension", Title: "Installing the codefall extension"}
 	BeadsStep     = Step{ID: "beads", Title: "Initializing Beads"}
 	HookStep      = Step{ID: "hook", Title: "Registering codefall's hooks"}
 	AgentsStep    = Step{ID: "agents", Title: "Writing codefall's sections to AGENTS.md"}
+	TestingStep   = Step{ID: "testing", Title: "Setting up the testing tree"}
 	IgnoreStep    = Step{ID: "ignore", Title: "Writing the ignore entries"}
 )
 

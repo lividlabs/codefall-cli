@@ -71,6 +71,12 @@ type Request struct {
 	// this run writes one. Presentation reads it from the build's own info.
 	CLIVersion string
 
+	// TestDir is the testing root the project declares: where its test cases live, relative to the
+	// directory holding .codefall/ (ADR-007). Empty means nobody was asked — a rerun of a project
+	// settled before the block existed — and the run takes the format's default, which is the same
+	// answer the survey offers.
+	TestDir string
+
 	IssuesProject mo.Option[int]
 	// ReviewPostToPullRequest is whether codefall-review may post its findings to a pull request.
 	// None means nobody was asked — a scripted run that gave no flag — and the file records the
@@ -99,8 +105,8 @@ type Observer interface {
 }
 
 // Initialize sets a project up for codefall: it writes .codefall/settings.json, installs the harness
-// extension, initialises Beads, registers codefall's hooks with the harness, and writes the section
-// of AGENTS.md that says how the project uses it.
+// extension, initialises Beads, registers codefall's hooks with the harness, writes the sections of
+// AGENTS.md that say how the project uses it, and makes the tree its test cases live in.
 type Initialize struct {
 	files  FileSystem
 	runner CommandRunner
@@ -150,6 +156,7 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 		{Step: domain.BeadsStep, run: i.beads},
 		{Step: domain.HookStep, run: i.hook},
 		{Step: domain.AgentsStep, run: i.agents},
+		{Step: domain.TestingStep, run: i.testing},
 		{Step: domain.IgnoreStep, run: i.ignore},
 	}
 

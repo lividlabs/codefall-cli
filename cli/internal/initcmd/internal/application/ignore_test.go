@@ -12,11 +12,14 @@ import (
 var (
 	ignoreFull    = filepath.Join(workingDir, settings.IgnoreName)
 	gitIgnoreFull = filepath.Join(workingDir, settings.GitIgnoreName)
+	// The testing root the fixture's request declares, which is what the artifacts entry names.
+	artifactsEntry = settings.TestArtifacts(settings.DefaultTestDir)
 )
 
-// stampIgnored is a .gitignore that already names the stamp, for the tests about the other file.
-func stampIgnored(files *fakeFileSystem) *fakeFileSystem {
-	files.files[gitIgnoreFull] = []byte(settings.RefreshStamp + "\n")
+// gitIgnored is a .gitignore that already names both of its entries, for the tests about the other
+// file.
+func gitIgnored(files *fakeFileSystem) *fakeFileSystem {
+	files.files[gitIgnoreFull] = []byte(settings.RefreshStamp + "\n" + artifactsEntry + "\n")
 
 	return files
 }
@@ -55,22 +58,45 @@ func TestIgnoreStepWritesTheFilesWhenThereAreNone(t *testing.T) {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
-	want := settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n"
+	// Each file is written once with every entry it needs, each under the comment that says why it
+	// is there and with a blank line between them.
+	want := settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n\n" +
+		settings.IgnoreTestsComment + "\n" + settings.IgnoreEntryTests + "\n"
 	if got := string(files.files[ignoreFull]); got != want {
 		t.Errorf("%s =\n%q\nwant\n%q", settings.IgnoreName, got, want)
 	}
 
-	want = settings.GitIgnoreComment + "\n" + settings.RefreshStamp + "\n"
+	want = settings.GitIgnoreComment + "\n" + settings.RefreshStamp + "\n\n" +
+		settings.TestArtifactsComment + "\n" + artifactsEntry + "\n"
 	if got := string(files.files[gitIgnoreFull]); got != want {
 		t.Errorf("%s =\n%q\nwant\n%q", settings.GitIgnoreName, got, want)
 	}
 }
 
-// A project's .gitignore is nearly always its own already, so the stamp entry is appended to it,
-// and the .ignore file that is already right is left alone and left out of the sentence.
-func TestIgnoreStepAddsTheStampToAGitignoreThatIsAlreadyThere(t *testing.T) {
+// The run output of a testing root the project moved is ignored at the root it declared, not at the
+// default one.
+func TestIgnoreStepNamesTheDeclaredTestingRoot(t *testing.T) {
 	files := settled("{}")
-	files.files[ignoreFull] = []byte(settings.IgnoreEntry + "\n")
+
+	request := beadsRequest()
+	request.TestDir = "packages/web/e2e"
+
+	if _, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Run(
+		t.Context(), request, nil,
+	); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if got := string(files.files[gitIgnoreFull]); !strings.Contains(got, "packages/web/e2e/.artifacts/") {
+		t.Errorf("%s =\n%q\nwant it to name the declared root's artifacts", settings.GitIgnoreName, got)
+	}
+}
+
+// A project's .gitignore is nearly always its own already, so the entries are appended to it, and
+// the .ignore file that is already right is left alone and left out of the sentence.
+func TestIgnoreStepAddsTheEntriesToAGitignoreThatIsAlreadyThere(t *testing.T) {
+	files := settled("{}")
+	files.files[ignoreFull] = []byte(settings.IgnoreEntry + "\n" + settings.IgnoreEntryTests + "\n")
 	files.files[gitIgnoreFull] = []byte("node_modules/\ndist/\n")
 
 	result := ignoreResult(t, files)
@@ -79,16 +105,18 @@ func TestIgnoreStepAddsTheStampToAGitignoreThatIsAlreadyThere(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	if want := "added " + settings.RefreshStamp + " to .gitignore"; result.Detail != want {
+	want := "added " + settings.RefreshStamp + " and " + artifactsEntry + " to .gitignore"
+	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
-	want := "node_modules/\ndist/\n\n" + settings.GitIgnoreComment + "\n" + settings.RefreshStamp + "\n"
+	want = "node_modules/\ndist/\n\n" + settings.GitIgnoreComment + "\n" + settings.RefreshStamp + "\n\n" +
+		settings.TestArtifactsComment + "\n" + artifactsEntry + "\n"
 	if got := string(files.files[gitIgnoreFull]); got != want {
 		t.Errorf("%s =\n%q\nwant\n%q", settings.GitIgnoreName, got, want)
 	}
 
-	if got := string(files.files[ignoreFull]); got != settings.IgnoreEntry+"\n" {
+	if got := string(files.files[ignoreFull]); got != settings.IgnoreEntry+"\n"+settings.IgnoreEntryTests+"\n" {
 		t.Errorf("%s =\n%q\nwant it untouched", settings.IgnoreName, got)
 	}
 }
@@ -104,7 +132,7 @@ func TestIgnoreStepAppendsToAFileThatAlreadySaysSomething(t *testing.T) {
 		{name: "the file does not", existing: "vendor/\nnode_modules/"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			files := stampIgnored(settled("{}"))
+			files := gitIgnored(settled("{}"))
 			files.files[ignoreFull] = []byte(tc.existing)
 
 			result := ignoreResult(t, files)
@@ -119,8 +147,8 @@ func TestIgnoreStepAppendsToAFileThatAlreadySaysSomething(t *testing.T) {
 				t.Errorf("%s =\n%q\nwant it to keep what was there", settings.IgnoreName, got)
 			}
 
-			if !strings.HasSuffix(got, settings.IgnoreEntry+"\n") {
-				t.Errorf("%s =\n%q\nwant it to end with %q", settings.IgnoreName, got, settings.IgnoreEntry)
+			if !strings.HasSuffix(got, settings.IgnoreEntryTests+"\n") {
+				t.Errorf("%s =\n%q\nwant it to end with %q", settings.IgnoreName, got, settings.IgnoreEntryTests)
 			}
 
 			// The entry a file did not end with a newline before must not be joined to its last line.
@@ -131,20 +159,55 @@ func TestIgnoreStepAppendsToAFileThatAlreadySaysSomething(t *testing.T) {
 	}
 }
 
-// A rerun must not grow the file. The step compares whole lines, so an indented entry counts as
+// A file that names one entry and not the other gains the one it is missing and keeps the one it
+// has, which is how the second entry reaches a project set up before it existed.
+func TestIgnoreStepAddsOnlyTheEntryAFileIsMissing(t *testing.T) {
+	files := gitIgnored(settled("{}"))
+	files.files[ignoreFull] = []byte(settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n")
+
+	result := ignoreResult(t, files)
+
+	if want := "added " + settings.IgnoreEntryTests + " to .ignore"; result.Detail != want {
+		t.Errorf("detail = %q, want %q", result.Detail, want)
+	}
+
+	got := string(files.files[ignoreFull])
+
+	if strings.Count(got, settings.IgnoreEntry+"\n") != 1 {
+		t.Errorf("%s =\n%q\nwant the entry it had written once", settings.IgnoreName, got)
+	}
+
+	if !strings.HasSuffix(got, settings.IgnoreEntryTests+"\n") {
+		t.Errorf("%s =\n%q\nwant the missing entry added", settings.IgnoreName, got)
+	}
+}
+
+// A rerun must not grow a file. The step compares whole lines, so an indented entry counts as
 // present and a commented-out one does not — ripgrep does not read the comment either.
-func TestIgnoreStepLeavesAFileThatAlreadyNamesTheDirectory(t *testing.T) {
+func TestIgnoreStepLeavesAFileThatAlreadyNamesItsEntries(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
 		existing string
 		skipped  bool
 	}{
-		{name: "written plainly", existing: settings.IgnoreEntry + "\n", skipped: true},
-		{name: "indented", existing: "  " + settings.IgnoreEntry + "  \n", skipped: true},
-		{name: "commented out", existing: "# " + settings.IgnoreEntry + "\n", skipped: false},
+		{
+			name:     "written plainly",
+			existing: settings.IgnoreEntry + "\n" + settings.IgnoreEntryTests + "\n",
+			skipped:  true,
+		},
+		{
+			name:     "indented",
+			existing: "  " + settings.IgnoreEntry + "  \n\t" + settings.IgnoreEntryTests + "\n",
+			skipped:  true,
+		},
+		{
+			name:     "commented out",
+			existing: "# " + settings.IgnoreEntry + "\n# " + settings.IgnoreEntryTests + "\n",
+			skipped:  false,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			files := stampIgnored(settled("{}"))
+			files := gitIgnored(settled("{}"))
 			files.files[ignoreFull] = []byte(tc.existing)
 
 			result := ignoreResult(t, files)
@@ -154,8 +217,8 @@ func TestIgnoreStepLeavesAFileThatAlreadyNamesTheDirectory(t *testing.T) {
 					t.Errorf("outcome = %v, want SKIPPED", result.Outcome)
 				}
 
-				want := ".ignore already names " + settings.IgnoreEntry +
-					" and .gitignore already names " + settings.RefreshStamp
+				want := ".ignore already names " + settings.IgnoreEntry + " and " + settings.IgnoreEntryTests +
+					" and .gitignore already names " + settings.RefreshStamp + " and " + artifactsEntry
 				if result.Detail != want {
 					t.Errorf("detail = %q, want %q", result.Detail, want)
 				}
@@ -171,8 +234,8 @@ func TestIgnoreStepLeavesAFileThatAlreadyNamesTheDirectory(t *testing.T) {
 				t.Errorf("outcome = %v, want DONE", result.Outcome)
 			}
 
-			if !strings.HasSuffix(string(files.files[ignoreFull]), settings.IgnoreEntry+"\n") {
-				t.Errorf("%s =\n%q\nwant the entry added", settings.IgnoreName, files.files[ignoreFull])
+			if !strings.HasSuffix(string(files.files[ignoreFull]), settings.IgnoreEntryTests+"\n") {
+				t.Errorf("%s =\n%q\nwant the entries added", settings.IgnoreName, files.files[ignoreFull])
 			}
 		})
 	}

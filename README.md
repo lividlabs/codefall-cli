@@ -56,9 +56,10 @@ codefall create
 ### Existing Projects
 
 Running the `init` command installs configuration for codefall, and the extension for each harness you
-choose. It asks which harnesses the project uses and records them in `.codefall/settings.json`; a rerun
-installs for the harnesses already recorded there, so `--harness` is only needed the first time, or to
-add one.
+choose. It asks which harnesses the project uses and where the project's test cases live, and records
+both in `.codefall/settings.json`; a rerun installs for the harnesses already recorded there and keeps
+the testing root already declared, so `--harness` and `--test-dir` are only needed the first time, or
+to add a harness.
 
 ```
 codefall init
@@ -81,6 +82,20 @@ so it goes into `.codefall/`, once, whatever harnesses you chose:
 A skill names a shared file `../../../.codefall/shared/<file>`, which is the same file from either
 skills directory. Nothing installed is a symlink, and no maintainer document from this repository is
 installed into your project. [ADR-006](docs/adrs/ADR-006-install-layout.md) records why.
+
+Init also writes into the project's own files. `AGENTS.md` gains three marked sections — Beads, Local
+environment, and Testing — each replaced between its markers on a rerun and never touching a word
+outside them, and Claude Code gets a one-line `CLAUDE.md` pointing at it when the project has none.
+The testing root it asked about is created with a `test-cases/` directory and skeleton `AGENTS.md` and
+`README.md` files, which are yours from the moment they exist: each is written only when it is
+missing, and a rerun never rewrites one. `.ignore` gains the two directories codefall commits and
+nobody greps, and `.gitignore` gains the refresh stamp and the testing root's `.artifacts/`.
+[ADR-007](docs/adrs/ADR-007-test-cases.md) records what the tree is for.
+
+`codefall doctor` reports on the declaration in a **Testing** category: it warns when no testing root
+is declared, naming `codefall init`; warns when no test runner is declared, naming `/codefall-equip`;
+and fails when the directory the project declared is not there. Like every other category, it names
+the remedy and never runs it.
 
 Upgrading from a codefall before this layout: rerun `codefall init`, then delete the old copies by
 hand. Codefall removes only what it can prove it owns, and those directories hold your own files

@@ -28,6 +28,7 @@ type fakeInitialize struct {
 	root       mo.Option[string]
 	installed  mo.Option[application.Installation]
 	harnesses  mo.Option[[]string]
+	testDir    mo.Option[string]
 
 	got       application.Request
 	ran       bool
@@ -64,6 +65,12 @@ func (f *fakeInitialize) ChosenHarnesses(string) (mo.Option[[]string], error) {
 	return f.harnesses, nil
 }
 
+// DeclaredTestDir reports the testing root a settled project's settings declare. None is the answer
+// for a project with no settings, and for one whose settings predate the block.
+func (f *fakeInitialize) DeclaredTestDir(string) (mo.Option[string], error) {
+	return f.testDir, nil
+}
+
 func (f *fakeInitialize) SuggestIssuesRepo(context.Context, string) mo.Option[string] {
 	f.suggested = true
 
@@ -81,6 +88,7 @@ func newFakeInitialize() *fakeInitialize {
 		root:       mo.None[string](),
 		installed:  mo.None[application.Installation](),
 		harnesses:  mo.None[[]string](),
+		testDir:    mo.None[string](),
 	}
 }
 
@@ -131,6 +139,7 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 		"--issues-repo", "lividlabs/codefall-cli",
 		"--issues-project", "3",
 		"--harness", "claude-code",
+		"--test-dir", "e2e",
 		"--force",
 	); err != nil {
 		t.Fatalf("Execute: %v", err)
@@ -147,6 +156,7 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 		IssuesRepo:    mo.Some("lividlabs/codefall-cli"),
 		IssuesProject: mo.Some(3),
 		Harnesses:     []string{harness.ClaudeCode},
+		TestDir:       "e2e",
 		CLIVersion:    cliVersion(),
 		Force:         true,
 	}
@@ -164,7 +174,8 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 func TestInitCommandLeavesTheOptionalValuesAbsent(t *testing.T) {
 	initialize := newFakeInitialize()
 
-	if _, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode); err != nil {
+	if _, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode,
+		"--test-dir", settings.DefaultTestDir); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
 
@@ -214,12 +225,14 @@ func TestInitCommandRejects(t *testing.T) {
 		},
 		{
 			name: "a repository on a tracker that has no use for one",
-			args: []string{"--harness", harness.ClaudeCode, "--tracker", "beads", "--issues-repo", "owner/name"},
+			args: []string{"--harness", harness.ClaudeCode, "--tracker", "beads", "--test-dir", "testing",
+				"--issues-repo", "owner/name"},
 			want: "the --issues-repo flag is only used with --tracker github",
 		},
 		{
 			name: "a project number on a tracker that has no use for one",
-			args: []string{"--harness", harness.ClaudeCode, "--tracker", "beads", "--issues-project", "3"},
+			args: []string{"--harness", harness.ClaudeCode, "--tracker", "beads", "--test-dir", "testing",
+				"--issues-project", "3"},
 			want: "the --issues-project flag is only used with --tracker github",
 		},
 		{
@@ -277,6 +290,13 @@ func TestInitCommandWithoutATerminalNamesTheMissingFlag(t *testing.T) {
 			args: []string{"--harness", harness.ClaudeCode, "--tracker", "github"},
 			want: "missing --issues-repo (stdin is not a terminal)",
 		},
+		{
+			// The testing root has a default, and the default is what the survey offers rather than
+			// what a script gets: where a project's cases live is a decision the project makes.
+			name: "no testing root",
+			args: []string{"--harness", harness.ClaudeCode, "--tracker", "beads"},
+			want: "missing --test-dir (stdin is not a terminal)",
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			initialize := newFakeInitialize()
@@ -299,7 +319,8 @@ func TestInitCommandUsesTheRepositoryGHSuggests(t *testing.T) {
 	initialize := newFakeInitialize()
 	initialize.suggestion = mo.Some("lividlabs/codefall-cli")
 
-	if _, err := run(t, initialize, "--harness", harness.ClaudeCode, "--tracker", "github"); err != nil {
+	if _, err := run(t, initialize, "--harness", harness.ClaudeCode, "--tracker", "github",
+		"--test-dir", settings.DefaultTestDir); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
 
@@ -358,7 +379,8 @@ func TestInitCommandPrintsALineForEachFinishedStepAndWhatToRunNext(t *testing.T)
 			"the codefall marketplace is declared and codefall@codefall enabled in .claude/settings.json"),
 	)
 
-	out, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode)
+	out, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode,
+		"--test-dir", settings.DefaultTestDir)
 	if err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
@@ -378,7 +400,8 @@ func TestInitCommandWrapsAUseCaseError(t *testing.T) {
 	initialize.report = domain.NewReport()
 	initialize.err = failure
 
-	out, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode)
+	out, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode,
+		"--test-dir", settings.DefaultTestDir)
 	if !errors.Is(err, failure) {
 		t.Fatalf("Execute error = %v, want it to wrap %v", err, failure)
 	}
@@ -396,7 +419,8 @@ func TestInitCommandReportsSettingsItCannotRead(t *testing.T) {
 	initialize := newFakeInitialize()
 	initialize.existsErr = errors.New("permission denied")
 
-	if _, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode); err == nil ||
+	if _, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode,
+		"--test-dir", settings.DefaultTestDir); err == nil ||
 		!strings.Contains(err.Error(), "permission denied") {
 		t.Errorf("Execute error = %v, want it to carry the read failure", err)
 	}
@@ -556,7 +580,8 @@ func TestInitCommandBelowTheRepositoryRoot(t *testing.T) {
 			initialize := newFakeInitialize()
 			initialize.root = mo.Some("/repo")
 
-			args := append([]string{"--tracker", "beads", "--harness", harness.ClaudeCode}, tc.args...)
+			args := append([]string{"--tracker", "beads", "--harness", harness.ClaudeCode,
+				"--test-dir", settings.DefaultTestDir}, tc.args...)
 
 			out, err := run(t, initialize, args...)
 
@@ -592,7 +617,8 @@ func TestInitCommandAtTheRepositoryRootNeedsNoLocation(t *testing.T) {
 
 	initialize := newFakeInitialize()
 
-	if _, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode); err != nil {
+	if _, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode,
+		"--test-dir", settings.DefaultTestDir); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
 
@@ -643,6 +669,7 @@ func TestInitCommandIsANoOpOnlyForTheHarnessItInstalled(t *testing.T) {
 			initialize := newFakeInitialize()
 			initialize.exists = true
 			initialize.harnesses = mo.Some([]string{harness.ClaudeCode})
+			initialize.testDir = mo.Some(settings.DefaultTestDir)
 			initialize.installed = mo.Some(tc.installed)
 
 			out, err := run(t, initialize, tc.args...)
@@ -680,7 +707,7 @@ func TestInitCommandTakesSeveralHarnesses(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			initialize := newFakeInitialize()
 
-			args := append([]string{"--tracker", "beads"}, tc.args...)
+			args := append([]string{"--tracker", "beads", "--test-dir", settings.DefaultTestDir}, tc.args...)
 
 			if _, err := run(t, initialize, args...); err != nil {
 				t.Fatalf("Execute: %v", err)
@@ -723,6 +750,79 @@ func TestInitCommandRefusesSettingsThatRecordNoHarnesses(t *testing.T) {
 
 	if initialize.ran {
 		t.Error("the use case ran, want the command to stop before it")
+	}
+}
+
+// A rerun works with the testing root the project declared, so the flag is needed the first time and
+// never again — and the run has no way to move a root a project's cases already sit at.
+func TestInitCommandTakesTheTestingRootFromTheSettingsOnARerun(t *testing.T) {
+	initialize := newFakeInitialize()
+	initialize.exists = true
+	initialize.harnesses = mo.Some([]string{harness.ClaudeCode})
+	initialize.testDir = mo.Some("packages/web/e2e")
+
+	if _, err := run(t, initialize); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+
+	if initialize.got.TestDir != "packages/web/e2e" {
+		t.Errorf("TestDir = %q, want the root the settings declare", initialize.got.TestDir)
+	}
+}
+
+// A project settled before the block existed declares none, and the run still has the tree to make:
+// nothing is asked, because a rerun surveys for nothing, and the use case takes the format's default.
+func TestInitCommandLeavesTheTestingRootToTheUseCaseOnARerunThatDeclaresNone(t *testing.T) {
+	initialize := newFakeInitialize()
+	initialize.exists = true
+	initialize.harnesses = mo.Some([]string{harness.ClaudeCode})
+
+	if _, err := run(t, initialize); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+
+	if !initialize.ran {
+		t.Fatal("the use case did not run, want a rerun to make the tree")
+	}
+
+	if initialize.got.TestDir != "" {
+		t.Errorf("TestDir = %q, want it left empty for the use case's default", initialize.got.TestDir)
+	}
+}
+
+// An install that is current in every other way is still work when the project has never declared a
+// testing root: doctor's remedy for that is this command, so this command has to do something.
+func TestInitCommandIsNotANoOpWhileTheTestingRootIsUndeclared(t *testing.T) {
+	initialize := newFakeInitialize()
+	initialize.exists = true
+	initialize.harnesses = mo.Some([]string{harness.ClaudeCode})
+	initialize.installed = mo.Some(application.Installation{
+		Versions: map[string]string{harness.ClaudeCode: cliVersion()}})
+
+	out, err := run(t, initialize)
+	if err != nil {
+		t.Fatalf("Execute: %v\n%s", err, out)
+	}
+
+	if !initialize.ran {
+		t.Errorf("ran = false, want the run to declare the root\n%s", out)
+	}
+}
+
+// A root that is not a relative path inside the project is refused where the person typed it, in
+// terms of the flag rather than of the settings field it would have filled.
+func TestInitCommandRejectsATestingRootOutsideTheProject(t *testing.T) {
+	for _, dir := range []string{"/srv/testing", "../testing"} {
+		initialize := newFakeInitialize()
+
+		_, err := run(t, initialize, "--tracker", "beads", "--harness", harness.ClaudeCode, "--test-dir", dir)
+		if err == nil || !strings.Contains(err.Error(), "relative path inside the project") {
+			t.Errorf("Execute error for %q = %v, want it to refuse the path", dir, err)
+		}
+
+		if initialize.ran {
+			t.Errorf("the use case ran for %q, want the command to stop at the flag", dir)
+		}
 	}
 }
 

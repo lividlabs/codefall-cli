@@ -15,8 +15,9 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
-// settings runs checks 1 to 4. Each one is the prerequisite of the next, so the first failure ends
-// the group and the remaining checks are absent from the report.
+// settings runs checks 1 to 4, and hands on to the three ignore-entry checks. Each of the first four
+// is the prerequisite of the next, so the first failure ends the group and the remaining checks are
+// absent from the report.
 //
 // Every detail is a whole sentence, because the report prints it under a category header without the
 // check's title in front of it.
@@ -88,68 +89,58 @@ func (d *Diagnose) settings(_ context.Context, dir string, results []domain.Resu
 
 	results = append(results, domain.SettingsComplete.Pass())
 
-	return d.reviewsIgnored(dir, results)
+	return d.ignored(dir, results)
 }
 
-// reviewsIgnored is check 5: the .ignore entry that keeps codefall-review's committed findings out
-// of every search that goes through ripgrep.
+// ignoredEntries is what each of the two ignore files has to name, one check each and in the order
+// doctor reports them. The .ignore entries are what codefall commits and nobody greps: review
+// findings, and the report an agentic test run leaves (ADR-007). The .gitignore entry is the refresh
+// stamp, which belongs to one machine (ADR-005).
 //
-// It warns rather than fails. Nothing stops working without the entry — findings are still written
-// and still tracked, and every other verb behaves identically. What goes wrong is quieter: agents
-// searching the codebase start reading old review findings as if they were code. That is worth
-// reporting and is not worth an exit status, and codefall-review says the same thing again at the
-// point where it matters, with an offer to fix it.
-func (d *Diagnose) reviewsIgnored(dir string, results []domain.Result) []domain.Result {
-	path := filepath.Join(dir, settings.IgnoreName)
-	remedy := mo.Some("add " + settings.IgnoreEntry + " to " + settings.IgnoreName +
-		", or run codefall init again")
+// A run's own output under the testing root is git-ignored too, but the entry names a path the
+// project chose, and doctor's report is about what codefall can check without knowing it.
+var ignoredEntries = []struct {
+	check domain.Check
+	file  string
+	entry string
+}{
+	{domain.ReviewsIgnored, settings.IgnoreName, settings.IgnoreEntry},
+	{domain.TestsIgnored, settings.IgnoreName, settings.IgnoreEntryTests},
+	{domain.StampIgnored, settings.GitIgnoreName, settings.RefreshStamp},
+}
 
-	data, err := d.files.ReadFile(path)
+// ignored is checks 5 to 7: each entry codefall needs in an ignore file is there.
+//
+// They warn rather than fail. Nothing stops working without an entry — findings and reports are
+// still written and still tracked, and every other verb behaves identically. What goes wrong is
+// quieter: agents searching the codebase start reading old findings as if they were code, and a
+// committed stamp tells every other clone it was current at a commit it never refreshed at. That is
+// worth reporting and is not worth an exit status.
+//
+// Each check is independent of the ones beside it, so all three run whatever any of them found.
+func (d *Diagnose) ignored(dir string, results []domain.Result) []domain.Result {
+	for _, want := range ignoredEntries {
+		results = append(results, d.entryIgnored(dir, want.check, want.file, want.entry))
+	}
 
-	// The stamp check is independent of this one — a different file — so it runs whatever this
-	// one found.
+	return results
+}
+
+// entryIgnored is one of those checks: the file names the entry, or it says which file is missing
+// which line.
+func (d *Diagnose) entryIgnored(dir string, check domain.Check, file, entry string) domain.Result {
+	remedy := mo.Some("add " + entry + " to " + file + ", or run codefall init again")
+
+	data, err := d.files.ReadFile(filepath.Join(dir, file))
+
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
-		results = append(results, domain.ReviewsIgnored.Warn(settings.IgnoreName+" not found", remedy))
+		return check.Warn(file+" not found", remedy)
 	case err != nil:
-		results = append(results, domain.ReviewsIgnored.Warn(
-			fmt.Sprintf("Cannot read %s: %v", settings.IgnoreName, err), mo.None[string]()))
-	case settings.IgnoresReviews(string(data)):
-		results = append(results, domain.ReviewsIgnored.Pass())
+		return check.Warn(fmt.Sprintf("Cannot read %s: %v", file, err), mo.None[string]())
+	case settings.NamesEntry(string(data), entry):
+		return check.Pass()
 	default:
-		results = append(results, domain.ReviewsIgnored.Warn(
-			settings.IgnoreName+" does not name "+settings.IgnoreEntry, remedy))
+		return check.Warn(file+" does not name "+entry, remedy)
 	}
-
-	return d.stampIgnored(dir, results)
-}
-
-// stampIgnored is check 6: the .gitignore entry that keeps the refresh stamp out of the repository
-// (ADR-005). The stamp says which commit this machine's environment was last brought current at,
-// and committed it would say that about every machine, so every other clone would skip a refresh
-// it needed.
-//
-// It warns rather than fails, for the same reason as the check before it: the stamp is not there
-// until refresh has run, and until then nothing is wrong, only unguarded.
-func (d *Diagnose) stampIgnored(dir string, results []domain.Result) []domain.Result {
-	path := filepath.Join(dir, settings.GitIgnoreName)
-	remedy := mo.Some("add " + settings.RefreshStamp + " to " + settings.GitIgnoreName +
-		", or run codefall init again")
-
-	data, err := d.files.ReadFile(path)
-
-	switch {
-	case errors.Is(err, fs.ErrNotExist):
-		return append(results, domain.StampIgnored.Warn(settings.GitIgnoreName+" not found", remedy))
-	case err != nil:
-		return append(results, domain.StampIgnored.Warn(
-			fmt.Sprintf("Cannot read %s: %v", settings.GitIgnoreName, err), mo.None[string]()))
-	}
-
-	if settings.IgnoresStamp(string(data)) {
-		return append(results, domain.StampIgnored.Pass())
-	}
-
-	return append(results, domain.StampIgnored.Warn(
-		settings.GitIgnoreName+" does not name "+settings.RefreshStamp, remedy))
 }

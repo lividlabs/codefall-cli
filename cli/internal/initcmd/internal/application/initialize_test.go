@@ -23,6 +23,9 @@ var (
 	settingsFull      = filepath.Join(codefallFull, "settings.json")
 	claudeSettingsDir = filepath.Join(workingDir, ".claude")
 	claudeFull        = filepath.Join(claudeSettingsDir, "settings.json")
+	// The tree the testing step makes at the root a request that declares none takes by default.
+	testingFull   = filepath.Join(workingDir, settings.DefaultTestDir)
+	testCasesFull = filepath.Join(testingFull, "test-cases")
 )
 
 // The commands a run gives its tools, keyed the way the fake runner keys them.
@@ -243,8 +246,8 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 	}
 
 	results := report.Results()
-	if len(results) != 6 {
-		t.Fatalf("Results() = %+v, want a result for each of the six steps", results)
+	if len(results) != 7 {
+		t.Fatalf("Results() = %+v, want a result for each of the seven steps", results)
 	}
 
 	if results[0].Outcome != domain.OutcomeDone {
@@ -257,16 +260,18 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 		t.Errorf("detail = %q, want %q", results[0].Detail, want)
 	}
 
-	// The settings step makes .codefall/, the hook step makes .claude/, and nothing else does.
-	if !slices.Equal(files.made, []string{codefallFull, claudeSettingsDir}) {
-		t.Errorf("created %q, want %q", files.made, []string{codefallFull, claudeSettingsDir})
+	// The settings step makes .codefall/, the hook step makes .claude/, the testing step makes the
+	// tree its cases live in, and nothing else makes a directory.
+	made := []string{codefallFull, claudeSettingsDir, testingFull, testCasesFull}
+	if !slices.Equal(files.made, made) {
+		t.Errorf("created %q, want %q", files.made, made)
 	}
 
 	// The observer sees every step start and finish, in order, and what it sees on finishing is the
 	// result the report carries.
 	steps := []domain.Step{
 		domain.SettingsStep, domain.ExtensionStep, domain.BeadsStep, domain.HookStep,
-		domain.AgentsStep, domain.IgnoreStep,
+		domain.AgentsStep, domain.TestingStep, domain.IgnoreStep,
 	}
 	if !slices.Equal(observer.started, steps) {
 		t.Errorf("started = %+v, want %+v", observer.started, steps)
@@ -307,6 +312,9 @@ func TestRunEncodesGitHubSettings(t *testing.T) {
   },
   "review": {
     "postToPullRequest": false
+  },
+  "test": {
+    "dir": "testing"
   }
 }
 `
@@ -341,6 +349,9 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
   },
   "review": {
     "postToPullRequest": false
+  },
+  "test": {
+    "dir": "testing"
   }
 }
 `,
@@ -355,6 +366,9 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
   "beads": {},
   "review": {
     "postToPullRequest": false
+  },
+  "test": {
+    "dir": "testing"
   }
 }
 `,
@@ -369,6 +383,9 @@ func TestRunEncodesTheOptionalFieldsTheWayTheSchemaExpects(t *testing.T) {
 			},
 			want: `  "review": {
     "postToPullRequest": true
+  },
+  "test": {
+    "dir": "testing"
   }
 }
 `,
@@ -407,7 +424,7 @@ func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
 	}
 
 	results := report.Results()
-	if len(results) != 6 || results[0].Outcome != domain.OutcomeSkipped {
+	if len(results) != 7 || results[0].Outcome != domain.OutcomeSkipped {
 		t.Fatalf("Results() = %+v, want the settings step to have skipped", results)
 	}
 
@@ -416,8 +433,17 @@ func TestRunSkipsSettingsThatAreAlreadyThere(t *testing.T) {
 		t.Errorf("detail = %q, want %q", results[0].Detail, want)
 	}
 
-	if got := string(files.files[settingsFull]); got != "{}\n" {
-		t.Errorf("settings.json = %q, want it untouched", got)
+	// The settings step wrote nothing, so the file still records no tracker and no harnesses. What
+	// it does record is the testing root, which the testing step declares into whatever settings a
+	// project has — that is how a project settled before the block existed gets one.
+	got := string(files.files[settingsFull])
+
+	if strings.Contains(got, "tracker") {
+		t.Errorf("settings.json = %q, want the settings step to have left it alone", got)
+	}
+
+	if !strings.Contains(got, `"dir": "testing"`) {
+		t.Errorf("settings.json = %q, want the testing step to have declared the root", got)
 	}
 }
 
