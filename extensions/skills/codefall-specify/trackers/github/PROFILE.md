@@ -305,7 +305,7 @@ so per-requirement status would be a guess, and a mirror that guesses is worse t
 coarse. The running trail is the `Relates to #<spec-issue>` line `codefall-implement` puts in every PR body.
 
 Board IDs follow the rule above: discovered at run time, or read from the project's
-`.codefall/skills/implement/CUSTOMIZE.md` when pinned there.
+`.codefall/skills/codefall-implement/CUSTOMIZE.md` when pinned there.
 
 ## Note on Beads
 

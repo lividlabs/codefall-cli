@@ -28,6 +28,9 @@ The following items are outstanding in order to complete the first verion of the
   `update`, record the stamp, explain failures in plain terms; never drafts a script
 - [x] point-of-introduction rules — `design` names the script change in the task, `implement`
   counts it toward done, `review` carries a lens for it
+- [x] test-case rules — `design` decides which tasks need a case and drafts its criteria into the
+  bead, `implement` writes the case file from those criteria before the code and stops a bead whose
+  harness is not equipped, `review`'s `tests` lens reads the case's citations
 - [x] `scaffold` emits both scripts at code depth
 
 ## Command Line

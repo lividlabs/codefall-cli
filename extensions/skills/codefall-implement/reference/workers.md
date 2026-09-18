@@ -7,7 +7,19 @@ prompt.
 
 `Agent` with `isolation: 'worktree'`, prompted from `../worker-prompt.md`, rendered by substituting
 `{{BEAD_ID}}`, `{{TITLE}}`, `{{BODY}}`, `{{ACCEPTANCE}}`, `{{DESIGN_REF}}`, `{{BRANCH}}`,
-`{{BASE_REF}}`, `{{PR_TARGET}}`, `{{VERIFY_COMMANDS}}`, `{{RELATES_LINE}}`, and `{{REPO}}`.
+`{{BASE_REF}}`, `{{PR_TARGET}}`, `{{VERIFY_COMMANDS}}`, `{{RELATES_LINE}}`, `{{REPO}}`,
+`{{TESTING_ROOT}}`, and `{{CASE_FILE_FORMAT}}`.
+
+**The two testing placeholders are resolved by the root, not the worker.**
+
+| Placeholder | What the root renders |
+| --- | --- |
+| `{{TESTING_ROOT}}` | `test.dir` from `.codefall/settings.json`, as the worker sees it from the repository root — `testing` |
+| `{{CASE_FILE_FORMAT}}` | the absolute path of `codefall-test`'s `reference/case-file.md` in the skills directory this run was invoked from — `<repo>/.claude/skills/codefall-test/reference/case-file.md`, or `.agents/skills/…` under a harness that mirrors the tree |
+
+A worker reads the format by that absolute path because it cannot resolve a skill-relative one: it
+runs in the project, not in the skills directory. Render both on every prompt; a bead whose criteria
+name no case simply never reads them.
 
 - **Single-bead scope also gets a worktree.** The primary checkout stays free for the user.
 - **The worker is strategy-blind.** Stacked versus epic is fully encoded in `BASE_REF` and

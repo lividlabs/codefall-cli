@@ -1,6 +1,6 @@
 ---
 name: codefall-design
-description: Decide how a feature gets built and put the work into the graph — read the docs and the code, judge whether the change warrants a design document at all, write one scaled to the work at docs/designs/, record hard-to-reverse choices as ADRs, and create the task graph in Beads from the document's staged task plan.
+description: Decide how a feature gets built and put the work into the graph — read the docs and the code, judge whether the change warrants a design document at all, write one scaled to the work at docs/designs/, record hard-to-reverse choices as ADRs, decide which tasks are verified through the wired product and draft their test case and its criteria into the bead, and create the task graph in Beads from the document's staged task plan.
 argument-hint: "[the spec, the concept, or what you want built]"
 disable-model-invocation: true
 allowed-tools:
@@ -36,8 +36,8 @@ Read each when its step says to; none is loaded up front.
 
 - `reference/document.md` — the design document's shape: header, sections and their triggers, the
   Technical Context and Hard Constraints blocks, both forms of the Task Plan. Read before step 5.
-- `reference/beads.md` — what gets created in Beads, the plan file, the edge direction, and how to
-  verify the graph. Read before step 9.
+- `reference/beads.md` — what gets created in Beads, the test case a bead's criteria name, the plan
+  file, the edge direction, and how to verify the graph. Read before step 9.
 - `reference/revising.md` — reconciling the graph when a design changes after its beads exist. Read
   for the Revise mode.
 - `templates/designs/AGENTS.md` — the operative rules this skill installs at `docs/designs/AGENTS.md`.
@@ -51,6 +51,7 @@ Read each when its step says to; none is loaded up front.
 | Contracts, types, schemas, storage, failure modes | What the screen looks like | `codefall-mock-up` |
 | Which existing code changes and which is new | The project's architecture stance | `codefall-scaffold` |
 | The task breakdown and its dependency edges | Writing the code | `codefall-implement` |
+| Which tasks need a test case, and its criteria | Writing the case file, and running it | `codefall-implement`, `codefall-test` |
 | Hard-to-reverse choices, recorded as ADRs | Estimates and assignment | the team |
 
 **A design does not restate the specification.** What a consumer observes is `codefall-specify`'s;
@@ -58,8 +59,7 @@ cite it and move on.
 
 **The project's stance is already decided** — layering, component boundaries, and how they are
 enforced — in `docs/adrs/` and the scoped `AGENTS.md` files. Design within it. A design that needs
-the stance changed says so once, then either follows the ADR or writes a superseding one. Never a
-quiet exception.
+the stance changed says so once, then either follows the ADR or writes a superseding one.
 
 ## Scale the artifact to the work
 
@@ -78,13 +78,9 @@ Three tiers. The work picks the tier; the user can overrule it.
 - **Tier 1 and tier 2 are not decided separately.** Write the required three, then walk the
   conditional triggers; whichever fire, fire.
 - **An ADR is not gated on the tier.** A one-component fix can produce an ADR and no document.
-- **Say the tier out loud, with the reason, before writing anything.** The judgement is yours to
-  make and the user's to overrule:
-
-> This touches one component, changes nothing public, and comes to two tasks. I would skip the
-> design document and create the beads directly. Want the document anyway?
-
-Push back once if you disagree with their answer, then do what they ask.
+- **Say the tier out loud, with the reason, before writing anything** — step 4 has the shape. The
+  judgement is yours to make and the user's to overrule; push back once if you disagree with their
+  answer, then do what they ask.
 
 ## The document
 
@@ -93,10 +89,8 @@ number plus one. **A design is never renumbered and its identifier is never reus
 after it is archived — the file moves, the identifier does not.
 
 Three required sections — **Overview**, **Architecture**, **Task Plan** — and seven conditional ones,
-each with a trigger. Research findings go inline, in Overview or Architecture next to the decision
-they informed; there is no sibling `research.md`, `data-model.md`, `quickstart.md`, or `contracts/`.
-The header, the section tables, the Technical Context and Hard Constraints blocks, and both forms of
-the Task Plan are in `reference/document.md`.
+each with a trigger. The header, the section tables, the Technical Context and Hard Constraints
+blocks, and both forms of the Task Plan are in `reference/document.md`.
 
 ## ADRs
 
@@ -113,8 +107,7 @@ Consequences, Related — written from `../codefall-scaffold/templates/adrs/_TEM
 - **One home for the rationale.** The design names the choice and points at the ADR from the `adr`
   label on `Related`; the ADR carries the reasoning.
 - **A ratified ADR is never rewritten.** A revision is a new, superseding ADR; the only in-place
-  edit is the Status line, to `Superseded by <id> — <date>`. A design that changes a decision an
-  existing ADR made writes a superseding ADR.
+  edit is the Status line, to `Superseded by <id> — <date>`.
 - Draft the ADR and show it before writing. It ships `Accepted` with a real date once the user
   confirms it.
 
@@ -130,30 +123,24 @@ Three states, one word plus a date.
 
 - **Status describes the document, never the work.** Work state is Beads' — `bd list` and
   `bd ready`. There is no `Active` and nothing for `codefall-implement` to transition.
-- **`Ready` is the normal end of a session.** Set `Draft` only when the user said they are stopping
-  and will come back.
-- `Archived` gains a `**Replaced by:** DESIGN-NNN — <date>` line when something took its place.
-  Archiving moves the file to `docs/designs/archive/` under the same name; citations still resolve.
+- `Archived` moves the file to `docs/designs/archive/` under the same name; citations still resolve.
 - A design that no longer describes the code is revised or archived, not labelled. Revising
   reconciles the graph — `reference/revising.md`.
-- Transitions are this skill's to make. Report the state and offer; never transition a design on
-  your own initiative.
 
 ## The designs directory
 
 `codefall-design` maintains `docs/designs/AGENTS.md` from `templates/designs/AGENTS.md`: written when
 the directory is created, added on a later run if it is missing.
 
-**Never overwrite a file that has drifted.** When one exists and differs from the template, show the
-difference and ask. Replace it only on a yes; on a no, leave it and say nothing further about it.
+**Never overwrite a file that has drifted.** One that exists and differs from the template: show the
+difference and ask. Replace only on a yes; on a no, leave it and say nothing further about it.
 
 ## Beads
 
 Beads holds the tasks and the graph; the document holds the approach. One epic per design document
-and one task bead per Task Plan row, every task bead carrying two to five checkable acceptance
-criteria that cite the spec requirements they trace to. Tier 0 has no epic: one or two
-self-sufficient beads. Every bead gets `--spec-id` set to the document's path. The plan file, the
-edge direction, the field list, and the verification are in `reference/beads.md`.
+and one task bead per Task Plan row. Tier 0 has no epic: one or two self-sufficient beads. What a
+bead carries — its acceptance criteria, the test case where the task needs one, `--spec-id` — and
+the plan file, the edge direction, and the verification are in `reference/beads.md`.
 
 ## Project customizations
 
@@ -182,8 +169,8 @@ Then read the checkout lines. `behind` above `0` or `refresh=stale` means the en
 match `main`: say so and offer `/codefall-refresh` before continuing. `refresh=undeclared` names
 `/codefall-equip` instead. Never pull the checkout or run the local commands from here.
 
-**Never run the remedy.** `bd init` writes `.beads/`, git hooks, `.claude/settings.json`, and a
-block in `AGENTS.md` and `CLAUDE.md`, then commits all of it. That is the user's decision.
+**Never run the remedy.** `bd init` writes `.beads/`, git hooks, and blocks in `AGENTS.md` and
+`CLAUDE.md`, then commits all of it. That is the user's decision.
 
 Beads is a hard gate: the graph is this skill's output.
 
@@ -284,6 +271,15 @@ scripts were changed for it, following `codefall-equip`. The environment a teamm
 is part of what the task delivers. A project with no `local` block gets the criterion "equip the
 project" on the first such task instead.
 
+**A task verified through the wired product carries a test case.** Its acceptance criteria name the
+case (`<area>/<slug>`), its modalities, and every criterion the case will hold — each cited in full
+(`SPEC-003-REQ-01-AC-01`) or marked `derived` with the requirement it elaborates
+(`SPEC-003-REQ-01`) and one line saying what it adds. `agentic` only where verifying an outcome
+needs judgement; `spec` otherwise; neither where unit tests verify the task, and a driver being
+available is no reason to add one. A gap the criteria expose in the spec goes in this run's report
+for `codefall-specify`, never patched into the case. The form is in `reference/beads.md` and the
+case-file format `codefall-implement` writes to is `../codefall-test/reference/case-file.md`.
+
 Write the staging table.
 
 ### 7. Draft and confirm
@@ -292,6 +288,9 @@ Compose the full document and **show it before anything is written**. Nothing la
 
 Say which conditional sections you left out and why — "no Data Models section, because nothing here
 persists" — so the user can catch an omission that was a gap.
+
+**Show the acceptance criteria of every task that carries a test case**, derived criteria included.
+Approving the plan is the sign-off those criteria need; nothing later asks for it.
 
 Show the ADR too, if there is one, and say plainly that it ships `Accepted`.
 
@@ -337,7 +336,8 @@ Report:
 
 - the design's path, identifier, and status, or that this was tier 0 and why;
 - any ADR written, and what it decided;
-- every bead created, with its local ID and its title;
+- every bead created, with its local ID, its title, and any test case its criteria name;
+- any gap the case criteria exposed in the spec, for `codefall-specify`;
 - the ready set — which tasks `codefall-implement` can start on today;
 - anything left unresolved, and any concern the user overruled.
 
@@ -365,8 +365,8 @@ your own initiative.
   the beads.
 - **Scale the artifact to the work.** Tier 0 is a real outcome, not a failure to write a document.
 - **Never fill a heading.** A conditional section with nothing behind it is deleted, heading and all.
-- **The design says how, never what.** What a consumer observes belongs to `codefall-specify`, and a design
-  that restates it is duplicating a document that will change without it.
+- **The design says how, never what.** What a consumer observes belongs to `codefall-specify`; a
+  design that restates it duplicates a document that will change without it.
 - **Design within the project's ADRs.** Changing the stance is a superseding ADR, said out loud,
   never a quiet exception.
 - **A ratified ADR is never rewritten.** A revision is a new, superseding ADR; the only in-place
@@ -376,7 +376,8 @@ your own initiative.
 - **Beads is authoritative once the tasks exist.** The Task Plan collapses to a mapping and never
   grows a duplicate table.
 - **Every task bead carries acceptance criteria** — checkable, citing spec requirement IDs where
-  they trace. They are what `codefall-implement` verifies before closing the bead.
+  they trace, and naming the test case where the task is verified through the wired product. They
+  are what `codefall-implement` verifies before closing the bead.
 - **A task that introduces infrastructure, a dependency, a migration, or generated code names the
   local-script change in its criteria.** The scripts stay current at the point of introduction,
   never as a follow-up.

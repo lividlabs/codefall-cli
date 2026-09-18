@@ -64,6 +64,10 @@ procedure applied to the change. A project with no `local` block gets one findin
 one per file. A change under those scripts that drops, resets, or deletes is a finding too, against
 the contract in `codefall-equip`.
 
+**`tests` also reads the test cases the work carries.** A criterion in a case file citing no source
+— neither a spec criterion in full nor a requirement it is `derived` from — is a finding, and so is
+a generated spec sitting beside no case, since a case is written before its spec.
+
 **`simplify` is a lens, not a separate verb.** `codefall-implement` already ran the host's own
 simplify pass over each bead's diff, so a simplification finding on that code is either something
 that pass missed or code implement never saw. Say which.

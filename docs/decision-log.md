@@ -974,6 +974,44 @@ Decided at scaffold, 2026-08-16.
   where the key is absent — the one place it does not copy `local`, which answers `unknown` for an
   absent key. Exit codes are untouched; the line was proven against four settings files and against a
   `PATH` with no jq on it.
+- **Design decides the case, implement writes it, 2026-09-17.** The fourth code pull request of the
+  ADR-007 stack, and the one that puts a case in front of the code that it tests. `codefall-design`
+  gains the rule that a task verified through the wired product names its case — `<area>/<slug>` —
+  its modalities, and every criterion the case will hold in the bead's acceptance criteria;
+  `codefall-implement` gains the detection at preconditions, the rule that the case file is written
+  first, and the correction of a customization path it had been spelling wrong.
+  **The case rule went in beside the point-of-introduction rule**, at step 6 where the tasks are
+  staged, because both answer the same question about a task: what this task delivers beyond its
+  code. The form the criteria take — the citation for a spec criterion, the `derived` marking and
+  its one line, the example — is in `reference/beads.md`, where what a bead carries already lives.
+  `SKILL.md` had 123 tokens of headroom and the rule needed about 150, so three duplications came
+  out to pay for it: the research-goes-inline sentence, which the Rules and `reference/document.md`
+  both already carried, the `Ready`-is-the-normal-end bullet, which the status table and step 7 both
+  state, and a transition bullet repeated verbatim in *Other modes*.
+  **The sign-off is the task plan's approval**, per ADR-007, so design shows the criteria of every
+  task carrying a case at step 7 and nothing later asks again. A gap the criteria expose goes into
+  the run's report for `codefall-specify` rather than into the case, which is what keeps the spec
+  the floor rather than a record of what testing decided on its own.
+  **Implement's detection reads the `test=` line and holds it** until step 3 has read the beads,
+  because preconditions run before the scope is fixed and a bead's criteria are the only signal that
+  a case is wanted. `unknown` — preflight with no jq and a `test` key present — sends the skill to
+  `.codefall/settings.json` to read the block itself rather than treating an unreadable answer as a
+  stop. `codefall-test`'s preflight table gained the same row, which PR 5 wrote before the line
+  existed.
+  **The worker reads the format by an absolute path.** `{{CASE_FILE_FORMAT}}` and
+  `{{TESTING_ROOT}}` join the prompt's placeholders: a worker runs in the project, not in the skills
+  directory, so a skill-relative path would not resolve for it, and the root is the only thing that
+  knows which skills directory this run came from. The worker's `## Verify` gains
+  `check-cases.sh` and the runner's list command — evidence the case is well formed and the spec is
+  collected, not a run of the case, which stays `codefall-test`'s.
+  **The customization file was spelled `.codefall/skills/implement/CUSTOMIZE.md`** in two places in
+  `codefall-implement/SKILL.md` and once in `codefall-specify/trackers/github/PROFILE.md`, against
+  the `<verb>` rule in `extensions/shared/customizations.md`, which makes it
+  `codefall-implement/`. Corrected in all three; nothing read the old path, so no project is
+  affected.
+  **Token counts after the change**: `codefall-design` ~4,983 of 5,000, `codefall-implement` ~4,943,
+  `codefall-test` ~2,990. The two large skills have under 60 tokens of headroom each, so the next
+  addition to either one moves text to a reference file before it adds a line.
 
 ## Open
 
