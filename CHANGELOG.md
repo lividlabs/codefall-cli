@@ -6,6 +6,47 @@ below were written by hand, before that was wired up.
 Tags are bare version numbers (`0.1.2`), not `v`-prefixed, so they match the `ref` the marketplace
 pins. A `v0.1.1` tag also exists from before that convention was settled.
 
+## [0.14.0](https://github.com/lividlabs/codefall-cli/compare/v0.13.0...v0.14.0) (2026-09-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* **init:** the file layout and every hook command change. Rerun `codefall init` in every project, then delete by hand the files an earlier install wrote that this one does not, under each skills directory the project had (`.claude/` for Claude Code, `.agents/` for the others):
+* **init:** .codefall/settings.json now requires a harnesses array, so a settings file written before this fails doctor's completeness check until init is run again. --harness has no default and is required on a first run with no terminal, and codefall create inherits that because it adopts init's flags. No project has a settings file yet, so nothing is migrated.
+
+### Features
+
+* **doctor:** check codefall is installed for every harness chosen ([#72](https://github.com/lividlabs/codefall-cli/issues/72)) ([ea4ef8b](https://github.com/lividlabs/codefall-cli/commit/ea4ef8b1d946ce92c1dbd3c2b4798b7f4635c2c3))
+* **doctor:** declare the local start and update commands and check them ([#76](https://github.com/lividlabs/codefall-cli/issues/76)) ([5e36a57](https://github.com/lividlabs/codefall-cli/commit/5e36a57106e24cab907a91fd80b2cffff78c6b61))
+* **doctor:** warn about an install the settings no longer name ([#73](https://github.com/lividlabs/codefall-cli/issues/73)) ([a956d7b](https://github.com/lividlabs/codefall-cli/commit/a956d7b5c093c81154675af535fcd02c0a758f4e))
+* **equip:** add codefall-equip, the verb that builds and rebuilds the local scripts ([#79](https://github.com/lividlabs/codefall-cli/issues/79)) ([567d48b](https://github.com/lividlabs/codefall-cli/commit/567d48b6de6f0c8b129d9431560c9c3ea61f215c))
+* **equip:** set up the test harness ([#90](https://github.com/lividlabs/codefall-cli/issues/90)) ([ca50ef6](https://github.com/lividlabs/codefall-cli/commit/ca50ef6deaa85770bfe2c9b371613642fd9a8d64))
+* **hooks:** add a session-start notice ([#92](https://github.com/lividlabs/codefall-cli/issues/92)) ([6ccbb98](https://github.com/lividlabs/codefall-cli/commit/6ccbb98a1b72764ad111315c69070e929bdfddd1))
+* **init:** choose the harnesses instead of defaulting to Claude Code ([#71](https://github.com/lividlabs/codefall-cli/issues/71)) ([231af2a](https://github.com/lividlabs/codefall-cli/commit/231af2a6a586964badf493f5f18070ef84c452d0))
+* **init:** declare the testing root and set up its tree ([#88](https://github.com/lividlabs/codefall-cli/issues/88)) ([a0654ad](https://github.com/lividlabs/codefall-cli/commit/a0654add64efd1e3e17e9257a72fb4dc5e08238f))
+* **init:** install shared files once under .codefall and stop copying maintainer documents ([#86](https://github.com/lividlabs/codefall-cli/issues/86)) ([bfdb789](https://github.com/lividlabs/codefall-cli/commit/bfdb7891fbe4a00689848ac7d1e0cd74b8e1a623))
+* **init:** write the Local environment section to AGENTS.md ([#77](https://github.com/lividlabs/codefall-cli/issues/77)) ([f86b7f7](https://github.com/lividlabs/codefall-cli/commit/f86b7f7cf1a190b73d4c3ad751ad90021b31f3c5))
+* **preflight:** report the checkout and the refresh stamp ([#78](https://github.com/lividlabs/codefall-cli/issues/78)) ([d877f44](https://github.com/lividlabs/codefall-cli/commit/d877f445f1f99b7974592c34abed16e09466fb48))
+* **refresh:** add codefall-refresh, the verb that brings the local environment current ([#80](https://github.com/lividlabs/codefall-cli/issues/80)) ([d4034c5](https://github.com/lividlabs/codefall-cli/commit/d4034c5775b5dfc50e26cd1d135cedc376b77ddc))
+* **scaffold:** equip the project at code depth ([#82](https://github.com/lividlabs/codefall-cli/issues/82)) ([cc64e88](https://github.com/lividlabs/codefall-cli/commit/cc64e888f14f1cdd85600a0e440f08e45091d5dc))
+* **skills:** decide, write, and detect test cases in design and implement ([#91](https://github.com/lividlabs/codefall-cli/issues/91)) ([fd7446b](https://github.com/lividlabs/codefall-cli/commit/fd7446b415eda9481569229859b2c542da9b5e05))
+* **skills:** keep the local scripts current at the point of introduction ([#81](https://github.com/lividlabs/codefall-cli/issues/81)) ([f865736](https://github.com/lividlabs/codefall-cli/commit/f865736c477ad46d26ddea6ab5fdf4e8eae0f04a))
+* **test:** add codefall-test, the verb that runs suites and test cases ([#89](https://github.com/lividlabs/codefall-cli/issues/89)) ([534029c](https://github.com/lividlabs/codefall-cli/commit/534029cc9e70f76f35c09634309686ffcf852211))
+
+
+### Documentation
+
+* **adr:** record the install layout as ADR-006 ([#85](https://github.com/lividlabs/codefall-cli/issues/85)) ([28b0c1a](https://github.com/lividlabs/codefall-cli/commit/28b0c1a3a19b2d18346338ca44e96ae05826cfee))
+* **adr:** record the testing decisions as ADR-007 ([#87](https://github.com/lividlabs/codefall-cli/issues/87)) ([6a61444](https://github.com/lividlabs/codefall-cli/commit/6a6144445a277229e86d014f7200bd6772fe8585))
+* plan the local environment verbs and record ADR-005 ([#75](https://github.com/lividlabs/codefall-cli/issues/75)) ([cda14ab](https://github.com/lividlabs/codefall-cli/commit/cda14ab7c416d090223dbb793114e0bbd3b74afe))
+* record the merge, PR-title, and breaking-change rules ([#67](https://github.com/lividlabs/codefall-cli/issues/67)) ([3168cac](https://github.com/lividlabs/codefall-cli/commit/3168cac8c8c16c62f4fc2761c2ecc387e1ce7209))
+
+
+### Refactoring
+
+* **init:** install for a set of harnesses rather than one ([#70](https://github.com/lividlabs/codefall-cli/issues/70)) ([e8f5b8d](https://github.com/lividlabs/codefall-cli/commit/e8f5b8d8a86ecc30d34c87451428ff0bffdbdfb6))
+* move the harness vocabulary into a shared module ([#69](https://github.com/lividlabs/codefall-cli/issues/69)) ([c7e4259](https://github.com/lividlabs/codefall-cli/commit/c7e42593d728ccbc6ea7293640cb98a712742dc3))
+
 ## [0.13.0](https://github.com/lividlabs/codefall-cli/compare/v0.12.0...v0.13.0) (2026-09-16)
 
 ### ⚠ BREAKING CHANGES
