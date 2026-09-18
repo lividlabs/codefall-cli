@@ -67,15 +67,24 @@ func TestExtensionStepInstallsIntoEveryDirectoryTheChosenHarnessesRead(t *testin
 
 	// The directories are named in the order a reader would sort them, not the order the harnesses
 	// were given in.
-	want := "installed codefall's skills into .agents/ and .claude/"
+	want := "installed codefall's skills into .agents/ and .claude/ and its shared files into .codefall/"
 	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
-	dirs := []string{fetcher.calls[0].dir, fetcher.calls[1].dir}
-	wantDirs := []string{filepath.Join(workingDir, ".claude"), filepath.Join(workingDir, ".agents")}
+	// Two skills directories and the one .codefall/ every run writes, whatever harnesses it is for.
+	dirs := make([]string, 0, len(fetcher.calls))
+	for _, call := range fetcher.calls {
+		dirs = append(dirs, call.dir)
+	}
 
-	if len(fetcher.calls) != 2 || !slices.Equal(dirs, wantDirs) {
+	wantDirs := []string{
+		filepath.Join(workingDir, ".claude"),
+		filepath.Join(workingDir, ".agents"),
+		filepath.Join(workingDir, ".codefall"),
+	}
+
+	if !slices.Equal(dirs, wantDirs) {
 		t.Errorf("fetches = %+v, want one into each of %q", fetcher.calls, wantDirs)
 	}
 }
@@ -91,12 +100,13 @@ func TestExtensionStepCopiesOncePerDirectoryHoweverManyHarnessesShareIt(t *testi
 
 	report := runFor(t, files, fetcher, request)
 
-	if want := "installed codefall's skills into .agents/"; report.Results()[1].Detail != want {
+	if want := "installed codefall's skills into .agents/ and its shared files into .codefall/"; report.Results()[1].Detail != want {
 		t.Errorf("detail = %q, want %q", report.Results()[1].Detail, want)
 	}
 
-	if len(fetcher.calls) != 1 || fetcher.calls[0].dir != filepath.Join(workingDir, ".agents") {
-		t.Errorf("fetches = %+v, want one into %q", fetcher.calls, filepath.Join(workingDir, ".agents"))
+	if len(fetcher.calls) != 2 || fetcher.calls[0].dir != filepath.Join(workingDir, ".agents") {
+		t.Errorf("fetches = %+v, want one into %q and one into .codefall/",
+			fetcher.calls, filepath.Join(workingDir, ".agents"))
 	}
 
 	install := manifest.Install{Version: "v1.2.3", Files: []string{".agents/skills/design/SKILL.md"}}
@@ -105,7 +115,7 @@ func TestExtensionStepCopiesOncePerDirectoryHoweverManyHarnessesShareIt(t *testi
 		harness.Codex:       install,
 		harness.Muse:        install,
 		harness.OpenCode:    install,
-	}}
+	}, Shared: sharedInstall("v1.2.3")}
 
 	if got := recordedManifestIn(t, files); !reflect.DeepEqual(got, want) {
 		t.Errorf("manifest = %+v, want %+v", got, want)
@@ -125,7 +135,7 @@ func TestTheManifestRecordsWhereEachHarnessFilesLanded(t *testing.T) {
 	want := manifest.Document{Harnesses: map[string]manifest.Install{
 		harness.ClaudeCode: {Version: "v1.2.3", Files: []string{".claude/skills/design/SKILL.md"}},
 		harness.Codex:      {Version: "v1.2.3", Files: []string{".agents/skills/design/SKILL.md"}},
-	}}
+	}, Shared: sharedInstall("v1.2.3")}
 
 	if got := recordedManifestIn(t, files); !reflect.DeepEqual(got, want) {
 		t.Errorf("manifest = %+v, want %+v", got, want)
@@ -148,7 +158,7 @@ func TestTheManifestKeepsWhatAnEarlierRunRecordedForAnotherHarness(t *testing.T)
 	want := manifest.Document{Harnesses: map[string]manifest.Install{
 		harness.ClaudeCode: {Version: "v0.1.0", Files: []string{".claude/skills/old/SKILL.md"}},
 		harness.Codex:      {Version: "v1.2.3", Files: []string{".agents/skills/design/SKILL.md"}},
-	}}
+	}, Shared: sharedInstall("v1.2.3")}
 
 	if got := recordedManifestIn(t, files); !reflect.DeepEqual(got, want) {
 		t.Errorf("manifest = %+v, want %+v", got, want)

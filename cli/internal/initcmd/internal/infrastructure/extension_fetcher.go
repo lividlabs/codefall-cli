@@ -24,13 +24,37 @@ func NewEmbeddedExtensionFetcher(src fs.FS) *EmbeddedExtensionFetcher {
 	return &EmbeddedExtensionFetcher{src: src, files: process.NewFileSystem()}
 }
 
-// Fetch mirrors every file in the embedded tree onto destDir, except anything under the excluded
-// prefixes, and returns the relative paths it wrote (a manifest-of-one-copy) sorted so two
-// sequential runs produce the same record.
-func (f *EmbeddedExtensionFetcher) Fetch(ctx context.Context, destDir string, exclude []string) ([]string, error) {
+// Fetch mirrors the named subtrees of the embedded tree onto destDir, except the excluded paths, and
+// returns the relative paths it wrote (a manifest-of-one-copy) sorted so two sequential runs produce
+// the same record. Each file keeps the path it has in the tree, so a caller that asks for
+// "hooks/shared" gets it back at destDir/hooks/shared.
+func (f *EmbeddedExtensionFetcher) Fetch(
+	ctx context.Context, destDir string, sources, exclude []string,
+) ([]string, error) {
 	var installed []string
 
-	err := fs.WalkDir(f.src, ".", func(path string, d fs.DirEntry, err error) error {
+	for _, source := range sources {
+		written, err := f.mirror(ctx, destDir, source, exclude)
+		installed = append(installed, written...)
+
+		if err != nil {
+			sort.Strings(installed)
+			return installed, err
+		}
+	}
+
+	sort.Strings(installed)
+	return installed, nil
+}
+
+// mirror copies one subtree. A source the tree does not hold is an error rather than nothing copied:
+// the caller named a subtree this binary was meant to ship.
+func (f *EmbeddedExtensionFetcher) mirror(
+	ctx context.Context, destDir, source string, exclude []string,
+) ([]string, error) {
+	var installed []string
+
+	err := fs.WalkDir(f.src, source, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -39,13 +63,11 @@ func (f *EmbeddedExtensionFetcher) Fetch(ctx context.Context, destDir string, ex
 			return err
 		}
 
-		for _, prefix := range exclude {
-			if path == prefix || strings.HasPrefix(path, prefix+"/") {
-				if d.IsDir() {
-					return fs.SkipDir
-				}
-				return nil
+		if excluded(path, exclude) {
+			if d.IsDir() {
+				return fs.SkipDir
 			}
+			return nil
 		}
 
 		if d.IsDir() {
@@ -79,8 +101,33 @@ func (f *EmbeddedExtensionFetcher) Fetch(ctx context.Context, destDir string, ex
 		return nil
 	})
 
-	sort.Strings(installed)
 	return installed, err
+}
+
+// excluded reports whether a path in the tree is one the install leaves behind. An entry holding a
+// slash names a path, and everything under it; an entry that is a bare file name matches that file
+// wherever it sits, which is what a rule about a file beside every skill needs.
+func excluded(path string, exclude []string) bool {
+	name := path
+	if at := strings.LastIndex(path, "/"); at >= 0 {
+		name = path[at+1:]
+	}
+
+	for _, entry := range exclude {
+		if strings.Contains(entry, "/") {
+			if path == entry || strings.HasPrefix(path, entry+"/") {
+				return true
+			}
+
+			continue
+		}
+
+		if name == entry {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Read returns one file from the embedded tree: what the hook step consumes per harness.

@@ -15,7 +15,6 @@ package harness
 import (
 	"fmt"
 	"maps"
-	"path"
 	"slices"
 	"strings"
 
@@ -36,12 +35,6 @@ const (
 	claudeDir = ".claude"
 	agentsDir = ".agents"
 )
-
-// SharedHooksPath is where the extension tree keeps the scripts every harness's hooks run, relative
-// to the tree's own root. It is copied into each harness's skills directory, which is what makes the
-// copy evidence that codefall's extension is installed there: nothing but codefall writes it, where
-// the skills directory itself exists in plenty of projects that have never run codefall.
-const SharedHooksPath = "hooks/shared"
 
 // skillsDirs is where each harness reads the skills the extension step installs. Claude Code reads
 // its own .claude/; a harness that follows the .agents/skills convention takes .agents/, and adding
@@ -85,16 +78,4 @@ func SkillsDir(name string) mo.Option[string] {
 	}
 
 	return mo.Some(dir)
-}
-
-// SharedHooksDir returns where the named harness reads the hook scripts codefall installs, relative
-// to the directory init installed in, or None when codefall cannot set that harness up. It is what a
-// reader stats to tell whether codefall's extension is there.
-func SharedHooksDir(name string) mo.Option[string] {
-	dir, known := skillsDirs[name]
-	if !known {
-		return mo.None[string]()
-	}
-
-	return mo.Some(path.Join(dir, SharedHooksPath))
 }

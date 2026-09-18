@@ -773,6 +773,52 @@ Decided at scaffold, 2026-08-16.
   manifest records for that harness, or the skills directory — and the decision-log entry *Doctor
   reports on the harnesses the settings name* is where the constraints on that check were set.
 
+- **Installing the layout, 2026-09-17.** ADR-006 built. The extension step no longer mirrors the
+  tree: it copies three named subtrees, `skills/` into each chosen harness's skills directory and
+  `hooks/shared/` and `shared/` into `.codefall/`, each file keeping the path it has in the tree.
+  Naming what is copied, rather than excluding what is not, is what leaves the per-harness hook
+  definitions behind — the exclude list that used to do that job is gone, and a subtree nobody names
+  is a subtree nobody installs. The two maintainer documents that sit *inside* `skills/` still need
+  excluding: `skills/AGENTS.md` by path, and `NOTES.md` by file name, because there is one beside
+  every skill. Both stay in the embedded tree and are left behind at copy time, since the facade test
+  reads that tree whole and a tree that stopped carrying them would make the exclusion silently stop
+  excluding anything.
+  **The once-only files are recorded as their own manifest entry**, `shared`, beside `harnesses` and
+  of the same shape: the version that wrote them and the paths, each prefixed with `.codefall/` so it
+  still says which directory it landed in. Recording them inside every harness's entry was the
+  alternative, and it would have made the record disagree with itself — four harnesses share
+  `.agents/` and all five share `.codefall/`, so each entry would claim to have written files the
+  others wrote too. A run replaces that entry rather than merging into it, because every run writes
+  the directory whole.
+  **Doctor's install check now reads the manifest's files for each harness and stats them.**
+  `harness.SharedHooksDir` and `SharedHooksPath` are gone: neither described anything once the
+  scripts stopped landing per harness, and the module is back to being the names and the two skills
+  directories. The recorded files are the per-harness evidence the ADR left to this pull request to
+  choose, and reading them is also what keeps the check clear of a skill's name — the names come out
+  of the file the last run wrote rather than out of the check, so a rename moves both at once. Two
+  consequences were taken deliberately: a half-written install reads as not installed, which is what
+  `codefall init` repairs either way, and a manifest that cannot be read reports every chosen harness
+  as missing, with the same remedy, because init rewrites the file it could not read. The `shared`
+  entry is recorded and nothing reads it yet; what it is for is the by-hand clean-up the layout
+  leaves, and a project that wants to know what codefall put in `.codefall/` can now be told.
+  The hook definitions all name `.codefall/hooks/shared/codefall-block-merge-to-main.sh`. The forms
+  did not change with the destination — Claude Code and Codex still quote
+  `$(git rev-parse --show-toplevel)`, Antigravity still uses its workspace-relative `./…`, and the
+  subdirectory prefix still goes in after the root expression — and the OpenCode plugin's climb from
+  `import.meta.dir` is the same two levels it always was, because `.opencode/plugins/` and the new
+  destination are both directly below the install directory. Only the directory name moved.
+  The twenty-one `../../shared/…` references became `../../../.codefall/shared/…`, one `../` deeper
+  again from a supporting file, and `extensions/scripts/skill-health.sh` resolves anything holding
+  `/.codefall/` under `extensions/` instead of relative to the skill. That rewrite is what the
+  strict run of that script proves; the facade test proves the other half, walking the real embedded
+  tree to check every such reference names a file that is in `shared/` and that no skill still uses
+  the old path. What is not proven mechanically is the resolution itself — that
+  `../../../.codefall/shared/x` from `.claude/skills/<verb>/` is the file init wrote — because no
+  test installs into a directory and reads back out of it. The path is pinned in three places that
+  would have to disagree for it to be wrong.
+  No clean-up, as ADR-006 says: the pull request description lists what an earlier install wrote
+  under `.claude/` and `.agents/` that this one does not.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$(git rev-parse --show-toplevel)/.claude/hooks/shared/codefall-block-merge-to-main.sh\""
+            "command": "\"$(git rev-parse --show-toplevel)/.codefall/hooks/shared/codefall-block-merge-to-main.sh\""
           }
         ]
       }

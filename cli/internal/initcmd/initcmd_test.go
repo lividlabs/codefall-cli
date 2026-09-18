@@ -3,13 +3,13 @@ package initcmd_test
 import (
 	"encoding/json"
 	"io/fs"
+	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/samber/do/v2"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd"
-	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 	"github.com/lividlabs/codefall-cli/extensions"
 )
 
@@ -33,7 +33,12 @@ func TestRegisterProvidesEverythingCommandNeeds(t *testing.T) {
 	}
 }
 
-// The hook step's table and the extension step's destination map agree with the embedded tree by
+// installDir is where the extension step copies the shared scripts, so it is where every hook
+// definition has to reach for the guard. It is one directory for every harness now, which is what
+// the install layout decided (ADR-006).
+const installDir = ".codefall"
+
+// The hook step's table and the extension step's destinations agree with the embedded tree by
 // three hand-maintained consistencies: every definition exists, every script a definition's
 // commands point at exists under hooks/shared/, and the path they name sits under the directory
 // the extension step copies that directory into. The application layer's tests run over a fake
@@ -48,9 +53,9 @@ func TestHookDefinitionsPointAtScriptsThatLand(t *testing.T) {
 		source  string
 		destDir string
 	}{
-		{"claude-code", "hooks/claude/hooks.json", ".claude"},
-		{"codex", "hooks/codex/hooks.json", ".agents"},
-		{"antigravity", "hooks/antigravity/hooks.json", ".agents"},
+		{"claude-code", "hooks/claude/hooks.json", installDir},
+		{"codex", "hooks/codex/hooks.json", installDir},
+		{"antigravity", "hooks/antigravity/hooks.json", installDir},
 	} {
 		t.Run(tc.harness, func(t *testing.T) {
 			body, err := fs.ReadFile(tree, tc.source)
@@ -97,7 +102,9 @@ func TestOpenCodePluginPointsAtTheSharedScript(t *testing.T) {
 		t.Fatalf("read hooks/opencode/codefall.js from the embedded tree: %v", err)
 	}
 
-	const referenced = ".agents/hooks/shared/codefall-block-merge-to-main.sh"
+	// The plugin lands at <install>/.opencode/plugins/codefall.js and reaches the guard from its own
+	// directory, so two levels up is the install directory and .codefall/ is below it.
+	const referenced = "/../../" + installDir + "/hooks/shared/codefall-block-merge-to-main.sh"
 	if !strings.Contains(string(body), referenced) {
 		t.Errorf("the plugin does not name %s — a renamed script would leave its guard pointing at nothing", referenced)
 	}
@@ -107,14 +114,92 @@ func TestOpenCodePluginPointsAtTheSharedScript(t *testing.T) {
 	}
 }
 
-// The extension step copies hooks/shared/ into every harness's skills directory, and doctor stats
-// that directory to report whether codefall is installed for a harness. A tree that stopped shipping
-// it would leave that check failing on a project that is set up correctly, so the path the shared
-// module names is pinned against the real tree here.
-func TestTheTreeShipsTheDirectoryDoctorLooksFor(t *testing.T) {
-	if _, err := fs.Stat(extensions.Files(), harness.SharedHooksPath); err != nil {
-		t.Errorf("%s: %v — doctor stats this directory to find codefall's install",
-			harness.SharedHooksPath, err)
+// The extension step copies exactly three subtrees: skills/ into each chosen harness's skills
+// directory, and hooks/shared/ and shared/ into .codefall/. A tree that stopped shipping one of them
+// would fail every install rather than one check, so all three are pinned against the real tree.
+func TestTheTreeShipsEverySubtreeAnInstallCopies(t *testing.T) {
+	for _, source := range []string{"skills", "hooks/shared", "shared"} {
+		if _, err := fs.Stat(extensions.Files(), source); err != nil {
+			t.Errorf("%s: %v — the extension step copies this subtree into every project", source, err)
+		}
+	}
+}
+
+// The maintainer documents stay embedded and are left behind at copy time, so this pins that they are
+// still in the tree the step reads: a document that went missing would make the exclusion silently
+// stop excluding anything.
+func TestTheTreeStillHoldsTheDocumentsAnInstallLeavesBehind(t *testing.T) {
+	tree := extensions.Files()
+
+	for _, document := range []string{"AGENTS.md", "README.md", "docs/ROADMAP.md", "skills/AGENTS.md"} {
+		if _, err := fs.Stat(tree, document); err != nil {
+			t.Errorf("%s: %v — a maintainer document no install writes into a project", document, err)
+		}
+	}
+
+	notes := 0
+
+	if err := fs.WalkDir(tree, "skills", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !d.IsDir() && d.Name() == "NOTES.md" {
+			notes++
+		}
+
+		return nil
+	}); err != nil {
+		t.Fatalf("walk skills/: %v", err)
+	}
+
+	if notes == 0 {
+		t.Error("no skill ships a NOTES.md — the rule that leaves them behind has nothing to leave")
+	}
+}
+
+// Every path a skill uses to reach a shared file is the one the install layout settled:
+// ../../../.codefall/shared/<file> from <skills dir>/skills/<verb>/, and one level deeper from a
+// supporting file. The file each of them names has to be in shared/, which is what lands there.
+func TestSkillsReachSharedFilesByTheInstalledPath(t *testing.T) {
+	tree := extensions.Files()
+	reference := regexp.MustCompile(`(?:\.\./)+` + regexp.QuoteMeta(installDir) + `/shared/([A-Za-z0-9._-]+)`)
+	found := 0
+
+	if err := fs.WalkDir(tree, "skills", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if d.IsDir() || !strings.HasSuffix(path, ".md") {
+			return nil
+		}
+
+		body, err := fs.ReadFile(tree, path)
+		if err != nil {
+			return err
+		}
+
+		for _, match := range reference.FindAllStringSubmatch(string(body), -1) {
+			found++
+
+			if _, err := fs.Stat(tree, "shared/"+match[1]); err != nil {
+				t.Errorf("%s names %s, which is not in shared/: %v", path, match[0], err)
+			}
+		}
+
+		// The path the layout replaced. A skill still using it would read a file no install writes.
+		if strings.Contains(string(body), "../../shared/") {
+			t.Errorf("%s still names ../../shared/, which no install writes any more", path)
+		}
+
+		return nil
+	}); err != nil {
+		t.Fatalf("walk skills/: %v", err)
+	}
+
+	if found == 0 {
+		t.Error("no skill names a shared file — the path this pins is not being exercised")
 	}
 }
 

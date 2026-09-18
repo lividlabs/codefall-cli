@@ -11,7 +11,7 @@ Two destinations, decided by what the material is rather than by how it arrived.
 
 | Material | Where |
 | --- | --- |
-| A picture of a surface someone will build — exports, screenshots of a design tool, a mockup set | `docs/mockups/<slug>/`, following `../../../shared/import-mockup.md` |
+| A picture of a surface someone will build — exports, screenshots of a design tool, a mockup set | `docs/mockups/<slug>/`, following `../../../../.codefall/shared/import-mockup.md` |
 | Everything else — notes, transcripts, vision documents, sketches of the problem, a diagram of how something works today | `docs/concepts/sources/CONCEPT-NNN-<original-filename>` |
 
 Follow the import procedure as written, including its rules about never editing or interpreting

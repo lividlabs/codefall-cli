@@ -78,13 +78,22 @@ refs() {
 }
 
 # Absolute path of a reference relative to a directory, or nothing when it does not exist.
+#
+# A skill names a shared file by the path it has once installed —
+# ../../../.codefall/shared/<file> from a skill directory, one level deeper from a supporting
+# file. `codefall init` writes that copy into the project's .codefall/; in this repository the
+# same file is under extensions/, so the .codefall/ prefix resolves there instead.
 resolve() {
-  local base="$1" ref="$2"
-  [ -e "$base/$ref" ] || return 1
-  if [ -d "$base/$ref" ]; then
-    (cd "$base/$ref" && pwd -P)
+  local base="$1" ref="$2" target
+  case "$ref" in
+    */.codefall/*) target="$ext_root/${ref#*.codefall/}" ;;
+    *) target="$base/$ref" ;;
+  esac
+  [ -e "$target" ] || return 1
+  if [ -d "$target" ]; then
+    (cd "$target" && pwd -P)
   else
-    (cd "$base/$(dirname "$ref")" && printf '%s/%s\n' "$(pwd -P)" "$(basename "$ref")")
+    (cd "$(dirname "$target")" && printf '%s/%s\n' "$(pwd -P)" "$(basename "$target")")
   fi
 }
 

@@ -1,5 +1,6 @@
 // Package manifest is the one definition of the .codefall/manifest.json format: what finished init
-// runs recorded, one entry per harness. Both components need it — initcmd writes the file and doctor
+// runs recorded, an entry per harness and an entry for what a run writes once. Both components need
+// it — initcmd writes the file and doctor
 // reports on what it says — so it lives here rather than in either one's domain (ADR-003).
 //
 // It is a pure shared module: it imports the standard library and nothing else, which is what lets
@@ -20,13 +21,23 @@ import (
 // of a run has succeeded, so what it says is an install that finished.
 const Name = ".codefall/manifest.json"
 
-// Document is a decoded manifest: one entry per harness a finished run installed for.
+// Document is a decoded manifest: one entry per harness a finished run installed for, and one entry
+// for what that run wrote once for the whole project.
+//
+// The split follows the install layout (ADR-006). The skills are copied into each harness's own
+// skills directory, so which harness they were written for is a fact worth recording; the files
+// reached by a path codefall writes go to .codefall/ once, whatever harnesses the run was for, and
+// belong to no harness at all. Recording them in every harness's entry would say each install wrote
+// them, and the record would then disagree with itself about who owns the copy.
 type Document struct {
 	Harnesses map[string]Install `json:"harnesses"`
+	// Shared is .codefall/: the files the most recent finished run wrote there. An entry carrying no
+	// version is a file written before this field existed, and says nothing.
+	Shared Install `json:"shared"`
 }
 
-// Install is one harness's entry: the binary that wrote its files, and the files, relative to the
-// directory init installed in.
+// Install is one entry: the binary that wrote the files, and the files, relative to the directory
+// init installed in.
 type Install struct {
 	Version string   `json:"version"`
 	Files   []string `json:"files"`

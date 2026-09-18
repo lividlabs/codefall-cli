@@ -64,6 +64,28 @@ add one.
 codefall init
 ```
 
+### What init writes
+
+The skills go into each chosen harness's own skills directory — `.claude/skills/` for Claude Code,
+`.agents/skills/` for Antigravity, Codex, Muse, and OpenCode — because that is where a harness looks
+for them without being told. Everything else codefall installs is reached by a path codefall writes,
+so it goes into `.codefall/`, once, whatever harnesses you chose:
+
+| Path | Holds |
+| --- | --- |
+| `.codefall/settings.json` | what the project told `init`, and what the verbs read back |
+| `.codefall/manifest.json` | what the last finished run wrote, per harness and for `.codefall/` itself |
+| `.codefall/hooks/shared/` | the scripts every harness's hooks run |
+| `.codefall/shared/` | the files the skills read, and the scripts a verb runs |
+
+A skill names a shared file `../../../.codefall/shared/<file>`, which is the same file from either
+skills directory. Nothing installed is a symlink, and no maintainer document from this repository is
+installed into your project. [ADR-006](docs/adrs/ADR-006-install-layout.md) records why.
+
+Upgrading from a codefall before this layout: rerun `codefall init`, then delete the old copies by
+hand. Codefall removes only what it can prove it owns, and those directories hold your own files
+beside codefall's — the pull request that landed the change lists what to delete.
+
 ## CLI commands
 
 TODO
@@ -364,7 +386,7 @@ not is a monolith you are stuck with: each component owns its own data, no trans
 them, and what crosses a facade is a contract rather than an entity. Pulling a component out later is
 a deployment change, not a redesign.
 
-That core is stack-agnostic ([ADR-BASE-01 through ADR-BASE-03](plugins/codefall/skills/scaffold/templates/adrs/)) — Clean
+That core is stack-agnostic ([ADR-BASE-01 through ADR-BASE-03](extensions/skills/codefall-scaffold/templates/adrs/)) — Clean
 Architecture, package-by-component, and keeping the resulting monolith cheap to split. Each surface adds
 a profile supplying its own ADRs under its own prefix — `ADR-TS-01` and up for `typescript-react`,
 which is Inversify, the TanStack Query / Zustand / `useState` split, and `eslint-plugin-boundaries`;
@@ -419,6 +441,6 @@ See [extensions/docs/ROADMAP.md](extensions/docs/ROADMAP.md).
 
 [MIT](LICENSE) — Copyright (c) 2026 Livid Labs, LLC, authored by Dave Jensen.
 
-The templates under `extensions/skills/scaffold/templates/`, and everything `scaffold` copies from
-them into your project, are additionally available under [0BSD](LICENSE): no attribution, no notice,
-no obligation. Your architecture documents are yours.
+The templates under `extensions/skills/codefall-scaffold/templates/`, and everything `scaffold`
+copies from them into your project, are additionally available under [0BSD](LICENSE): no
+attribution, no notice, no obligation. Your architecture documents are yours.

@@ -16,11 +16,13 @@ import (
 )
 
 // Where settings live, relative to the directory init is run in. The display form is what a person
-// reads in a report; the path form is what the file system is given.
+// reads in a report; the path form is what the file system is given. codefallDir is the project's
+// own codefall directory, which also holds the manifest and, since the install layout, the files
+// every harness reaches by a path codefall writes (ADR-006).
 const (
-	settingsDir  = ".codefall"
+	codefallDir  = ".codefall"
 	settingsFile = "settings.json"
-	settingsName = settingsDir + "/" + settingsFile
+	settingsName = codefallDir + "/" + settingsFile
 )
 
 // SettingsExist reports whether dir already has settings. Presentation asks before it prompts: there
@@ -96,8 +98,8 @@ func (i *Initialize) settings(_ context.Context, request Request) (domain.StepRe
 		return domain.StepResult{}, err
 	}
 
-	if err := i.files.MkdirAll(filepath.Join(request.Dir, settingsDir)); err != nil {
-		return domain.StepResult{}, fmt.Errorf("create %s/: %w", settingsDir, err)
+	if err := i.files.MkdirAll(filepath.Join(request.Dir, codefallDir)); err != nil {
+		return domain.StepResult{}, fmt.Errorf("create %s/: %w", codefallDir, err)
 	}
 
 	if err := i.files.WriteFile(settingsPath(request.Dir), data); err != nil {
@@ -108,7 +110,7 @@ func (i *Initialize) settings(_ context.Context, request Request) (domain.StepRe
 }
 
 func settingsPath(dir string) string {
-	return filepath.Join(dir, settingsDir, settingsFile)
+	return filepath.Join(dir, codefallDir, settingsFile)
 }
 
 // describe is what the step reports it wrote, in the terms the person answering the survey used.

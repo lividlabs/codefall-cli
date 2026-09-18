@@ -49,9 +49,11 @@ type CommandResult struct {
 // both operations are local reads. Fetch mirrors it for the extension step; Read takes one file, for
 // the hook step's per-harness definitions.
 type ExtensionSource interface {
-	// Fetch mirrors the extension's tree onto destDir, skipping paths under exclude, and returns
-	// every path it wrote, relative to destDir, so the caller can put it on record.
-	Fetch(ctx context.Context, destDir string, exclude []string) ([]string, error)
+	// Fetch mirrors the named subtrees of the extension's tree onto destDir, each file keeping the
+	// path it has in the tree, and returns every path it wrote, relative to destDir, so the caller
+	// can put it on record. A path under exclude is left behind: an entry holding a slash names a
+	// path in the tree, and an entry that is a bare file name matches that file wherever it sits.
+	Fetch(ctx context.Context, destDir string, sources, exclude []string) ([]string, error)
 	// Read returns one file from the tree.
 	Read(path string) ([]byte, error)
 }
@@ -133,16 +135,15 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 		return domain.Report{}, err
 	}
 
-	// What the extension step copied for each harness, for the manifest the run writes at the end. It
-	// is a local of this run rather than a field of the use case, which every run of the process
-	// shares.
-	installed := map[string][]string{}
+	// What the extension step copied, for the manifest the run writes at the end. It is a local of
+	// this run rather than a field of the use case, which every run of the process shares.
+	written := installed{}
 
 	steps := []step{
 		{Step: domain.SettingsStep, run: i.settings},
 		{Step: domain.ExtensionStep, run: func(ctx context.Context, request Request) (domain.StepResult, error) {
 			result, files, err := i.extension(ctx, request)
-			installed = files
+			written = files
 
 			return result, err
 		}},
@@ -174,7 +175,7 @@ func (i *Initialize) Run(ctx context.Context, request Request, observer Observer
 	// The manifest is the last thing a run writes, because it says the install is complete and the
 	// upgrade gate believes it: written any earlier, a run that failed a later step would leave a
 	// record claiming work it never did, and the next run would report there was nothing to do.
-	if err := i.writeManifest(request.Dir, request.CLIVersion, installed); err != nil {
+	if err := i.writeManifest(request.Dir, request.CLIVersion, written); err != nil {
 		return domain.Report{}, fmt.Errorf("record the installation to %s: %w", manifest.Name, err)
 	}
 

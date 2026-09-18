@@ -26,7 +26,9 @@ dependency edges, always.
 
 Designing is not implementing. Once the document is written and the graph exists, stop.
 
-Paths that start with `../` are relative to this skill's directory, not the user's project.
+Paths that start with `../` are relative to this skill's directory, not the user's project. A path
+through `../../../.codefall/` is the one that leaves the skills directory: it names a file `codefall
+init` installed in the project's own `.codefall/`.
 
 ## Files beside this one
 
@@ -155,7 +157,7 @@ edge direction, the field list, and the verification are in `reference/beads.md`
 
 ## Project customizations
 
-Follow `../../shared/customizations.md` for this verb.
+Follow `../../../.codefall/shared/customizations.md` for this verb.
 
 ## Process
 
@@ -164,7 +166,7 @@ Follow `../../shared/customizations.md` for this verb.
 Run the shared check against the user's project. It reports what is set up and repairs nothing.
 
 ```bash
-"../../shared/preflight.sh" .
+"../../../.codefall/shared/preflight.sh" .
 ```
 
 `beads=ok` advances to step 2. Otherwise read `beads_reason`, tell the user what is missing, hand
