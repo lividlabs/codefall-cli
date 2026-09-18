@@ -28,7 +28,8 @@ Conceptualizing is not specifying. The moment the document starts saying what a 
 when the thing works, it has become `codefall-specify`'s job.
 
 Paths that start with `reference/`, `templates/`, or `../` are relative to this skill's directory,
-not the user's project.
+not the user's project. A path through `../../../.codefall/` is the one that leaves the skills
+directory: it names a file `codefall init` installed in the project's own `.codefall/`.
 
 ## Files beside this one
 
@@ -41,7 +42,7 @@ Read each when its step says to; none is loaded up front.
   `docs/concepts/AGENTS.md`.
 - `reference/inputs.md` — where the material a user brings goes, and when a document they brought
   is adopted as the concept. Read at step 2 when they point at anything.
-- `../../shared/import-mockup.md` — the shared procedure for bringing a mockup into the
+- `../../../.codefall/shared/import-mockup.md` — the shared procedure for bringing a mockup into the
   repository. Read from `reference/inputs.md` when the material is a mockup.
 
 ## Scope — why, not what
@@ -151,7 +152,7 @@ difference and ask. Replace it only on a yes; on a no, leave it and say nothing 
 
 ## Project customizations
 
-Follow `../../shared/customizations.md` for this verb.
+Follow `../../../.codefall/shared/customizations.md` for this verb.
 
 ## Process
 

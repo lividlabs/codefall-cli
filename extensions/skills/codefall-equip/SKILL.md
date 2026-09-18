@@ -24,7 +24,8 @@ Equipping is not refreshing. This skill finds, drafts, or revises the scripts an
 runs them only to prove them. Bringing an environment current on an ordinary day is `codefall-refresh`.
 
 Paths that start with `reference/`, `templates/`, or `../` are relative to this skill's directory,
-not the user's project.
+not the user's project. A path through `../../../.codefall/` is the one that leaves the skills
+directory: it names a file `codefall init` installed in the project's own `.codefall/`.
 
 ## Files beside this one
 
@@ -102,7 +103,7 @@ through the harness.
 
 ## Project customizations
 
-Follow `../../shared/customizations.md` for this verb.
+Follow `../../../.codefall/shared/customizations.md` for this verb.
 
 ## Process
 

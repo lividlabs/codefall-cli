@@ -512,11 +512,13 @@ func eventEntries(t *testing.T, files *fakeFileSystem, event string) []any {
 }
 
 // A shipped command that changes — a renamed script, a new flag, a project that moved below the
-// repository root — used to read as an unrelated registration, so the upgrade appended the new one
-// and left the old one running beside it with nothing able to remove it. codefall's own entry is
-// the one naming a codefall- script under the same matcher, and the upgrade replaces it.
+// repository root, the install layout moving the script to .codefall/ — used to read as an unrelated
+// registration, so the upgrade appended the new one and left the old one running beside it with
+// nothing able to remove it. codefall's own entry is the one naming a codefall- script under the
+// same matcher, and the upgrade replaces it. What the destination holds here is what an install
+// before the layout registered, which is the position every existing project is in.
 func TestHookMergeReplacesItsOwnEntryWhenTheCommandChanges(t *testing.T) {
-	const guard = `"$(git rev-parse --show-toplevel)/apps/web/.claude/hooks/shared/codefall-block-merge-to-main.sh"`
+	const guard = `"$(git rev-parse --show-toplevel)/apps/web/.codefall/hooks/shared/codefall-block-merge-to-main.sh"`
 
 	files := settled(`{"hooks": {
   "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "\"$(git rev-parse --show-toplevel)/.claude/hooks/shared/codefall-block-merge-to-main.sh\""}]}]

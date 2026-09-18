@@ -22,6 +22,16 @@ func skillsRequest() Request {
 	return Request{Dir: workingDir, Tracker: settings.TrackerBeads, Harnesses: []string{harness.Codex}}
 }
 
+// sharedInstall is the .codefall/ entry every finished run records: the files a run writes once,
+// whatever harnesses it is for. The paths say which directory they landed in, the same way a
+// harness's do.
+func sharedInstall(version string) manifest.Install {
+	return manifest.Install{Version: version, Files: []string{
+		".codefall/hooks/shared/codefall-block-merge-to-main.sh",
+		".codefall/shared/preflight.sh",
+	}}
+}
+
 // The step copies the embedded extension tree into the project's .agents/, one Fetch call, one
 // destination.
 func TestSkillsStepCopiesTheEmbeddedTree(t *testing.T) {
@@ -37,13 +47,13 @@ func TestSkillsStepCopiesTheEmbeddedTree(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	want := "installed codefall's skills into .agents/"
+	want := "installed codefall's skills into .agents/ and its shared files into .codefall/"
 	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
-	if len(fetcher.calls) != 1 || fetcher.calls[0].dir != filepath.Join(workingDir, ".agents") {
-		t.Errorf("fetcher calls = %+v, want one fetch into %q",
+	if len(fetcher.calls) != 2 || fetcher.calls[0].dir != filepath.Join(workingDir, ".agents") {
+		t.Errorf("fetcher calls = %+v, want one fetch into %q and one into .codefall/",
 			fetcher.calls, filepath.Join(workingDir, ".agents"))
 	}
 }
@@ -121,7 +131,7 @@ func TestTheManifestRecordsOnlyARunThatFinished(t *testing.T) {
 
 		want := manifest.Document{Harnesses: map[string]manifest.Install{
 			harness.ClaudeCode: {Version: "v1.2.3", Files: []string{".claude/skills/design/SKILL.md"}},
-		}}
+		}, Shared: sharedInstall("v1.2.3")}
 		if !reflect.DeepEqual(recorded, want) {
 			t.Errorf("manifest = %+v, want %+v", recorded, want)
 		}

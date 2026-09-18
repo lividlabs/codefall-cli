@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"testing/fstest"
 )
@@ -22,7 +23,7 @@ func TestEmbeddedExtensionFetcherCopiesTheTree(t *testing.T) {
 	fetcher := NewEmbeddedExtensionFetcher(src)
 	dest := t.TempDir()
 
-	installed, err := fetcher.Fetch(context.Background(), dest, nil)
+	installed, err := fetcher.Fetch(context.Background(), dest, []string{"."}, nil)
 	if err != nil {
 		t.Fatalf("Fetch: %v", err)
 	}
@@ -52,7 +53,7 @@ func TestEmbeddedExtensionFetcherSkipsTheExcludedPrefixes(t *testing.T) {
 	dest := t.TempDir()
 
 	installed, err := fetcher.Fetch(context.Background(), dest,
-		[]string{"hooks/claude", "hooks/opencode"})
+		[]string{"hooks", "skills"}, []string{"hooks/claude", "hooks/opencode"})
 	if err != nil {
 		t.Fatalf("Fetch: %v", err)
 	}
@@ -78,6 +79,68 @@ func TestEmbeddedExtensionFetcherSkipsTheExcludedPrefixes(t *testing.T) {
 	}
 	if info.Mode().Perm()&0o111 == 0 {
 		t.Errorf("copied script mode = %o, want an executable bit set", info.Mode().Perm())
+	}
+}
+
+// The install copies three named subtrees rather than the tree whole, and each file keeps the path
+// it has in the tree — which is what puts hooks/shared/ and shared/ under .codefall/ and leaves the
+// hook definitions, the maintainer documents, and everything else the tree carries behind.
+func TestEmbeddedExtensionFetcherCopiesOnlyTheNamedSubtrees(t *testing.T) {
+	src := fstest.MapFS{
+		"hooks/claude/hooks.json":                      &fstest.MapFile{Data: []byte(`{"hooks":{}}`)},
+		"hooks/shared/codefall-block-merge-to-main.sh": &fstest.MapFile{Data: []byte("#!/bin/bash\n")},
+		"shared/preflight.sh":                          &fstest.MapFile{Data: []byte("#!/bin/bash\n")},
+		"skills/x/SKILL.md":                            &fstest.MapFile{Data: []byte("---\nname: x\n---\n")},
+		"README.md":                                    &fstest.MapFile{Data: []byte("# extension\n")},
+		"AGENTS.md":                                    &fstest.MapFile{Data: []byte("# rules\n")},
+		"docs/ROADMAP.md":                              &fstest.MapFile{Data: []byte("road")},
+	}
+	dest := t.TempDir()
+
+	installed, err := NewEmbeddedExtensionFetcher(src).
+		Fetch(context.Background(), dest, []string{"hooks/shared", "shared"}, nil)
+	if err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+
+	want := []string{"hooks/shared/codefall-block-merge-to-main.sh", "shared/preflight.sh"}
+
+	if !slices.Equal(installed, want) {
+		t.Errorf("installed = %q, want %q", installed, want)
+	}
+
+	if got := readAllFiles(t, dest); len(got) != len(want) {
+		t.Errorf("dest holds %q, want only %q", got, want)
+	}
+}
+
+// The rule that leaves each skill's NOTES.md behind cannot name a path: there is one beside every
+// skill. An exclusion with no slash in it is a file name, matched wherever it sits.
+func TestEmbeddedExtensionFetcherExcludesAFileNameWhereverItSits(t *testing.T) {
+	src := fstest.MapFS{
+		"skills/AGENTS.md":        &fstest.MapFile{Data: []byte("# rules\n")},
+		"skills/x/SKILL.md":       &fstest.MapFile{Data: []byte("---\nname: x\n---\n")},
+		"skills/x/NOTES.md":       &fstest.MapFile{Data: []byte("lineage")},
+		"skills/y/SKILL.md":       &fstest.MapFile{Data: []byte("---\nname: y\n---\n")},
+		"skills/y/NOTES.md":       &fstest.MapFile{Data: []byte("lineage")},
+		"skills/y/reference/a.md": &fstest.MapFile{Data: []byte("read me")},
+	}
+	dest := t.TempDir()
+
+	installed, err := NewEmbeddedExtensionFetcher(src).Fetch(context.Background(), dest,
+		[]string{"skills"}, []string{"skills/AGENTS.md", "NOTES.md"})
+	if err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+
+	want := []string{"skills/x/SKILL.md", "skills/y/SKILL.md", "skills/y/reference/a.md"}
+
+	if !slices.Equal(installed, want) {
+		t.Errorf("installed = %q, want %q", installed, want)
+	}
+
+	if got := readAllFiles(t, dest); len(got) != len(want) {
+		t.Errorf("dest holds %q, want only %q", got, want)
 	}
 }
 
@@ -111,7 +174,8 @@ func TestEmbeddedExtensionFetcherHonoursTheContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := NewEmbeddedExtensionFetcher(fstest.MapFS{"one.txt": &fstest.MapFile{}}).Fetch(ctx, t.TempDir(), nil)
+	_, err := NewEmbeddedExtensionFetcher(fstest.MapFS{"one.txt": &fstest.MapFile{}}).
+		Fetch(ctx, t.TempDir(), []string{"."}, nil)
 	if !errors.Is(err, context.Canceled) {
 		t.Errorf("Fetch err = %v, want context.Canceled", err)
 	}
@@ -130,7 +194,7 @@ func TestEmbeddedExtensionFetcherMakesCopiedScriptsRunnable(t *testing.T) {
 	fetcher := NewEmbeddedExtensionFetcher(src)
 	dest := t.TempDir()
 
-	if _, err := fetcher.Fetch(context.Background(), dest, nil); err != nil {
+	if _, err := fetcher.Fetch(context.Background(), dest, []string{"."}, nil); err != nil {
 		t.Fatalf("Fetch: %v", err)
 	}
 
@@ -149,7 +213,7 @@ func TestEmbeddedExtensionFetcherMakesCopiedScriptsRunnable(t *testing.T) {
 		t.Fatalf("Chmod: %v", err)
 	}
 
-	if _, err := fetcher.Fetch(context.Background(), dest, nil); err != nil {
+	if _, err := fetcher.Fetch(context.Background(), dest, []string{"."}, nil); err != nil {
 		t.Fatalf("Fetch again: %v", err)
 	}
 

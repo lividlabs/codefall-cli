@@ -10,7 +10,6 @@ import (
 	"github.com/samber/mo"
 
 	"github.com/lividlabs/codefall-cli/cli/internal/doctor/internal/domain"
-	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/manifest"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
@@ -18,15 +17,8 @@ import (
 // initRemedy is what to do about a harness the project chose and codefall was never run for.
 const initRemedy = "codefall init"
 
-// harnesses runs check 6: codefall's extension is installed for every harness the settings record.
-//
-// What it stats is the directory the shared hook scripts land in, under each harness's own skills
-// directory. Nothing but codefall writes that directory, which is what makes it evidence of an
-// install — where the skills directory itself, .claude/ or .agents/, exists in plenty of projects
-// that have never run codefall.
-//
-// It fails rather than warns. A harness the project chose and codefall never installed for has no
-// skills and no hooks there, so every codefall verb is missing in a harness somebody is using.
+// harnesses runs checks 6 and 7, both of which read .codefall/manifest.json, so the file is read
+// once here and handed to each of them.
 func (d *Diagnose) harnesses(_ context.Context, dir string, results []domain.Result) []domain.Result {
 	// Settings doctor has already complained about say nothing about which harnesses were chosen, and
 	// a second complaint about the same file would be noise. The checks are absent from the report
@@ -35,34 +27,53 @@ func (d *Diagnose) harnesses(_ context.Context, dir string, results []domain.Res
 		return results
 	}
 
-	chosen, recorded := d.chosenHarnesses(dir)
-	if !recorded {
+	chosen, declared := d.chosenHarnesses(dir)
+	if !declared {
 		return results
 	}
 
-	return d.leftOver(dir, chosen, d.installed(dir, chosen, results))
+	recorded, read := d.recordedManifest(dir)
+
+	return d.leftOver(recorded, read, chosen, d.installed(dir, recorded, chosen, results))
 }
 
-// installed is check 6: codefall's extension is where each chosen harness reads it.
-func (d *Diagnose) installed(dir string, chosen []string, results []domain.Result) []domain.Result {
+// installed is check 6: the files a finished run recorded for each chosen harness are still where it
+// wrote them.
+//
+// What this used to stat was hooks/shared/ under each harness's own skills directory, which the
+// install layout moved: those scripts are written once, to .codefall/, whatever harnesses a run was
+// for, so nothing under a skills directory says which harness it was installed for any more
+// (ADR-006). What is still per harness is the manifest's entry — a finished run records, for each
+// harness it installed for, every file it wrote into the directory that harness reads.
+//
+// Reading the record is also what keeps the check clear of a skill's name. The names come out of the
+// file the last run wrote rather than out of this code, so a skill renamed between two releases
+// changes both at once, where a literal here would fail on a project that is set up correctly.
+//
+// It fails rather than warns. A harness the project chose and codefall never installed for has no
+// skills there, so every codefall verb is missing in a harness somebody is using. A manifest that
+// cannot be read records no install and reports every chosen harness, which is the same answer and
+// the same remedy: init rewrites the file it could not read.
+func (d *Diagnose) installed(
+	dir string, recorded manifest.Document, chosen []string, results []domain.Result,
+) []domain.Result {
 	var missing []string
 
 	for _, name := range chosen {
-		shared, known := harness.SharedHooksDir(name).Get()
-		if !known {
-			// A name the settings-complete check has already refused.
+		files := recorded.Harnesses[name].Files
+		if len(files) == 0 {
+			missing = append(missing, name)
+
 			continue
 		}
 
-		path := filepath.Join(dir, shared)
-
-		installed, err := d.files.DirExists(path)
+		gone, refused, err := d.firstMissing(dir, files)
 		if err != nil {
 			return append(results, domain.HarnessesInstalled.Fail(
-				fmt.Sprintf("Cannot stat %s: %v", path, err), mo.None[string]()))
+				fmt.Sprintf("Cannot stat %s: %v", refused, err), mo.None[string]()))
 		}
 
-		if !installed {
+		if gone {
 			missing = append(missing, name)
 		}
 	}
@@ -73,6 +84,27 @@ func (d *Diagnose) installed(dir string, chosen []string, results []domain.Resul
 	}
 
 	return append(results, domain.HarnessesInstalled.PassWithDetail(strings.Join(chosen, ", ")))
+}
+
+// firstMissing reports whether any of the recorded files has gone from the project. A half-written
+// install is not an install: the run that wrote the record wrote all of them, and `codefall init` is
+// the remedy either way. A file system that refuses a stat returns the path it refused, so the
+// report can name it.
+func (d *Diagnose) firstMissing(dir string, files []string) (bool, string, error) {
+	for _, file := range files {
+		path := filepath.Join(dir, file)
+
+		there, err := d.files.Exists(path)
+		if err != nil {
+			return false, path, err
+		}
+
+		if !there {
+			return true, "", nil
+		}
+	}
+
+	return false, "", nil
 }
 
 // leftOver is check 7: nothing codefall installed is still sitting there for a harness the settings
@@ -87,10 +119,11 @@ func (d *Diagnose) installed(dir string, chosen []string, results []domain.Resul
 // says which files codefall wrote for that harness, and harnesses share directories — four of the
 // five read .agents/ — so the directory a dropped harness read may still be another's. Which of those
 // files are safe to remove is the reader's judgement, not doctor's.
-func (d *Diagnose) leftOver(dir string, chosen []string, results []domain.Result) []domain.Result {
+func (d *Diagnose) leftOver(
+	recorded manifest.Document, read bool, chosen []string, results []domain.Result,
+) []domain.Result {
 	// A manifest that is missing, unreadable, or not a manifest any more records no install to be
 	// left over. Init fails on the same file the next time it writes one, so nothing goes unsaid.
-	recorded, read := d.recordedManifest(dir)
 	if !read {
 		return results
 	}

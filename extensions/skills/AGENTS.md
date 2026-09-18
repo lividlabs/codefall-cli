@@ -56,11 +56,16 @@ reasons and the sources.
 - Directories are named for what they hold: `templates/` for what a skill installs, `trackers/` for
   tracker profiles, `scripts/` for what a skill runs, `reference/` for what a skill reads on demand.
   Add a directory when the content is a kind these do not describe.
-- Extension paths inside a skill are relative to the skill's own directory — `../../shared/…`,
+- Extension paths inside a skill are relative to the skill's own directory —
   `../codefall-scaffold/templates/…` — never `${CLAUDE_PLUGIN_ROOT}`.
   Harnesses that mirror the tree under `.agents/skills/` do not define that variable, and the
   relative form resolves under them and under Claude Code alike. Hooks are the exception, and the
   rules for them live in `../hooks/`.
+- **A shared file is named `../../../.codefall/shared/<file>`**, from a `SKILL.md`, and one `../`
+  deeper from a supporting file. `codefall init` installs `shared/` once, into the project's
+  `.codefall/`, whatever harnesses it was run for (ADR-006), and that path reaches it identically
+  from `.claude/skills/<verb>/` and `.agents/skills/<verb>/`. In this repository the same file is at
+  `extensions/shared/`, which is where `../scripts/skill-health.sh` resolves the `.codefall/` prefix.
 
 ## Templates and ownership
 

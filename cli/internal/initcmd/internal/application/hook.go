@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io/fs"
 	"maps"
-	"path"
 	"path/filepath"
 	"reflect"
 	"slices"
@@ -56,23 +55,11 @@ var hookSpecs = map[string]hookSpec{
 	harness.OpenCode:    {source: "hooks/opencode/codefall.js", dest: ".opencode/plugins/codefall.js", format: formatCopy},
 }
 
-// hookSourceDirs is every directory of per-harness hook definitions, derived from hookSpecs so a
-// new harness lands in exactly one place: the extension step copies the shared scripts and leaves
-// these for the hook step, which reads them straight from the embedded tree.
-var hookSourceDirs = func() []string {
-	dirs := make([]string, 0, len(hookSpecs))
-	for _, spec := range hookSpecs {
-		dir := path.Dir(spec.source)
-		if !slices.Contains(dirs, dir) {
-			dirs = append(dirs, dir)
-		}
-	}
-	return dirs
-}()
-
 // hook is the fourth step of a run: it takes the harness's entry in hookSpecs and lands it. The
-// extension step has already copied the shared scripts the hooks point at, so the destination of
-// any script path in a definition exists by the time this runs.
+// extension step has already copied the shared scripts the hooks point at into .codefall/, so the
+// destination of any script path in a definition exists by the time this runs. The definitions
+// themselves are read straight from the embedded tree and never copied: the extension step installs
+// three named subtrees, and hooks/<harness>/ is not one of them.
 func (i *Initialize) hook(ctx context.Context, request Request) (domain.StepResult, error) {
 	if _, err := skillsDirs(request); err != nil {
 		return domain.StepResult{}, err

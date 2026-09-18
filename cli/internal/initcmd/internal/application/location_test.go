@@ -51,7 +51,7 @@ func TestRepositoryRoot(t *testing.T) {
 var rootedClaudeDefinition = []byte(`{
   "hooks": {
     "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command",
-      "command": "\"$(git rev-parse --show-toplevel)/.claude/hooks/shared/codefall-block-merge-to-main.sh\""}]}],
+      "command": "\"$(git rev-parse --show-toplevel)/.codefall/hooks/shared/codefall-block-merge-to-main.sh\""}]}],
     "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}]
   }
 }`)
@@ -65,9 +65,9 @@ func TestHookWritesTheSubdirectoryIntoCommandsThatNameTheRoot(t *testing.T) {
 		guard  string
 	}{
 		{name: "a subdirectory", prefix: "apps/web/",
-			guard: `"$(git rev-parse --show-toplevel)/apps/web/.claude/hooks/shared/codefall-block-merge-to-main.sh"`},
+			guard: `"$(git rev-parse --show-toplevel)/apps/web/.codefall/hooks/shared/codefall-block-merge-to-main.sh"`},
 		{name: "the root", prefix: "",
-			guard: `"$(git rev-parse --show-toplevel)/.claude/hooks/shared/codefall-block-merge-to-main.sh"`},
+			guard: `"$(git rev-parse --show-toplevel)/.codefall/hooks/shared/codefall-block-merge-to-main.sh"`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			files := settled("")

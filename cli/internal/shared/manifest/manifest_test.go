@@ -70,6 +70,38 @@ func TestAnEntryWithNoVersionIsLeftOut(t *testing.T) {
 	}
 }
 
+// The files a run writes once belong to no harness, so they are their own entry. Recorded and
+// Versions answer about harnesses and say nothing about it: a project has installs for harnesses,
+// and .codefall/ is not one of them.
+func TestTheSharedEntryIsItsOwnRecord(t *testing.T) {
+	document, err := Decode([]byte(`{
+  "harnesses": {"codex": {"version": "v1.2.3", "files": [".agents/skills/design/SKILL.md"]}},
+  "shared": {"version": "v1.2.3", "files": [".codefall/shared/preflight.sh"]}
+}`))
+	if err != nil {
+		t.Fatalf("Decode: %v", err)
+	}
+
+	if got, want := document.Shared.Files, []string{".codefall/shared/preflight.sh"}; !slices.Equal(got, want) {
+		t.Errorf("Shared.Files = %q, want %q", got, want)
+	}
+
+	if got, want := document.Recorded(), []string{"codex"}; !slices.Equal(got, want) {
+		t.Errorf("Recorded() = %q, want %q — the shared entry is not a harness", got, want)
+	}
+
+	// A file written before the entry existed decodes to an entry that records nothing, which is the
+	// same position a reader is in with no file at all.
+	older, err := Decode([]byte(twoHarnesses))
+	if err != nil {
+		t.Fatalf("Decode: %v", err)
+	}
+
+	if older.Shared.Version != "" || len(older.Shared.Files) != 0 {
+		t.Errorf("Shared = %+v, want an entry recording nothing", older.Shared)
+	}
+}
+
 func TestDecodeNamesTheFileItCouldNotRead(t *testing.T) {
 	_, err := Decode([]byte("{ not json"))
 	if err == nil || !strings.Contains(err.Error(), Name) {

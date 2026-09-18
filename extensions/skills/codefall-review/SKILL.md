@@ -25,8 +25,9 @@ new review, with its own file.
 **The reviewer and the fixer are different contexts.** The review runs in a subagent or another
 harness; the triage and the fixes happen in this session.
 
-Paths that start with `reference/`, `scripts/`, or `../` are relative to this skill's directory,
-not the user's project.
+Paths that start with `reference/`, `scripts/`, or `../` are relative to this skill's directory, not
+the user's project. A path through `../../../.codefall/` is the one that leaves the skills
+directory: it names a file `codefall init` installed in the project's own `.codefall/`.
 
 ## Files beside this one
 
@@ -235,7 +236,7 @@ all when the line is already there.
 
 ## Project customizations
 
-Follow `../../shared/customizations.md` for this verb.
+Follow `../../../.codefall/shared/customizations.md` for this verb.
 
 ## Process
 

@@ -11,27 +11,53 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 )
 
-// extension is the second step of a run: it mirrors the embedded extension tree wherever the
-// harnesses the project uses read skills, so it never touches a network or a foreign CLI. It also
-// hands back every path it wrote, per harness, which the run records in the manifest once the last
-// step has succeeded.
+// The three subtrees of the embedded tree an install copies, and where each lands. Skills are the
+// only part a harness finds by convention, so they go into each chosen harness's own skills
+// directory; everything else is reached by a path codefall writes, so it goes to codefallDir once
+// (ADR-006). A subtree not named here is not installed at all, which is how the per-harness hook
+// definitions stay the hook step's and the maintainer documents stay in this repository.
+const (
+	skillsSource = "skills"
+	hooksSource  = "hooks/shared"
+	sharedSource = "shared"
+)
+
+// maintainerDocs are the files inside skills/ that a project has no reader for: the rules for
+// changing a skill, and each skill's record of what it took from elsewhere. Both are written for
+// someone working on codefall, and no skill, hook, or script names either, so leaving them behind
+// costs a project nothing (ADR-006). They are excluded at copy time rather than dropped from the
+// embedded tree, which the facade test reads whole.
+var maintainerDocs = []string{skillsSource + "/AGENTS.md", "NOTES.md"}
+
+// installed is what the extension step wrote, as the manifest records it: the files each harness's
+// skills directory received, and the files .codefall/ received once for the whole run.
+type installed struct {
+	harnesses map[string][]string
+	shared    []string
+}
+
+// extension is the second step of a run: it mirrors the embedded extension tree out of the binary,
+// so it never touches a network or a foreign CLI. It also hands back every path it wrote, which the
+// run records in the manifest once the last step has succeeded.
 //
-// Harnesses share skills directories — four of the five read `.agents/` — so the copy happens once
-// per directory, and every harness that reads that directory records the same files. Which directory
-// each one is belongs to the shared harness module rather than to this step: doctor reports on the
-// same directories, so neither component can be the one that decides where they are (ADR-003).
+// It copies twice, for two different reasons. Harnesses share skills directories — four of the five
+// read `.agents/` — so the skills are copied once per directory, and every harness that reads that
+// directory records the same files. Which directory each one is belongs to the shared harness module
+// rather than to this step: doctor reports on the same directories, so neither component can be the
+// one that decides where they are (ADR-003). The shared scripts and the files skills read are copied
+// once, to .codefall/, because the paths that reach them are codefall's at both ends.
 func (i *Initialize) extension(
 	ctx context.Context, request Request,
-) (domain.StepResult, map[string][]string, error) {
+) (domain.StepResult, installed, error) {
 	dests, err := skillsDirs(request)
 	if err != nil {
-		return domain.StepResult{}, nil, err
+		return domain.StepResult{}, installed{}, err
 	}
 
 	// What each directory received, so a directory two harnesses share is fetched once, and what
 	// each harness installed, which is what the manifest records.
 	copied := map[string][]string{}
-	installed := map[string][]string{}
+	written := installed{harnesses: map[string][]string{}}
 
 	for _, name := range chosen(request) {
 		dest := dests[name]
@@ -39,17 +65,24 @@ func (i *Initialize) extension(
 		if _, done := copied[dest]; !done {
 			files, err := i.fetchSkills(ctx, request.Dir, dest)
 			if err != nil {
-				return domain.StepResult{}, nil, err
+				return domain.StepResult{}, installed{}, err
 			}
 
 			copied[dest] = files
 		}
 
-		installed[name] = projectPaths(dest, copied[dest])
+		written.harnesses[name] = projectPaths(dest, copied[dest])
 	}
 
-	return domain.ExtensionStep.Done(fmt.Sprintf("installed codefall's skills into %s",
-		directoryList(slices.Sorted(maps.Keys(copied))))), installed, nil
+	shared, err := i.fetchShared(ctx, request.Dir)
+	if err != nil {
+		return domain.StepResult{}, installed{}, err
+	}
+
+	written.shared = projectPaths(codefallDir, shared)
+
+	return domain.ExtensionStep.Done(fmt.Sprintf("installed codefall's skills into %s and its shared files into %s/",
+		directoryList(slices.Sorted(maps.Keys(copied))), codefallDir)), written, nil
 }
 
 // skillsDirs is where each chosen harness reads skills, or the error naming a harness codefall
@@ -70,9 +103,10 @@ func skillsDirs(request Request) (map[string]string, error) {
 	return dirs, nil
 }
 
-// projectPaths puts the skills directory back in front of what Fetch wrote. A recorded path has to
-// say which directory it is in: four harnesses share one directory, and a bare "skills/…" would not
-// say whether it landed under `.claude/` or `.agents/`.
+// projectPaths puts the destination directory back in front of what Fetch wrote. A recorded path has
+// to say which directory it is in: four harnesses share one directory, and a bare "skills/…" would
+// not say whether it landed under `.claude/` or `.agents/`, nor a bare "shared/…" that it landed
+// under `.codefall/`.
 func projectPaths(dest string, files []string) []string {
 	paths := make([]string, 0, len(files))
 	for _, file := range files {

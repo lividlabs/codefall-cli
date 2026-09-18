@@ -21,10 +21,11 @@ const workingDir = "/work"
 
 var (
 	codefallDir = filepath.Join(workingDir, ".codefall")
-	// The directories codefall's own files land in, which is what tells an install apart from a
-	// skills directory that was already there.
-	claudeShared  = filepath.Join(workingDir, ".claude", "hooks", "shared")
-	agentsShared  = filepath.Join(workingDir, ".agents", "hooks", "shared")
+	// A file the manifest records for each harness, which is what tells an install apart from a
+	// skills directory that was already there: the skills go into the directory the harness reads,
+	// and only a finished run puts them there.
+	claudeSkill   = filepath.Join(workingDir, ".claude", "skills", "design", "SKILL.md")
+	agentsSkill   = filepath.Join(workingDir, ".agents", "skills", "design", "SKILL.md")
 	settingsPath  = filepath.Join(codefallDir, "settings.json")
 	manifestPath  = filepath.Join(workingDir, manifest.Name)
 	ignorePath    = filepath.Join(workingDir, settings.IgnoreName)
@@ -170,8 +171,9 @@ func (r *fakeCommandRunner) Run(
 // healthy is the fixture where every check passes; each case mutates it.
 func healthy() (*fakeFileSystem, *fakeCommandRunner) {
 	files := &fakeFileSystem{
-		dirs: map[string]bool{codefallDir: true, claudeShared: true},
+		dirs: map[string]bool{codefallDir: true},
 		files: map[string][]byte{
+			claudeSkill:   []byte("---\nname: design\n---\n"),
 			settingsPath:  []byte(validSettings),
 			manifestPath:  []byte(installedManifest),
 			ignorePath:    []byte(settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n"),
@@ -418,10 +420,10 @@ func TestDiagnoseRun(t *testing.T) {
 		},
 		{
 			// The skills directory a harness reads may well exist for its own reasons; what says
-			// codefall is installed there is codefall's own files under it.
-			name: "codefall is not installed for the harness the settings name",
+			// codefall is installed there is the files the manifest records it wrote into it.
+			name: "a file the manifest records for the harness is gone",
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
-				delete(f.dirs, claudeShared)
+				delete(f.files, claudeSkill)
 			},
 			want:       outcomes(map[string]domain.Status{domain.HarnessesInstalled.ID: domain.StatusFail}),
 			target:     domain.HarnessesInstalled.ID,
@@ -429,6 +431,8 @@ func TestDiagnoseRun(t *testing.T) {
 			wantRemedy: mo.Some("codefall init"),
 		},
 		{
+			// A harness codefall was never run for has no entry at all, which is the same answer as a
+			// harness whose files are gone: there is nothing of codefall's in the directory it reads.
 			name: "one of two harnesses has nothing installed",
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
 				f.files[settingsPath] = []byte(twoHarnessSettings)
@@ -442,20 +446,21 @@ func TestDiagnoseRun(t *testing.T) {
 			name: "both harnesses are installed",
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
 				f.files[settingsPath] = []byte(twoHarnessSettings)
-				f.dirs[agentsShared] = true
+				f.files[manifestPath] = []byte(droppedManifest)
+				f.files[agentsSkill] = []byte("---\nname: design\n---\n")
 			},
 			want:       allPass,
 			target:     domain.HarnessesInstalled.ID,
 			wantDetail: "claude-code, codex",
 		},
 		{
-			name: "a harness directory cannot be stat'd",
+			name: "a recorded file cannot be stat'd",
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
-				f.errs[claudeShared] = errors.New("permission denied")
+				f.errs[claudeSkill] = errors.New("permission denied")
 			},
 			want:       outcomes(map[string]domain.Status{domain.HarnessesInstalled.ID: domain.StatusFail}),
 			target:     domain.HarnessesInstalled.ID,
-			wantDetail: "Cannot stat " + claudeShared + ": permission denied",
+			wantDetail: "Cannot stat " + claudeSkill + ": permission denied",
 			wantRemedy: mo.None[string](),
 		},
 		{
@@ -465,7 +470,7 @@ func TestDiagnoseRun(t *testing.T) {
 			name: "an install is left over from a harness the settings dropped",
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
 				f.files[manifestPath] = []byte(droppedManifest)
-				f.dirs[agentsShared] = true
+				f.files[agentsSkill] = []byte("---\nname: design\n---\n")
 			},
 			want:       outcomes(map[string]domain.Status{domain.HarnessesLeftOver.ID: domain.StatusWarn}),
 			target:     domain.HarnessesLeftOver.ID,
@@ -473,13 +478,19 @@ func TestDiagnoseRun(t *testing.T) {
 			wantRemedy: mo.Some(leftoverRemedy),
 		},
 		{
-			// No record means no install that could be left over. Init fails on a manifest it cannot
-			// read the next time it writes one, so nothing here goes unsaid.
+			// No record means no install that could be left over, so the left-over check is absent.
+			// It also means no install the other check can confirm: the record is the evidence, and a
+			// project with none has nothing that says a run ever finished. Init writes the manifest it
+			// could not read the next time it runs, which is why the remedy is the same one.
 			name: "there is no manifest to hold the settings against",
 			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
 				delete(f.files, manifestPath)
 			},
-			want: outcomes(nil, domain.HarnessesLeftOver.ID),
+			want: outcomes(map[string]domain.Status{domain.HarnessesInstalled.ID: domain.StatusFail},
+				domain.HarnessesLeftOver.ID),
+			target:     domain.HarnessesInstalled.ID,
+			wantDetail: "codefall is not installed for claude-code",
+			wantRemedy: mo.Some("codefall init"),
 		},
 		{
 			// Every project set up before the local block existed looks like this. Nothing else

@@ -23,7 +23,8 @@ under `local` in `.codefall/settings.json`; it never drafts or edits them. A pro
 declared is sent to `codefall-equip`.
 
 Paths that start with `reference/` or `../` are relative to this skill's directory, not the user's
-project.
+project. A path through `../../../.codefall/` is the one that leaves the skills directory: it names
+a file `codefall init` installed in the project's own `.codefall/`.
 
 ## Files beside this one
 
@@ -66,7 +67,7 @@ that starts three times on the same commit run `update` once.
 
 ## Project customizations
 
-Follow `../../shared/customizations.md` for this verb.
+Follow `../../../.codefall/shared/customizations.md` for this verb.
 
 ## Process
 
@@ -84,7 +85,7 @@ Run the shared check; the checkout lines are the ones this verb reads, and the B
 none of its business.
 
 ```bash
-"../../shared/preflight.sh" .
+"../../../.codefall/shared/preflight.sh" .
 ```
 
 Note `branch`, `dirty`, `fetch`, `default_branch`, `behind`, `ahead`, and `refresh`.

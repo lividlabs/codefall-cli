@@ -24,6 +24,10 @@ never restates the reasoning.
 - `hooks/shared/` holds the script every harness's guard runs, and `hooks/<harness>/` holds the
   definition `codefall init` registers — never copied as files. Hooks are the one place a skill's
   relative-path rule does not apply.
+- **Every definition names the guard under `.codefall/hooks/shared/`**, which is where `init`
+  installs it for every harness (ADR-006). Claude Code's and Codex's reach it from
+  `$(git rev-parse --show-toplevel)`, Antigravity's from the workspace, and the OpenCode plugin's
+  from `import.meta.dir`; the destination is the same file whichever way a definition gets there.
 - **Every script in `hooks/shared/` is named `codefall-<what-it-does>.sh`.** The prefix is not
   decoration: `init` recognises its own registration in a file it shares with the project's hooks by
   the script a command names, and replaces that entry on an upgrade rather than appending beside it.

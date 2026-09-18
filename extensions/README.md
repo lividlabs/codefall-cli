@@ -24,6 +24,17 @@ that denies merges and pushes to the default branch everywhere, plus a `SessionS
 Beads knows for the harnesses that have the event (Claude Code and Codex). The shared script the
 guards run lives in `hooks/shared/`; `codefall init` merges the definitions or copies the plugin.
 
+`codefall init` copies three of the directories here and leaves the rest. `skills/` goes into each
+chosen harness's own skills directory, because that is the only part a harness finds by convention.
+`hooks/shared/` and [`shared/`](shared/) go into the project's `.codefall/`, once per install
+whatever harnesses were chosen, because every path that reaches them is codefall's at both ends — a
+skill names a shared file `../../../.codefall/shared/<file>`, and every harness's hook definition
+names `.codefall/hooks/shared/…`. The per-harness definitions under `hooks/<harness>/` are read
+straight from the binary and never copied. This file, [`AGENTS.md`](AGENTS.md),
+[`skills/AGENTS.md`](skills/AGENTS.md), [`docs/`](docs/), and each skill's `NOTES.md` are written for
+someone working on codefall and are installed nowhere.
+[ADR-006](../docs/adrs/ADR-006-install-layout.md) records the layout.
+
 See the [repository README](../README.md) for the architectural stance, the surface catalog, and
 installation instructions.
 
@@ -31,6 +42,6 @@ installation instructions.
 
 [MIT](../LICENSE) — Copyright (c) 2026 Livid Labs, LLC, authored by Dave Jensen.
 
-The templates under `skills/scaffold/templates/`, and everything `codefall-scaffold` copies from them into
-your project, are additionally available under [0BSD](../LICENSE): no attribution, no notice, no
-obligation. Your architecture documents are yours.
+The templates under `skills/codefall-scaffold/templates/`, and everything `codefall-scaffold` copies
+from them into your project, are additionally available under [0BSD](../LICENSE): no attribution, no
+notice, no obligation. Your architecture documents are yours.

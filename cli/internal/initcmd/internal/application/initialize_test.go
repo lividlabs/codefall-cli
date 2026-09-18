@@ -19,8 +19,8 @@ import (
 const workingDir = "/work"
 
 var (
-	codefallDir       = filepath.Join(workingDir, ".codefall")
-	settingsFull      = filepath.Join(codefallDir, "settings.json")
+	codefallFull      = filepath.Join(workingDir, ".codefall")
+	settingsFull      = filepath.Join(codefallFull, "settings.json")
 	claudeSettingsDir = filepath.Join(workingDir, ".claude")
 	claudeFull        = filepath.Join(claudeSettingsDir, "settings.json")
 )
@@ -167,27 +167,50 @@ func (o *recordingObserver) StepFinished(result domain.StepResult) {
 // fetchCall is one Fetch the use case asked for.
 type fetchCall struct {
 	dir     string
+	sources []string
 	exclude []string
 }
 
 // fakeExtensionSource remembers each Fetch and answers success unless the test gave it an error.
 // Reads answer from the hook definitions map hook_test seeds — a test that wants a missing file
-// re-seeds its own. Its one-file list is what a manifest would record, so the extension step's
-// detail string mentions it.
+// re-seeds its own. It answers with one path per subtree it was asked for, which is what a manifest
+// would record, so the extension step's detail string and the manifest test both have something to
+// hold.
 type fakeExtensionSource struct {
 	calls []fetchCall
 	err   error
-	data  map[string][]byte
+	// failOn narrows err to the fetch of one subtree, so a test can fail the copy into .codefall/
+	// while the copy into a skills directory succeeds.
+	failOn string
+	data   map[string][]byte
 }
 
 func newFakeExtensionSource() *fakeExtensionSource {
 	return &fakeExtensionSource{data: hookDefinitions}
 }
 
-func (f *fakeExtensionSource) Fetch(_ context.Context, destDir string, exclude []string) ([]string, error) {
-	f.calls = append(f.calls, fetchCall{dir: destDir, exclude: exclude})
+// fetched is the one file the fake answers with for each subtree a caller names.
+var fetched = map[string]string{
+	"skills":       "skills/design/SKILL.md",
+	"hooks/shared": "hooks/shared/codefall-block-merge-to-main.sh",
+	"shared":       "shared/preflight.sh",
+}
 
-	return []string{"skills/design/SKILL.md"}, f.err
+func (f *fakeExtensionSource) Fetch(
+	_ context.Context, destDir string, sources, exclude []string,
+) ([]string, error) {
+	f.calls = append(f.calls, fetchCall{dir: destDir, sources: sources, exclude: exclude})
+
+	written := make([]string, 0, len(sources))
+	for _, source := range sources {
+		written = append(written, fetched[source])
+	}
+
+	if f.err != nil && (f.failOn == "" || slices.Contains(sources, f.failOn)) {
+		return written, f.err
+	}
+
+	return written, nil
 }
 
 func (f *fakeExtensionSource) Read(path string) ([]byte, error) {
@@ -235,8 +258,8 @@ func TestRunWritesSettingsAndReportsWhatItWrote(t *testing.T) {
 	}
 
 	// The settings step makes .codefall/, the hook step makes .claude/, and nothing else does.
-	if !slices.Equal(files.made, []string{codefallDir, claudeSettingsDir}) {
-		t.Errorf("created %q, want %q", files.made, []string{codefallDir, claudeSettingsDir})
+	if !slices.Equal(files.made, []string{codefallFull, claudeSettingsDir}) {
+		t.Errorf("created %q, want %q", files.made, []string{codefallFull, claudeSettingsDir})
 	}
 
 	// The observer sees every step start and finish, in order, and what it sees on finishing is the
@@ -436,7 +459,7 @@ func TestRunStopsOnAStepThatFails(t *testing.T) {
 		{
 			name: "the directory could not be made",
 			setup: func(f *fakeFileSystem) {
-				f.errs["mkdir "+codefallDir] = errors.New("read-only file system")
+				f.errs["mkdir "+codefallFull] = errors.New("read-only file system")
 			},
 			want: "create .codefall/",
 		},

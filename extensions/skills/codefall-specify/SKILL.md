@@ -28,7 +28,8 @@ Specifying is not designing. Once the criteria are written and confirmed, stop. 
 built is `codefall-design`'s work.
 
 Paths that start with `../` or `trackers/` are relative to this skill's directory, not the user's
-project.
+project. A path through `../../../.codefall/` is the one that leaves the skills directory: it names
+a file `codefall init` installed in the project's own `.codefall/`.
 
 ## Files beside this one
 
@@ -41,7 +42,7 @@ Read each when its step says to; none is loaded up front.
 - `templates/specs/AGENTS.md` — the operative rules this skill installs at `docs/specs/AGENTS.md`.
 - `trackers/github/PROFILE.md` — the GitHub tracker profile: issue shape, labels, creating,
   refreshing, archiving. Read at step 12, and at step 3 for the duplicate search.
-- `../../shared/import-mockup.md` — the shared procedure for bringing a user's mockup into the
+- `../../../.codefall/shared/import-mockup.md` — the shared procedure for bringing a user's mockup into the
   repository. Read at step 8 when they have one.
 
 ## Scope — what, not how
@@ -149,7 +150,7 @@ profile** — one directory per tracker, as `codefall-scaffold` handles surfaces
 
 ## Project customizations
 
-Follow `../../shared/customizations.md` for this verb.
+Follow `../../../.codefall/shared/customizations.md` for this verb.
 
 ## Process
 
@@ -158,7 +159,7 @@ Follow `../../shared/customizations.md` for this verb.
 Run the shared check against the user's project. It reports what is set up and repairs nothing.
 
 ```bash
-"../../shared/preflight.sh" .
+"../../../.codefall/shared/preflight.sh" .
 ```
 
 `beads=ok` advances to step 2. Otherwise read `beads_reason`, tell the user what is missing, hand
@@ -303,7 +304,7 @@ Then apply the [cohesion check](#cohesion-and-splitting) to the set.
 
 When the feature has a visual surface, ask whether a mockup exists.
 
-- **They have one** — import it per `../../shared/import-mockup.md`. It lands under
+- **They have one** — import it per `../../../.codefall/shared/import-mockup.md`. It lands under
   `docs/mockups/<slug>/`, and the spec references that path under **Design notes**.
 - **They want one but do not have it** — the specification proceeds without it and the tracker
   issue is marked `requires-mockup`. `codefall-design` refuses to act on an issue carrying that

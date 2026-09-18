@@ -25,7 +25,8 @@ short of the user editing this file. Merges into an epic branch are the one exce
 branch exists to fan work back in, and the human gate sits at its aggregate PR.
 
 Paths that start with `reference/` or `../` are relative to this skill's directory, not the user's
-project.
+project. A path through `../../../.codefall/` is the one that leaves the skills directory: it names
+a file `codefall init` installed in the project's own `.codefall/`.
 
 ## Files beside this one
 
@@ -212,7 +213,7 @@ awaiting merge, and everything above follows the normal sequence.
 
 ## Project customizations
 
-Follow `../../shared/customizations.md` for this verb.
+Follow `../../../.codefall/shared/customizations.md` for this verb.
 
 ## Process
 
@@ -221,7 +222,7 @@ Follow `../../shared/customizations.md` for this verb.
 Run the shared check against the user's project.
 
 ```bash
-"../../shared/preflight.sh" .
+"../../../.codefall/shared/preflight.sh" .
 ```
 
 `beads=ok` advances. Otherwise read `beads_reason`, tell the user what is missing, hand over the
