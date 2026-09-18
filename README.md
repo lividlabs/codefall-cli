@@ -116,8 +116,8 @@ TODO: rename the skill names to the actual
 | [`graft`](extensions/skills/codefall-graft/SKILL.md) | Bring a scaffolded project's docs up to date with the current templates: report what changed since its version, with per-file provenance, and apply only what the user takes. Also handles first-time adoption of the stance. | in progress |
 | [`specify`](extensions/skills/codefall-specify/SKILL.md) | Turn a feature idea into a specification another session can implement: a spec document under `docs/specs/` holding requirements with EARS acceptance criteria, mirrored to the issue tracker. | in progress |
 | [`mock-up`](extensions/skills/codefall-mock-up/SKILL.md) | Get the visual surface of a feature into the repository under `docs/mockups/`: import what a design tool exported, or make the mockup here, matching the app's own design system so it looks like it belongs. | in progress |
-| [`design`](extensions/skills/codefall-design/SKILL.md) | Decide how a feature gets built and put the work into the graph: a design document under `docs/designs/` scaled to the size of the change, ADRs for the choices that are hard to reverse, and the tasks in Beads with their dependency edges. | in progress |
-| [`implement`](extensions/skills/codefall-implement/SKILL.md) | Execute the graph: claim ready beads, build each in an isolated worker worktree with tests as part of done, verify against acceptance criteria, open PRs, and walk the waves until the frontier is empty. Never merges to `main`. | in progress |
+| [`design`](extensions/skills/codefall-design/SKILL.md) | Decide how a feature gets built and put the work into the graph: a design document under `docs/designs/` scaled to the size of the change, ADRs for the choices that are hard to reverse, and the tasks in Beads with their dependency edges, each carrying the acceptance criteria it is verified against and the test case where one is called for. | in progress |
+| [`implement`](extensions/skills/codefall-implement/SKILL.md) | Execute the graph: claim ready beads, build each in an isolated worker worktree with tests as part of done, write the test case a bead's criteria name before the code, verify against acceptance criteria, open PRs, and walk the waves until the frontier is empty. Never merges to `main`, and never sets a test harness up. | in progress |
 | [`review`](extensions/skills/codefall-review/SKILL.md) | Review something and fix what the user accepts: uncommitted work, a branch, an open pull request, a path, a document, or a description of what to look at. A subagent or another harness reviews, the session triages with you and applies what you take, and every finding is committed under `.codefall/reviews/`. | in progress |
 | [`test`](extensions/skills/codefall-test/SKILL.md) | Run what the project declares: every suite, the subset your changed files reach, a named subset, or one test case in its `spec` or `agentic` modality. A spec case runs through the project's own runner; an agentic case is driven step by step through a browser or the shell and judged against the case's criteria. Every run is reported under `.codefall/tests/`. | in progress |
 | [`equip`](extensions/skills/codefall-equip/SKILL.md) | Equip a project with what the other verbs need it to have: the local-environment scripts `refresh` runs — `start`, which brings its services up, and `update`, which makes the local environment match the checkout — and the test harness `test` runs cases through, a spec runner per surface pointed at the testing root. Finds what the project already has or drafts it from what the repository shows, then declares it in `.codefall/settings.json`. | in progress |
@@ -287,6 +287,15 @@ the work already done against the old wording would no longer count — a ticket
 under the person holding it. A task that leaves the design is reported to you, never closed on its
 own, because someone may still be working it.
 
+**`design` also decides which tasks need a test case.** A task verified through the wired product —
+the real interface, against the real services — has the case named in its bead's acceptance
+criteria, with its modalities and every criterion the case will hold: a spec criterion cited in
+full, or marked `derived` with the requirement it elaborates and one line saying what it adds.
+`agentic` is chosen only where verifying an outcome needs judgement, `spec` otherwise, and neither
+where unit tests already verify the task. Approving the task plan is where you sign the derived
+criteria off, which is why they are shown with it; a gap they expose in the spec comes back to you
+as a report for `specify` rather than being patched into the case.
+
 Choices that are hard to reverse — a new dependency, a schema other components will build on, a
 rejected alternative that cost real analysis — become an ADR in the project's own `ADR-NNN` sequence.
 Most designs need none. A ratified ADR is never rewritten: a revision lands as a new, superseding
@@ -325,6 +334,13 @@ epic, so the epic cannot close until you have merged everything, and the next se
 order, and the plugin ships a hook that mechanically denies the alternative. Tests are part of done
 — the ones the design planned and the ones the work turned out to need — while regression and
 fresh-context retesting stay with the `test` verb.
+
+**A test case named in a bead's criteria is written before the code.** The worker writes it from
+those criteria and from nothing else — not the sibling spec, not the code it is about to write, not
+its own pull request text — and then the generated spec where the modality calls for one. The case
+counts toward done; running it is `test`'s. If the project has no runner for it yet, those beads do
+not start: `implement` says so and names `equip`, because setting a harness up is its own pull
+request and never rides along inside a task's. Beads that need only unit tests carry on.
 
 ### Tests
 

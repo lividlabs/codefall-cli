@@ -1,6 +1,6 @@
 ---
 name: codefall-implement
-description: Execute the work design put into the graph — claim ready beads, build each task in its own worktree with tests as part of done, verify against the bead's acceptance criteria and the project's own checks, open pull requests, and walk the dependency graph in parallel waves until the frontier is empty. Never merges to main.
+description: Execute the work design put into the graph — claim ready beads, build each task in its own worktree with tests as part of done, write the test case a bead's criteria name before the code, verify against the bead's acceptance criteria and the project's own checks, open pull requests, and walk the dependency graph in parallel waves until the frontier is empty. Never merges to main, and never sets a test harness up.
 argument-hint: "[a bead, an epic, a design, or nothing to pick from ready work]"
 disable-model-invocation: true
 allowed-tools:
@@ -49,6 +49,7 @@ Read each when its step says to; none is loaded up front.
 | Executing tasks from the graph | What the tasks are, or their edges | `codefall-design` |
 | Branches, worktrees, commits, PRs | Merging anything to `main` | the user |
 | Every test the current work needs | Regression campaigns and fresh-context retesting | `codefall-test` |
+| Writing the case file the criteria name | Deciding which tasks need a case; installing a runner | `codefall-design`, `codefall-equip` |
 | Harness checks on its own diffs | Independent review and verdicts | `review` |
 | Bead lifecycle: claim, close, discovered work | Creating or re-cutting the task graph | `codefall-design` |
 | The concept's `Active` transition | Any other document transition | the owning verb |
@@ -57,11 +58,10 @@ Read each when its step says to; none is loaded up front.
 **A task that turns out to be wrong is reported, not redesigned.** When the design's cut does not
 survive contact with the code, say what you found and hand the graph back to `codefall-design`.
 
-- **Implement writes every test the current work needs** — planned by the design's Testing
-  Strategy or discovered mid-task, unit, integration, and end-to-end alike. A missing test is
-  written, not sent back to `codefall-design`.
-- **`codefall-test` owns what comes after the work lands**: regression passes, coverage campaigns,
-  agentic testing in a fresh context.
+- **Implement writes every test the current work needs** — planned by the design's Testing Strategy
+  or discovered mid-task, unit through end-to-end. A missing test is written, not sent back to
+  `codefall-design`. **`codefall-test` owns what comes after the work lands**: regression passes,
+  coverage campaigns, agentic testing in a fresh context.
 
 ## One bead or the graph
 
@@ -147,7 +147,7 @@ green, and its PR is open.** Done is not merged.
 
 **Where the commands come from.** Implement hardcodes no build, lint, or test invocation:
 
-1. `.codefall/skills/implement/CUSTOMIZE.md` — verb-specific tuning, such as a fast subset per bead
+1. `.codefall/skills/codefall-implement/CUSTOMIZE.md` — verb-specific tuning, such as a fast subset per bead
    with the full suite reserved for pre-PR;
 2. the project's `AGENTS.md` — scaffolded projects carry the command list in their verification
    section;
@@ -168,9 +168,17 @@ The resolved list is passed into worker prompts. Workers re-derive nothing.
 
 **Tests are part of done, not a follow-up.** So are the local scripts: a bead whose criteria name
 the `start` and `update` change, or whose diff adds infrastructure, a dependency, a migration, or
-generated code, changes the declared scripts in the same PR, following the `codefall-equip`
-skill's section *When another verb follows this skill*. The bead is the confirmation; the PR body
-names the change.
+generated code, changes the declared scripts in the same PR, following the local track in the
+`codefall-equip` skill's section *When another verb follows this skill*. The bead is the
+confirmation; the PR body names the change.
+
+**A test case the criteria name is written before the code**, from those criteria and from nothing
+else — never the sibling spec, the application's code, or a pull request's own text. Its format is
+`../codefall-test/reference/case-file.md` and it lands at `<root>/test-cases/<area>/<slug>.md`
+under the testing root; the spec follows it where the modality calls for one. The case counts
+toward done. **Running it does not** — that is `codefall-test`'s. What is checked here is that
+`../../../.codefall/shared/check-cases.sh` passes and that the runner's run-one command in
+`<root>/AGENTS.md` collects the spec.
 
 ## Merges and the mirror
 
@@ -189,8 +197,7 @@ The spec's tracker issue walks the work's state per `reference/mirror.md`. Every
 `codefall-conceptualize` reserves one transition for this skill: `Status: Active — <date>`. At the
 run's first claim, resolve the concept — the design's `Related` line to the spec, the spec's
 `**Concept:**` row to the concept, or the design's `concept` label when there is no spec — and flip
-its Status line. Automatically, no ceremony: this records an observable fact. Report it — "CONCEPT-012
-→ Active."
+its Status line. Automatically, and report it — "CONCEPT-012 → Active."
 
 Once, idempotently. Already `Active`, or no concept in the lineage: nothing to do. Only the Status
 line is touched, ever.
@@ -241,8 +248,23 @@ match what the work will build on: say so and offer `/codefall-refresh` before c
 `refresh=undeclared` names `/codefall-equip` instead. Never pull the checkout or run the local
 commands from here; `refresh` owns both.
 
-Then read the project's `AGENTS.md` (root and scoped) and `.codefall/skills/implement/CUSTOMIZE.md`
-— workflow constraints, verify commands, pinned board IDs, a standing strategy preference.
+**Then read the `test=` line**, and hold it against the beads in scope once step 3 has read them. A
+bead whose acceptance criteria name a test case needs an equipped harness:
+
+| `test=` | What happens |
+| --- | --- |
+| `equipped` | those beads proceed |
+| `unequipped` | say so, name `/codefall-equip`, and do not start them |
+| `undeclared` | say so, name `codefall init`, and do not start them |
+| `unknown` | read the `test` block from `.codefall/settings.json` and judge it the same way; no runner there is `unequipped` |
+
+Beads whose work is verified by unit tests alone proceed either way. When no bead in scope names a
+case, this is one line of notice at most. **Never set the harness up** — that is its own pull
+request, `/codefall-equip`'s, and never rides along inside a task's.
+
+Then read the project's `AGENTS.md` (root and scoped) and
+`.codefall/skills/codefall-implement/CUSTOMIZE.md` — workflow constraints, verify commands, pinned
+board IDs, a standing strategy preference.
 
 ### 2. Fix the scope
 
@@ -337,8 +359,13 @@ Do not merge. Do not wait for merges. The next session's `bd gate check` finishe
 - **No permission prompts mid-run.** Workers cannot answer them; the go gate states the condition
   and offers single-task mode when it fails.
 - **Tests are part of done.** Planned or discovered, written now, never deferred to `test`.
+- **A test case the criteria name is written first, from those criteria**, before the code and
+  before its spec. Never from the sibling spec, the code, or a pull request's text. The case counts
+  toward done; running it is `codefall-test`'s.
+- **A test harness is never set up inside a task's pull request.** A bead that needs one and finds
+  the project unequipped is not started, and `/codefall-equip` is named.
 - **The local scripts are part of done.** A change that would leave a teammate's refresh stale
-  changes `start` and `update` in the same PR, per `codefall-equip`.
+  changes `start` and `update` in the same PR, per `codefall-equip`'s local track.
 - **Implement never writes bead metadata and never redesigns the graph.** Metadata is read as a
   recommendation; a wrong task goes back to `codefall-design`.
 - **The mirror never guesses.** The spec's parent issue carries the ladder; requirement children

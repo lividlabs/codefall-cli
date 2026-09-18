@@ -67,6 +67,14 @@ report; the root escalates.
 
 - Existing patterns over new ones; the ADRs and scoped `AGENTS.md` files are binding.
 - Incremental conventional commits, each carrying the bead ID: `feat: add StageContext ({{BEAD_ID}})`.
+- **If your acceptance criteria name a test case, write the case file first, before any code.** The
+  criteria above are its whole source: carry each one across with the citation it already has. Read
+  the format at `{{CASE_FILE_FORMAT}}` and write the file at
+  `{{TESTING_ROOT}}/test-cases/<area>/<slug>.md`, the path the criteria name. Then write the spec
+  beside it where the modalities call for one, in the suffix the Runners section of
+  `{{TESTING_ROOT}}/AGENTS.md` names. Never read the sibling spec, the application's code, or your
+  own notes to decide what a criterion means. Read code only for mechanics — a control's role, its
+  accessible name, the shape of a response — so that a spec can drive it.
 - Write every test this work needs — the ones the design planned and the ones you discover it
   needs. Tests are part of done, not a suggestion.
 - If this work adds infrastructure, a dependency, a migration, or generated code, change the
@@ -83,6 +91,16 @@ Run the project's checks until clean:
 ```bash
 {{VERIFY_COMMANDS}}
 ```
+
+A case file you wrote is checked as well:
+
+```bash
+.codefall/shared/check-cases.sh
+```
+
+and the spec you wrote beside it has to be collected by the runner, whose run-one command is in the
+Runners section of `{{TESTING_ROOT}}/AGENTS.md`. Neither is a run of the case — running it is
+`codefall-test`'s, not yours.
 
 Then run the harness's `simplify` on your own diff (`git diff origin/{{BASE_REF}}...HEAD`), and
 `code-review` where the harness provides it. Fix what they find. Finally walk the acceptance
@@ -119,6 +137,8 @@ enough that a fresh worker could start from it.
 ## Hard rules
 
 - Never run `bd`. The tracker is the root's; everything you need from it is in this prompt.
+- Never set a test runner up, and never install one. A runner that is missing is a failure result
+  with that reason; the root stops such a bead before it reaches you.
 - Never merge anything, and never push `{{BASE_REF}}`, `{{PR_TARGET}}`, or `main`.
 - Never touch the primary checkout or a sibling worktree.
 - Never invoke another codefall verb.
