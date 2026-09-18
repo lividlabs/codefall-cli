@@ -119,6 +119,7 @@ TODO: rename the skill names to the actual
 | [`design`](extensions/skills/codefall-design/SKILL.md) | Decide how a feature gets built and put the work into the graph: a design document under `docs/designs/` scaled to the size of the change, ADRs for the choices that are hard to reverse, and the tasks in Beads with their dependency edges. | in progress |
 | [`implement`](extensions/skills/codefall-implement/SKILL.md) | Execute the graph: claim ready beads, build each in an isolated worker worktree with tests as part of done, verify against acceptance criteria, open PRs, and walk the waves until the frontier is empty. Never merges to `main`. | in progress |
 | [`review`](extensions/skills/codefall-review/SKILL.md) | Review something and fix what the user accepts: uncommitted work, a branch, an open pull request, a path, a document, or a description of what to look at. A subagent or another harness reviews, the session triages with you and applies what you take, and every finding is committed under `.codefall/reviews/`. | in progress |
+| [`test`](extensions/skills/codefall-test/SKILL.md) | Run what the project declares: every suite, the subset your changed files reach, a named subset, or one test case in its `spec` or `agentic` modality. A spec case runs through the project's own runner; an agentic case is driven step by step through a browser or the shell and judged against the case's criteria. Every run is reported under `.codefall/tests/`. | in progress |
 | [`equip`](extensions/skills/codefall-equip/SKILL.md) | Equip a project with the two local-environment scripts `refresh` runs — `start`, which brings its services up, and `update`, which makes the local environment match the checkout — by finding what the project already has or drafting them from what the repository shows, then declaring them in `.codefall/settings.json`. | in progress |
 | [`refresh`](extensions/skills/codefall-refresh/SKILL.md) | Bring the checkout and the local environment current: fetch, fast-forward `main` when that is safe, run the declared `start` and `update`, record the commit the environment now matches, and turn a failure into a sentence that says what to do. The routine before starting new work. | in progress |
 
@@ -323,7 +324,44 @@ epic, so the epic cannot close until you have merged everything, and the next se
 **A human performs every merge to `main`.** The run ends at open PRs and a reported bottom-up merge
 order, and the plugin ships a hook that mechanically denies the alternative. Tests are part of done
 — the ones the design planned and the ones the work turned out to need — while regression and
-fresh-context retesting stay with the future `test` verb.
+fresh-context retesting stay with the `test` verb.
+
+### Tests
+
+`test` runs what your project declares: every suite, the subset your changed files reach, a named
+subset, or one test case. Suite commands come from the same three places `implement` takes its
+verification commands from — a `CUSTOMIZE.md` for the verb, your `AGENTS.md`, then inference — and
+the confirmation says which one answered before anything runs.
+
+**A case is one markdown file**, at `testing/test-cases/<area>/<slug>.md` under the testing root
+`init` asked you for. Its path is its identifier, so there is no registry to keep level with the
+directory; its frontmatter carries the variants the case runs once each and the fixed messages a run
+is allowed to send; and its body carries the criteria. Every criterion says where it came from: a
+spec criterion cited in full, or marked `derived` with the requirement it elaborates and one line
+saying what it adds. The one source a criterion may never have is the implementation — not the code,
+not clicking through the app, not the pull request that built it — because a test written from the
+code certifies what the code does, defects included, and it passes loudly.
+
+**Two modalities, and they produce different evidence.** A `spec` case is a generated test beside
+the case file, run by your own runner and reported in that runner's pass and fail. An `agentic` case
+is worked step by step by the session itself, through a browser tool or the shell, with each
+criterion judged against what was observable — `held`, `failed`, `skipped`, or `unreachable` — and
+the run as a whole `PASS`, `FAIL`, `ERROR`, or `PARTIAL`. The driver is whatever the session
+actually has; one live call proves it before the run depends on it, and a case with no working
+driver has its agentic modality refused rather than faked. Nothing is mocked at any layer, and a
+state that cannot be forced through the product's own interfaces is recorded as unreachable.
+
+**Every run is written down.** A report lands under `.codefall/tests/` — Markdown to read and JSON
+to count across runs — carrying the verdicts, the per-criterion evidence, how many attempts each
+step took even when it passed, what the run created against real services and whether it was cleaned
+up, which driver ran, and an anomaly sweep of user-visible wrongness no criterion asked about.
+Everything bulky — runner output, traces, HTML reports, run-scoped accounts — stays git-ignored
+under the testing root's `.artifacts/`.
+
+**A failing run produces a finding, never an edit to the criterion.** Findings are classified as a
+real bug, a wrong expectation, a flake, or agent variance with an occurrence count, and they become
+tracker issues only when you say so. Setting the runner up is `equip`'s job, writing the case is
+`implement`'s, and `test` names the remedy when either is missing rather than doing it for you.
 
 ### Reviews
 

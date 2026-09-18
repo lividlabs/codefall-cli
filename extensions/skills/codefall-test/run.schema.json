@@ -1,0 +1,224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/lividlabs/codefall-cli/main/extensions/skills/codefall-test/run.schema.json",
+  "title": "Codefall test run",
+  "description": "One run of one target: what was run, at which revision, what drove it, and what each criterion did. Written to .codefall/tests/<timestamp>-<run-key>.json beside the Markdown report of the same run. A suite or spec run fills `runner`; an agentic run fills `driver` and `variants`.",
+  "type": "object",
+  "required": ["version", "target", "ranAt"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+
+    "target": {
+      "type": "object",
+      "required": ["kind", "key", "modality"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["case", "suites", "suite", "changed"],
+          "description": "case is one test case; suites is every declared suite; suite is one named suite; changed is the subset the changed files reach."
+        },
+        "key": {
+          "type": "string",
+          "description": "The suffix of the filename stem, slugged: checkout-place-order, suites, suites-changed, or the suite's own name."
+        },
+        "id": {
+          "type": "string",
+          "description": "The case id — its path minus the extension, relative to test-cases/. Present for a case run."
+        },
+        "ref": {
+          "type": "string",
+          "description": "What the user typed, before resolution."
+        },
+        "modality": {
+          "type": "string",
+          "enum": ["spec", "agentic", "suite"],
+          "description": "The case's modality, or `suite` when the target is not a case. The PASS/FAIL/ERROR/PARTIAL vocabulary belongs to `agentic` alone."
+        },
+        "commands": {
+          "type": "array",
+          "description": "The commands that ran, as written.",
+          "items": { "type": "string" }
+        },
+        "commandSource": {
+          "type": "string",
+          "enum": ["customize", "agents", "inferred", "testing-agents"],
+          "description": "Where the commands came from: the verb's CUSTOMIZE.md, the project's AGENTS.md verification section, inference from the repository, or the Runners section of the testing root's AGENTS.md."
+        },
+        "filter": {
+          "type": "string",
+          "description": "For a changed-files run, the filter the changed paths mapped onto, or the reason the runner could not filter and the full suite ran."
+        }
+      }
+    },
+
+    "ranAt": { "type": "string", "format": "date-time" },
+
+    "commit": {
+      "type": "object",
+      "required": ["revision"],
+      "additionalProperties": false,
+      "properties": {
+        "revision": { "type": "string", "description": "HEAD of the checkout the run ran in." },
+        "dirty": { "type": "boolean", "description": "True when the working tree carried changes." }
+      }
+    },
+
+    "driver": {
+      "type": "object",
+      "description": "The driver an agentic run used, as this session knows it.",
+      "required": ["tool"],
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "type": "string", "description": "The tool that drove the run." },
+        "surface": { "type": "string", "enum": ["browser", "shell", "http"] },
+        "proof": { "type": "string", "description": "The live call that proved it, and what came back." }
+      }
+    },
+
+    "runner": {
+      "type": "object",
+      "description": "A suite or spec run's own result, in the runner's own vocabulary.",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "description": "playwright, go-test, or whatever the project declared." },
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "failures": {
+          "type": "array",
+          "description": "Each failing test by name, with the runner's own message.",
+          "items": {
+            "type": "object",
+            "required": ["test"],
+            "additionalProperties": false,
+            "properties": {
+              "test": { "type": "string" },
+              "message": { "type": "string" }
+            }
+          }
+        },
+        "output": {
+          "type": "string",
+          "description": "Path under the testing root's .artifacts/ where the full output landed. Never the output itself."
+        }
+      }
+    },
+
+    "variants": {
+      "type": "array",
+      "description": "One entry per variant run. An agentic run fills every field; a spec run of a multi-variant case may carry verdicts alone.",
+      "items": {
+        "type": "object",
+        "required": ["name", "verdict"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "verdict": {
+            "type": "string",
+            "enum": ["PASS", "FAIL", "ERROR", "PARTIAL"],
+            "description": "The agentic vocabulary. A spec run reports through `runner` instead."
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["number", "verdict"],
+              "additionalProperties": false,
+              "properties": {
+                "number": { "type": "integer", "minimum": 1 },
+                "citation": {
+                  "type": "string",
+                  "description": "The criterion's source as the case file states it: SPEC-003-REQ-01-AC-01, or derived from SPEC-003-REQ-01."
+                },
+                "verdict": {
+                  "type": "string",
+                  "enum": ["held", "failed", "skipped", "unreachable"]
+                },
+                "evidence": {
+                  "type": "string",
+                  "description": "What was observed, in one line, quoting what was on screen where that is the evidence."
+                }
+              }
+            }
+          },
+          "attempts": {
+            "type": "array",
+            "description": "Per-step attempt counts, recorded even when the step eventually succeeded.",
+            "items": {
+              "type": "object",
+              "required": ["step", "count"],
+              "additionalProperties": false,
+              "properties": {
+                "step": { "type": "integer", "minimum": 1 },
+                "count": { "type": "integer", "minimum": 1 }
+              }
+            }
+          },
+          "sideEffects": {
+            "type": "array",
+            "description": "Everything the run created against real services, recorded the moment it existed.",
+            "items": {
+              "type": "object",
+              "required": ["identifier", "disposition"],
+              "additionalProperties": false,
+              "properties": {
+                "identifier": { "type": "string" },
+                "kind": { "type": "string", "description": "order, booking, account, message." },
+                "disposition": {
+                  "type": "string",
+                  "enum": ["cleaned", "left", "unknown"],
+                  "description": "left means it still exists and the report says what remains to be done about it."
+                },
+                "note": { "type": "string" }
+              }
+            }
+          },
+          "anomalies": {
+            "type": "array",
+            "description": "The anomaly sweep: user-visible wrongness no criterion asked about. Never folded into the verdict.",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+
+    "triage": {
+      "type": "array",
+      "description": "What each finding was classified as. The working notes stay git-ignored; the classification is part of the run's record.",
+      "items": {
+        "type": "object",
+        "required": ["subject", "class"],
+        "additionalProperties": false,
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "The criterion or anomaly this classifies, as the report names it."
+          },
+          "class": {
+            "type": "string",
+            "enum": ["bug", "expectation", "flake", "variance"],
+            "description": "Real bug, wrong expectation, flake, or agent variance."
+          },
+          "occurrences": {
+            "type": "string",
+            "description": "For variance, how often it has been seen across runs: \"2 of 6 runs\"."
+          },
+          "issue": {
+            "type": "string",
+            "description": "The tracker issue it was filed on or commented on, when the user asked for one."
+          },
+          "note": { "type": "string" }
+        }
+      }
+    },
+
+    "notes": {
+      "type": "array",
+      "description": "What the run could not do and why: a refused modality, a driver that did not prove, a suite the runner could not filter.",
+      "items": { "type": "string" }
+    }
+  }
+}

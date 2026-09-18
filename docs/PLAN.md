@@ -8,9 +8,12 @@ The following items are outstanding in order to complete the first verion of the
     - Does the bug report would take the place of a spec? Likely yes.
     - Does the bug report have a github issue and a markdown report? Probably.
 - [ ] `fix` — (under consideration) fix could potentially be a combination of design+implement but specifically for bugs reports
-- [ ] `test` — run tests
+- [x] `test` — run tests
   - unit, integration, and e2e
   - testing scope: full suite, a subset based on local/branch changes, a specific subset
+  - a case in its `spec` modality through the project's runner, or in its `agentic` modality driven
+    step by step; the format is `codefall-test/reference/case-file.md` and the run report is
+    committed under `.codefall/tests/`
 - [x] `equip` — build and rebuild the project's local scripts, `start` and `update`; followed as a
   reference by `scaffold` at code depth and by `implement` when a task introduces infrastructure,
   a dependency, a migration, or generated code
