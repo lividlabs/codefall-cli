@@ -43,6 +43,10 @@ type InitializeUseCase interface {
 	// settings or they record none. A rerun installs for what the project already chose rather than
 	// asking again.
 	ChosenHarnesses(dir string) (mo.Option[[]string], error)
+	// DeclaredTestDir reads the testing root .codefall/settings.json records, or None when there are
+	// no settings or they declare none. A rerun works with the root the project already declared and
+	// never moves it (ADR-007).
+	DeclaredTestDir(dir string) (mo.Option[string], error)
 }
 
 // The trackers the survey shows but does not accept. Huh has no disabled option, so they are offered
@@ -83,8 +87,10 @@ func NewInitCommand(initialize InitializeUseCase) *cobra.Command {
 			"project uses. Every question is also a flag, so a scripted run passes them and is never " +
 			"prompted. The codefall extension is installed for each harness chosen: Claude Code gets it " +
 			"at project scope into .claude/settings.json, and a harness that reads the .agents/skills " +
-			"convention gets the extension's tree under .agents/. A rerun installs for the harnesses " +
-			"the settings already record, so --harness is only needed the first time or to add one. " +
+			"convention gets the extension's tree under .agents/. It also asks where the project's " +
+			"test cases live and creates that tree. A rerun installs for the harnesses the settings " +
+			"already record and keeps the testing root they declare, so --harness and --test-dir are " +
+			"only needed the first time, or to add a harness. " +
 			"Run below the root of a git repository, init asks whether to install there or at the " +
 			"root; --location answers without asking.",
 		Args: cobra.NoArgs,
@@ -106,6 +112,7 @@ type initFlags struct {
 	issuesProject  int
 	reviewPostToPR bool
 	harnesses      []string
+	testDir        string
 	location       string
 	force          bool
 	yes            bool
@@ -127,6 +134,11 @@ func (f *initFlags) register(cmd *cobra.Command) {
 	cmd.Flags().StringSliceVar(&f.harnesses, "harness", nil,
 		"coding harness to set up — repeat the flag, or separate names with commas, for several ("+
 			strings.Join(harness.All(), ", ")+")")
+	// No default: a project that has not declared a testing root is asked, and a rerun reads back the
+	// one it declared. A default here would answer for the project on a run that could still ask.
+	cmd.Flags().StringVar(&f.testDir, "test-dir", "",
+		"directory the project's test cases live in, relative to this one (default "+
+			settings.DefaultTestDir+"; only asked the first time)")
 	cmd.Flags().StringVar(&f.location, "location", "",
 		"where to install when run below the repository root ("+locationHere+" for this directory, "+
 			locationRoot+" for the root)")
@@ -207,6 +219,14 @@ func buildRequest(
 		request.IssuesRepo = mo.Some(flags.issuesRepo)
 	}
 
+	if flags.testDir != "" {
+		if err := settings.ValidateTestDir(flags.testDir); err != nil {
+			return application.Request{}, err
+		}
+
+		request.TestDir = flags.testDir
+	}
+
 	// Same reasoning as the project number below: a bool flag left alone and one set to false are
 	// different answers, and only the flag's own record of being set separates them.
 	if cmd.Flags().Changed("review-post-to-pr") {
@@ -251,6 +271,21 @@ func buildRequest(
 		request.Harnesses = names
 	}
 
+	// The testing root is read back the same way, and for the same reason: a project that has
+	// declared one is not asked about it again, and this run never moves it (ADR-007).
+	declaredTest := mo.None[string]()
+
+	if settled {
+		declaredTest, err = initialize.DeclaredTestDir(dir)
+		if err != nil {
+			return application.Request{}, fmt.Errorf("init: %w", err)
+		}
+
+		if request.TestDir == "" {
+			request.TestDir = declaredTest.OrEmpty()
+		}
+	}
+
 	if settled && !request.Force {
 		previous, err := initialize.Installed(dir)
 		if err != nil {
@@ -259,8 +294,11 @@ func buildRequest(
 
 		if recorded, ok := previous.Get(); ok {
 			// A run for a harness the project has never been set up for is work to do, however
-			// current the version that installed the others is.
-			if installedEverything(recorded, request.Harnesses, request.CLIVersion) {
+			// current the version that installed the others is — and so is a project that has never
+			// declared a testing root, because the tree is what this run would make and doctor's
+			// remedy for an undeclared root is this command.
+			if declaredTest.IsPresent() &&
+				installedEverything(recorded, request.Harnesses, request.CLIVersion) {
 				request.NoOp = true
 				return request, nil
 			}
@@ -416,6 +454,7 @@ func collect(
 func needsAnswers(request application.Request) bool {
 	return len(request.Harnesses) == 0 ||
 		request.Tracker == "" ||
+		request.TestDir == "" ||
 		(request.Tracker == settings.TrackerGitHub && request.IssuesRepo.IsAbsent())
 }
 
@@ -457,16 +496,20 @@ func withoutPrompting(
 		return application.Request{}, missingFlag("--tracker")
 	}
 
-	if request.Tracker != settings.TrackerGitHub || request.IssuesRepo.IsPresent() {
-		return request, nil
+	if request.Tracker == settings.TrackerGitHub && request.IssuesRepo.IsAbsent() {
+		repo, ok := suggestion.Get()
+		if !ok {
+			return application.Request{}, missingFlag("--issues-repo")
+		}
+
+		request.IssuesRepo = mo.Some(repo)
 	}
 
-	repo, ok := suggestion.Get()
-	if !ok {
-		return application.Request{}, missingFlag("--issues-repo")
+	// The default is what the survey offers, not what a scripted run gets: where a project's test
+	// cases live is a decision the project makes, and nothing infers it (ADR-007).
+	if request.TestDir == "" {
+		return application.Request{}, missingFlag("--test-dir")
 	}
-
-	request.IssuesRepo = mo.Some(repo)
 
 	return request, nil
 }
@@ -498,6 +541,11 @@ func survey(
 
 	harnesses := request.Harnesses
 
+	testDir := request.TestDir
+	if testDir == "" {
+		testDir = settings.DefaultTestDir
+	}
+
 	var groups []*huh.Group
 
 	// Which harnesses the project uses comes first: it is the question the rest of the install
@@ -521,14 +569,34 @@ func survey(
 		groups = append(groups, huh.NewGroup(reviewPostToPRField(&postToPR)))
 	}
 
+	// Last, because it is the one question about a directory this run makes rather than about what
+	// codefall reads, and because the answer is already on the line: the default is offered as the
+	// value, so the question is one keypress for a project that has no reason to move it.
+	if request.TestDir == "" {
+		groups = append(groups, huh.NewGroup(testDirField(&testDir)))
+	}
+
 	if err := runForm(ctx, groups); err != nil {
 		return application.Request{}, err
 	}
 
 	request.ReviewPostToPullRequest = mo.Some(postToPR)
 	request.Harnesses = harnesses
+	request.TestDir = strings.TrimSpace(testDir)
 
 	return answered(request, tracker, repo, project)
+}
+
+// testDirField asks where the project's test cases live. The default is the starting value rather
+// than a silent fallback: a project that wants `e2e/` or a directory inside one package says so
+// here, and one that does not presses enter.
+func testDirField(dir *string) huh.Field {
+	return huh.NewInput().
+		Title("Where should the project's test cases live?").
+		Description("codefall creates the directory, its test-cases/ folder, and skeleton AGENTS.md and README.md files.").
+		Placeholder(settings.DefaultTestDir).
+		Value(dir).
+		Validate(func(value string) error { return settings.ValidateTestDir(strings.TrimSpace(value)) })
 }
 
 // harnessField asks which harnesses the project uses. Nothing is selected to begin with, and at

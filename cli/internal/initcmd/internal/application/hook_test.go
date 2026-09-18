@@ -43,8 +43,8 @@ func hookResult(t *testing.T, report domain.Report) domain.StepResult {
 	t.Helper()
 
 	results := report.Results()
-	if len(results) != 6 {
-		t.Fatalf("Results() = %+v, want a result for each of the six steps", results)
+	if len(results) != 7 {
+		t.Fatalf("Results() = %+v, want a result for each of the seven steps", results)
 	}
 
 	return results[3]

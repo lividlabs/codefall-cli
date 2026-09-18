@@ -258,6 +258,63 @@ func TestValidate(t *testing.T) {
 			want: []string{"local.update: must be a string"},
 		},
 		{
+			name: "a complete test block",
+			doc: with(complete(), BlockTest,
+				map[string]any{"dir": "testing", "runners": []any{"playwright"}}),
+		},
+		{
+			// A project declares its root before it is equipped, so the runners are optional and an
+			// empty list is what "declared, not equipped yet" looks like (ADR-007).
+			name: "a test block with no runners",
+			doc:  with(complete(), BlockTest, map[string]any{"dir": "testing"}),
+		},
+		{
+			name: "a test block with an empty runner list",
+			doc:  with(complete(), BlockTest, map[string]any{"dir": "e2e", "runners": []any{}}),
+		},
+		{
+			name: "test block is not an object",
+			doc:  with(complete(), BlockTest, "testing"),
+			want: []string{"test: must be an object"},
+		},
+		{
+			name: "test block missing the directory",
+			doc:  with(complete(), BlockTest, map[string]any{"runners": []any{"go-test"}}),
+			want: []string{"test.dir: missing"},
+		},
+		{
+			name: "test directory is absolute",
+			doc:  with(complete(), BlockTest, map[string]any{"dir": "/srv/testing"}),
+			want: []string{`test.dir: must be a relative path inside the project, such as "testing"`},
+		},
+		{
+			name: "test directory climbs out of the project",
+			doc:  with(complete(), BlockTest, map[string]any{"dir": "../testing"}),
+			want: []string{`test.dir: must be a relative path inside the project, such as "testing"`},
+		},
+		{
+			name: "test directory is not a string",
+			doc:  with(complete(), BlockTest, map[string]any{"dir": 1.0}),
+			want: []string{"test.dir: must be a string"},
+		},
+		{
+			name: "runners is not an array",
+			doc:  with(complete(), BlockTest, map[string]any{"dir": "testing", "runners": "playwright"}),
+			want: []string{"test.runners: must be an array of runner names"},
+		},
+		{
+			name: "a runner codefall does not know",
+			doc: with(complete(), BlockTest,
+				map[string]any{"dir": "testing", "runners": []any{"cypress"}}),
+			want: []string{`test.runners: unknown value "cypress" (expected "go-test", "playwright")`},
+		},
+		{
+			name: "the same runner twice",
+			doc: with(complete(), BlockTest,
+				map[string]any{"dir": "testing", "runners": []any{"playwright", "playwright"}}),
+			want: []string{`test.runners: names "playwright" twice`},
+		},
+		{
 			name: "every problem is reported at once, in definition order",
 			doc: Document{
 				"$schema": 1.0,
@@ -382,11 +439,91 @@ func TestRequiredFields(t *testing.T) {
 	if got, want := RequiredLocalFields(), []string{"start", "update"}; !slices.Equal(got, want) {
 		t.Errorf("RequiredLocalFields() = %q, want %q", got, want)
 	}
+
+	if got, want := RequiredTestFields(), []string{"dir"}; !slices.Equal(got, want) {
+		t.Errorf("RequiredTestFields() = %q, want %q", got, want)
+	}
 }
 
-// The two ignore files are read by one rule: a whole line, surrounding space ignored, and a comment
-// is not an entry — neither ripgrep nor git reads it as one.
-func TestIgnoresEntries(t *testing.T) {
+func TestTestRunners(t *testing.T) {
+	if got, want := TestRunners(), []string{RunnerGoTest, RunnerPlaywright}; !slices.Equal(got, want) {
+		t.Errorf("TestRunners() = %q, want %q", got, want)
+	}
+
+	// Order is not cosmetic: the schema test holds the schema's runner enum equal to this list.
+	TestRunners()[0] = "mutated"
+
+	if got := TestRunners()[0]; got != RunnerGoTest {
+		t.Errorf("TestRunners()[0] after a caller mutated its copy = %q, want %q", got, RunnerGoTest)
+	}
+}
+
+func TestValidateTestDir(t *testing.T) {
+	for _, dir := range []string{"testing", "e2e", "test/e2e", "packages/web/testing", "tests_2"} {
+		if err := ValidateTestDir(dir); err != nil {
+			t.Errorf("ValidateTestDir(%q) = %v, want nil", dir, err)
+		}
+	}
+
+	// Absolute, climbing out, hidden, a Windows path, and a name with a space in it: each of them
+	// would mean something different on another machine, or nothing at all.
+	for _, dir := range []string{"", "/testing", "../testing", "testing/../..", ".testing", "./testing",
+		`C:\testing`, "testing dir"} {
+		if err := ValidateTestDir(dir); err == nil {
+			t.Errorf("ValidateTestDir(%q) = nil, want an error", dir)
+		}
+	}
+}
+
+func TestTestArtifacts(t *testing.T) {
+	for _, tc := range []struct{ root, want string }{
+		{root: "testing", want: "testing/.artifacts/"},
+		{root: "packages/web/e2e", want: "packages/web/e2e/.artifacts/"},
+		{root: "testing/", want: "testing/.artifacts/"},
+	} {
+		if got := TestArtifacts(tc.root); got != tc.want {
+			t.Errorf("TestArtifacts(%q) = %q, want %q", tc.root, got, tc.want)
+		}
+	}
+}
+
+func TestTestDeclaration(t *testing.T) {
+	declared := with(complete(), BlockTest,
+		map[string]any{"dir": "e2e", "runners": []any{"playwright", "go-test"}})
+
+	got, ok := TestDeclaration(declared).Get()
+	if !ok || got.Dir != "e2e" || !slices.Equal(got.Runners, []string{"playwright", "go-test"}) {
+		t.Errorf("TestDeclaration() = %+v, %v, want the root and both runners, true", got, ok)
+	}
+
+	// A root with no runners is a declaration: the project has said where its cases live and has not
+	// been equipped yet.
+	got, ok = TestDeclaration(with(complete(), BlockTest, map[string]any{"dir": "testing"})).Get()
+	if !ok || got.Dir != "testing" || len(got.Runners) != 0 {
+		t.Errorf("TestDeclaration() of a root with no runners = %+v, %v, want the root and no runners, true", got, ok)
+	}
+
+	// Everything Validate would reject is None here, by the same rule the local block follows.
+	for name, doc := range map[string]Document{
+		"absent":                  complete(),
+		"not an object":           with(complete(), BlockTest, "testing"),
+		"no directory":            with(complete(), BlockTest, map[string]any{"runners": []any{"go-test"}}),
+		"an absolute root":        with(complete(), BlockTest, map[string]any{"dir": "/srv/testing"}),
+		"a root that climbs":      with(complete(), BlockTest, map[string]any{"dir": "../testing"}),
+		"a root that is not text": with(complete(), BlockTest, map[string]any{"dir": 1.0}),
+		"an unknown runner": with(complete(), BlockTest,
+			map[string]any{"dir": "testing", "runners": []any{"cypress"}}),
+		"null block": with(complete(), BlockTest, nil),
+	} {
+		if got := TestDeclaration(doc); got.IsPresent() {
+			t.Errorf("TestDeclaration() with the block %s = %v, want None", name, got)
+		}
+	}
+}
+
+// Every entry in either ignore file is read by one rule: a whole line, surrounding space ignored,
+// and a comment is not an entry — neither ripgrep nor git reads it as one.
+func TestNamesEntry(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
 		body  string
@@ -401,12 +538,12 @@ func TestIgnoresEntries(t *testing.T) {
 		{name: "empty", body: "", names: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := IgnoresReviews(fmt.Sprintf(tc.body, IgnoreEntry)); got != tc.names {
-				t.Errorf("IgnoresReviews(%q) = %v, want %v", fmt.Sprintf(tc.body, IgnoreEntry), got, tc.names)
-			}
+			for _, entry := range []string{IgnoreEntry, IgnoreEntryTests, RefreshStamp, TestArtifacts("testing")} {
+				body := fmt.Sprintf(tc.body, entry)
 
-			if got := IgnoresStamp(fmt.Sprintf(tc.body, RefreshStamp)); got != tc.names {
-				t.Errorf("IgnoresStamp(%q) = %v, want %v", fmt.Sprintf(tc.body, RefreshStamp), got, tc.names)
+				if got := NamesEntry(body, entry); got != tc.names {
+					t.Errorf("NamesEntry(%q, %q) = %v, want %v", body, entry, got, tc.names)
+				}
 			}
 		})
 	}

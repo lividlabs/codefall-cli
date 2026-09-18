@@ -28,6 +28,8 @@ The following items are outstanding in order to complete the first verion of the
 - [ ] `create` command to start a new project
 - [ ] `local` block in `.codefall/settings.json` declaring the `start` and `update` entry points;
   `doctor` checks they exist and are runnable
+- [x] `test` block in `.codefall/settings.json` declaring the testing root and the runners; `init`
+  asks for the root and creates the tree, `doctor` checks the declaration and the directory
 - [ ] `init` writes the refresh rule into `AGENTS.md` through the marker mechanism, and names
   `equip` in its report when nothing is declared
 - [ ] `preflight.sh` fetches and reports commits behind the default branch, a dirty tree, and the

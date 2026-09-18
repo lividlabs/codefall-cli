@@ -44,6 +44,25 @@
         "update": { "type": "string", "description": "Makes the local environment match the checkout. Idempotent; may assume start has run." }
       },
       "additionalProperties": true
+    },
+    "test": {
+      "description": "What the project has declared about its test cases: where they live, and which runners are installed (ADR-007).",
+      "type": "object",
+      "required": ["dir"],
+      "properties": {
+        "dir": {
+          "type": "string",
+          "description": "The testing root, relative to the directory holding .codefall/. codefall init asks for it and defaults to testing.",
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$"
+        },
+        "runners": {
+          "type": "array",
+          "description": "The spec runners the project has installed, written by codefall-equip rather than by hand.",
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["go-test", "playwright"] }
+        }
+      },
+      "additionalProperties": true
     }
   },
   "oneOf": [

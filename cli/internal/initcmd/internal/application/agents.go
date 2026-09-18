@@ -33,12 +33,18 @@ type section struct {
 	body  string
 }
 
-// sections is every section the step writes, in the order a file that has none gains them. Each
-// pair of markers is its own, so a project that has one section and not the other gains the one
+// sectionsFor is every section the step writes, in the order a file that has none gains them. Each
+// pair of markers is its own, so a project that has one section and not the others gains the ones
 // it is missing beside the one it has.
-var sections = []section{
-	{name: "Beads", begin: domain.BeadsSectionBegin, end: domain.BeadsSectionEnd, body: domain.BeadsSection},
-	{name: "Local environment", begin: domain.LocalSectionBegin, end: domain.LocalSectionEnd, body: domain.LocalSection},
+//
+// It takes the testing root because the third section names it: the first two are the same words in
+// every project, and the path a project's cases live at is the project's own (ADR-007).
+func sectionsFor(root string) []section {
+	return []section{
+		{name: "Beads", begin: domain.BeadsSectionBegin, end: domain.BeadsSectionEnd, body: domain.BeadsSection},
+		{name: "Local environment", begin: domain.LocalSectionBegin, end: domain.LocalSectionEnd, body: domain.LocalSection},
+		{name: "Testing", begin: domain.TestingSectionBegin, end: domain.TestingSectionEnd, body: domain.TestingSection(root)},
+	}
 }
 
 // sectionChange is what the step did to one section, which is most of what it has to report.
@@ -61,7 +67,7 @@ const (
 // and commits what it staged under its own message, so an edit made before it ran would land in
 // bd's commit rather than the author's.
 func (i *Initialize) agents(_ context.Context, request Request) (domain.StepResult, error) {
-	done, err := i.writeSections(request.Dir)
+	done, err := i.writeSections(request.Dir, testRoot(request))
 	if err != nil {
 		return domain.StepResult{}, err
 	}
@@ -93,7 +99,7 @@ func (i *Initialize) agents(_ context.Context, request Request) (domain.StepResu
 // a file with no markers for a section keeps what it says and gains that section at the end. A file
 // that is already what would be written is not written at all, which is what makes a second run a
 // skip. The file is read once and written once, however many sections change.
-func (i *Initialize) writeSections(dir string) ([]string, error) {
+func (i *Initialize) writeSections(dir, root string) ([]string, error) {
 	body, err := i.readProjectFile(dir, agentsName)
 	if err != nil {
 		return nil, err
@@ -102,6 +108,7 @@ func (i *Initialize) writeSections(dir string) ([]string, error) {
 	existing, present := body.Get()
 	next := existing
 
+	sections := sectionsFor(root)
 	changes := make([]sectionChange, 0, len(sections))
 
 	for _, s := range sections {
@@ -123,13 +130,13 @@ func (i *Initialize) writeSections(dir string) ([]string, error) {
 		return nil, fmt.Errorf("write %s: %w", agentsName, err)
 	}
 
-	return sectionsDone(changes, present), nil
+	return sectionsDone(changes, present, sections), nil
 }
 
 // sectionsDone is what happened to the sections, one clause each. A file that was not there was
 // created with every section; otherwise the sections that changed are named with what happened to
 // them, in section order.
-func sectionsDone(changes []sectionChange, present bool) []string {
+func sectionsDone(changes []sectionChange, present bool, sections []section) []string {
 	if !present {
 		names := make([]string, 0, len(sections))
 		for _, s := range sections {

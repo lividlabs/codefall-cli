@@ -71,6 +71,40 @@ func (i *Initialize) ChosenHarnesses(dir string) (mo.Option[[]string], error) {
 	return mo.Some(document.Harnesses), nil
 }
 
+// DeclaredTestDir reports the testing root .codefall/settings.json records, so a rerun works with
+// the root the project already declared rather than asking for it again. None means there is no
+// settings file, or the file declares no root — which is what a file written before the block
+// existed looks like (ADR-GO-03).
+//
+// Like ChosenHarnesses, it decodes the one field it needs: what the rest of the file may hold is the
+// format's business, and this is a question about one answer the project gave.
+func (i *Initialize) DeclaredTestDir(dir string) (mo.Option[string], error) {
+	data, err := i.files.ReadFile(settingsPath(dir))
+
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return mo.None[string](), nil
+	case err != nil:
+		return mo.None[string](), fmt.Errorf("read %s: %w", settingsName, err)
+	}
+
+	var document struct {
+		Test struct {
+			Dir string `json:"dir"`
+		} `json:"test"`
+	}
+
+	if err := json.Unmarshal(data, &document); err != nil {
+		return mo.None[string](), fmt.Errorf("decode %s: %w", settingsName, err)
+	}
+
+	if document.Test.Dir == "" {
+		return mo.None[string](), nil
+	}
+
+	return mo.Some(document.Test.Dir), nil
+}
+
 // settings is the first step of a run: it writes .codefall/settings.json, the file doctor checks.
 //
 // Settings that are already there are left alone unless the run asked for them to be rewritten,
@@ -142,6 +176,9 @@ func describe(chosen domain.Settings) string {
 // which must not name an encoding, or in infrastructure, which takes bytes — the same reason doctor
 // decodes in its application layer. Field order is key order, and it is chosen so the file opens
 // with what identifies it and closes with the block the tracker selects.
+//
+// The test block is not here: it is written by the testing step, into whatever settings the project
+// has, because most projects get theirs on a rerun over a file this step skipped (ADR-007).
 type settingsDocument struct {
 	Schema    string                    `json:"$schema"`
 	Version   int                       `json:"version"`

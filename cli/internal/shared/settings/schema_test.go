@@ -132,6 +132,35 @@ func TestSchemaMatchesTheFieldTables(t *testing.T) {
 	if slices.Contains(schemaList(t, schema, "required"), BlockLocal) {
 		t.Errorf("required contains %q, want the local block to stay optional", BlockLocal)
 	}
+
+	test := schemaObject(t, properties, BlockTest)
+
+	if got, want := schemaList(t, test, "required"), RequiredTestFields(); !slices.Equal(got, want) {
+		t.Errorf("properties.%s.required = %q, want %q", BlockTest, got, want)
+	}
+
+	testProperties := schemaObject(t, test, "properties")
+
+	// The directory's shape and the runners' names are the two rules the validator applies, so a
+	// pattern loosened on one side or a runner added to the shared module alone fails here.
+	if got := schemaText(t, schemaObject(t, testProperties, FieldTestDir), "pattern"); got != TestDirPattern {
+		t.Errorf("properties.%s.properties.%s.pattern = %q, want %q", BlockTest, FieldTestDir, got, TestDirPattern)
+	}
+
+	runners := schemaObject(t, testProperties, FieldTestRunners)
+
+	if got, want := schemaList(t, schemaObject(t, runners, "items"), "enum"), TestRunners(); !slices.Equal(got, want) {
+		t.Errorf("properties.%s.properties.%s.items.enum = %q, want %q", BlockTest, FieldTestRunners, got, want)
+	}
+
+	if !schemaBool(t, runners, "uniqueItems") {
+		t.Errorf("properties.%s.properties.%s.uniqueItems is false, want the validator's no-duplicates rule",
+			BlockTest, FieldTestRunners)
+	}
+
+	if slices.Contains(schemaList(t, schema, "required"), BlockTest) {
+		t.Errorf("required contains %q, want the test block to stay optional", BlockTest)
+	}
 }
 
 // One oneOf branch per tracker, each pinning "tracker" to itself, requiring its own block, and
@@ -198,6 +227,17 @@ func schemaText(t *testing.T, parent map[string]any, key string) string {
 	value, ok := parent[key].(string)
 	if !ok {
 		t.Fatalf("%q is %T, want a string", key, parent[key])
+	}
+
+	return value
+}
+
+func schemaBool(t *testing.T, parent map[string]any, key string) bool {
+	t.Helper()
+
+	value, ok := parent[key].(bool)
+	if !ok {
+		t.Fatalf("%q is %T, want true or false", key, parent[key])
 	}
 
 	return value

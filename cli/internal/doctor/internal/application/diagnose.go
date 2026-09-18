@@ -62,6 +62,7 @@ func (d *Diagnose) Run(ctx context.Context, dir string) (domain.Report, error) {
 		d.settings,
 		d.harnesses,
 		d.local,
+		d.testing,
 		d.beads,
 		d.github,
 	}

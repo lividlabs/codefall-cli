@@ -871,6 +871,69 @@ Decided at scaffold, 2026-08-16.
   writes are static embedded text: either the body is filled from settings, or it refers to the
   `test` block without naming the path.
 
+- **The test block and init's testing tree, 2026-09-17.** The first code pull request of the ADR-007
+  stack: `.codefall/settings.json` gains an optional `test` block, `codefall init` gains a step that
+  declares the testing root and makes the tree under it, and `codefall doctor` gains a **Testing**
+  category with three checks. The block is optional at the top level and complete when present, the
+  same rule the review and local blocks follow, so every project set up before it existed is still
+  valid settings. `dir` is required once the block is there and is held to a pattern the schema and
+  the validator share: path segments of ordinary file-name characters, each beginning with one that
+  is not a dot, which makes every root relative and leaves no way to write `..` as a segment, so a
+  declared root cannot climb out of the project that declared it. `runners` is optional and may be
+  empty, because a project declares where its cases go before anything is installed to run them;
+  it is validated against the enum `playwright`, `go-test`, with no duplicates. `TestDeclaration`
+  reads the block and answers None for anything `Validate` would reject, as `LocalCommands` does.
+  **Init asks for the root and never moves one.** The survey asks last, with `testing` as the
+  starting value rather than a silent fallback; `--test-dir` answers for a script, and a first run
+  with no terminal and no flag fails naming the flag, as `--harness` and `--tracker` already do. A
+  rerun reads the root back out of the settings the way the harnesses are read back, and a settled
+  project that declares none is not surveyed at all — the use case takes the format's own default,
+  which is the only place a root is ever inferred. The no-op gate gained one condition for the same
+  reason: an install current in every other way is still work while the root is undeclared, because
+  doctor's remedy for that is this command and the command has to do something.
+  **The declaration is spliced into the settings text rather than encoded with the document.** Most
+  projects will get their block on a rerun, over a file the settings step skips, and decoding that
+  file and encoding it again would reorder every key and drop whatever the project or
+  `codefall-equip` had added to it. The splice puts the block after the last member of the top-level
+  object and leaves every other byte where it was. A block that is already there is left exactly as
+  it is, runners included. The alternative — writing it in the settings step alongside the tracker —
+  was rejected for leaving a settled project no way to declare a root short of `--force`, which
+  rewrites the whole file.
+  **The step is sixth, between the agents step and the ignore step.** It sits beside the agents step
+  because the two write the same pair of documents under the same rule, an `AGENTS.md` and the
+  `CLAUDE.md` that points at it, and it has to precede the ignore step, which keeps the root's run
+  output out of the repository and cannot name a root before one is declared. The tree is `<root>/`,
+  `<root>/test-cases/`, and skeleton `AGENTS.md` and `README.md` files embedded in the domain beside
+  the section markdown; the `CLAUDE.md` pointer is the same line the project root gets and only for
+  Claude Code. Each file is written only when it is missing and never rewritten, so the report names
+  the files it wrote and the directories are made whatever it finds — `MkdirAll` on a directory that
+  is there does nothing, and initcmd's file-system gateway has no cheaper way to ask.
+  **The files the step creates are recorded in no manifest.** The `shared` entry is what one run
+  wrote into `.codefall/` and may replace; these are the project's documents from the moment they
+  exist, and recording them would invite a later clean-up to delete somebody's own `AGENTS.md`. What
+  records the tree is the `test` block, and `test-dir-exists` is the check that reads it.
+  **The `CODEFALL TESTING` section fills a placeholder from the declared root**, which is the
+  question ADR-007 left open. The two sections beside it are static text; this one names a path the
+  project chose, so the embedded markdown carries `{{TESTING_ROOT}}` and the domain substitutes it.
+  The alternative was a section naming the `test` block instead of the path, and that leaves every
+  reader of `AGENTS.md` a lookup to perform before it can act — and the reader is an agent reading
+  one file for its rules. Otherwise the section is handled exactly as the other two: its own marker
+  pair, replaced between the markers, appended at the end of a file that has no markers, and an
+  unclosed marker stops the run before anything is written.
+  **The ignore step writes four entries rather than two**, `.codefall/tests/` in `.ignore` beside the
+  review findings and `<root>/.artifacts/` in `.gitignore` beside the refresh stamp. It now reads and
+  writes each file once however many entries it is missing, which is what keeps a project set up
+  before the second entry existed from being told twice about one file. Doctor's two ignore checks
+  became a table of three, the third being `tests-ignored`: the two were already the same function
+  written twice, and each entry keeps its own check ID, title, and remedy rather than widening
+  `reviews-ignored` to mean something its name does not say.
+  **Doctor's Testing category sits between Local environment and Beads**, where the split is between
+  what the project declares and what is on the machine. `test-declared` warns when there is no block,
+  with `codefall init`; `test-equipped` warns when no runner is declared, with `/codefall-equip`;
+  `test-dir-exists` fails when the declared directory is not there, because the project declared it
+  and every verb that writes or runs a case looks for it. A project with no declaration skips the two
+  checks below it, which have nothing to ask about until there is a root.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

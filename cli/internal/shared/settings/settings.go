@@ -45,6 +45,27 @@ const (
 	BlockLocal       = "local"
 	FieldLocalStart  = "start"
 	FieldLocalUpdate = "update"
+	// BlockTest is what the project has declared about its test cases (ADR-007): where they live,
+	// and which runners are installed to run them. The division is by reader — what a program reads
+	// is here, and what an agent reads is in the testing root's own AGENTS.md — so the block holds
+	// the runner's name and never the command that runs it.
+	BlockTest    = "test"
+	FieldTestDir = "dir"
+	// FieldTestRunners is written by codefall-equip rather than by hand: a runner is declared once it
+	// is installed, and installing it is what equip does.
+	FieldTestRunners = "runners"
+	// DefaultTestDir is the root a project takes when it has no reason to choose another. codefall
+	// init offers it as the answer and nothing infers it at run time.
+	DefaultTestDir = "testing"
+	// TestDirPattern is how a testing root may be written: path segments of ordinary file-name
+	// characters, each beginning with one that is not a dot. That makes every root relative — no
+	// leading slash and no drive letter — and leaves no way to write "." or ".." as a segment, so a
+	// declared root cannot climb out of the project that declared it.
+	TestDirPattern = `^[A-Za-z0-9_-][A-Za-z0-9._-]*(/[A-Za-z0-9_-][A-Za-z0-9._-]*)*$`
+	// The runners codefall knows. A runner is chosen per surface: Playwright for a browser front end,
+	// an Electron shell, or an HTTP API; go test for a Go surface (ADR-007).
+	RunnerPlaywright = "playwright"
+	RunnerGoTest     = "go-test"
 	// FieldHarnesses is the harnesses a project is set up for. It is required: which harnesses a
 	// project uses is a decision the project made, and codefall cannot work it out from which
 	// directories happen to exist — several harnesses share one, and codefall writes those
@@ -55,9 +76,10 @@ const (
 // The .ignore file, which is not settings but is the other file init writes and doctor checks — so
 // it lives here for the same reason the settings format does (ADR-003).
 //
-// codefall-review commits its findings so that patterns across reviews stay visible, which puts old
-// findings in the same tree as the code. Ripgrep reads .ignore and git does not, so one line keeps
-// them out of every search that goes through ripgrep while leaving them tracked.
+// codefall-review commits its findings so that patterns across reviews stay visible, and an agentic
+// test run commits its report for the same reason (ADR-007), which puts both in the same tree as the
+// code. Ripgrep reads .ignore and git does not, so one line each keeps them out of every search that
+// goes through ripgrep while leaving them tracked.
 const (
 	// IgnoreName is the file, beside .codefall/ rather than at the repository root: a run below the
 	// root installs there, and ripgrep reads .ignore files down the tree.
@@ -66,6 +88,10 @@ const (
 	IgnoreEntry = ".codefall/reviews/"
 	// IgnoreComment says why the line is there, for whoever finds the file later.
 	IgnoreComment = "# codefall review findings: tracked in git, skipped by ripgrep."
+	// IgnoreEntryTests is the same treatment for the run reports codefall-test commits, which are
+	// prose about a run and would otherwise be read as part of the codebase.
+	IgnoreEntryTests   = ".codefall/tests/"
+	IgnoreTestsComment = "# codefall test run reports: tracked in git, skipped by ripgrep."
 )
 
 // The refresh stamp and the .gitignore entry that keeps it out of the repository (ADR-005). The
@@ -79,24 +105,24 @@ const (
 	RefreshStamp = ".codefall/refresh.stamp"
 	// GitIgnoreComment says why the line is there, for whoever finds the file later.
 	GitIgnoreComment = "# codefall refresh stamp: the commit this machine's local environment was last brought current at."
+	// TestArtifactsComment says why a testing root's run output is kept out of the repository: it is
+	// what a run produced on one machine, and the report beside it is what the run had to say
+	// (ADR-007).
+	TestArtifactsComment = "# codefall test run output: logs, traces, reports, and whatever a run created."
 )
 
-// IgnoresReviews reports whether a .ignore file's contents already name the reviews directory.
+// TestArtifacts is the .gitignore entry for a testing root's run output. The root is the project's
+// to choose, so the entry is built from it rather than written down.
+func TestArtifacts(root string) string {
+	return strings.TrimSuffix(root, "/") + "/.artifacts/"
+}
+
+// NamesEntry reports whether an ignore file's contents already name an entry.
 //
 // The comparison is per line and ignores surrounding space, so an entry someone indented still
 // counts and a commented-out one does not — ripgrep does not read the comment either. Both
-// components need the same answer: init decides whether to append, doctor decides whether to fail.
-func IgnoresReviews(body string) bool {
-	return namesEntry(body, IgnoreEntry)
-}
-
-// IgnoresStamp reports whether a .gitignore file's contents already name the refresh stamp, by the
-// same rule.
-func IgnoresStamp(body string) bool {
-	return namesEntry(body, RefreshStamp)
-}
-
-func namesEntry(body, entry string) bool {
+// components need the same answer: init decides whether to append, doctor decides whether to warn.
+func NamesEntry(body, entry string) bool {
 	for line := range strings.SplitSeq(body, "\n") {
 		if strings.TrimSpace(line) == entry {
 			return true
@@ -106,7 +132,10 @@ func namesEntry(body, entry string) bool {
 	return false
 }
 
-var repoRegexp = regexp.MustCompile(RepoPattern)
+var (
+	repoRegexp    = regexp.MustCompile(RepoPattern)
+	testDirRegexp = regexp.MustCompile(TestDirPattern)
+)
 
 // fieldSpec is one row of the settings shape. Check returns "" when the value is acceptable and the
 // reason it is not otherwise.
@@ -118,8 +147,8 @@ type fieldSpec struct {
 
 // topLevelFields is the settings file's own shape. Definition order is report order.
 //
-// The review and local blocks are optional at the top level and complete when they are there: a
-// project set up before a block existed is still valid settings, and one that carries it carries
+// The review, local, and test blocks are optional at the top level and complete when they are there:
+// a project set up before a block existed is still valid settings, and one that carries it carries
 // every field.
 var topLevelFields = []fieldSpec{
 	{"$schema", false, isString},
@@ -128,6 +157,7 @@ var topLevelFields = []fieldSpec{
 	{FieldHarnesses, true, isHarnesses},
 	{BlockReview, false, isObject},
 	{BlockLocal, false, isObject},
+	{BlockTest, false, isObject},
 }
 
 // reviewFields is the shape of the review block, which codefall-review reads and nothing else
@@ -149,6 +179,35 @@ var localFields = []fieldSpec{
 type Local struct {
 	Start  string
 	Update string
+}
+
+// testFields is the shape of the test block. The directory is required once the block is there —
+// nothing else in the block means anything without it, and codefall init is what asks for it — while
+// the runners are optional, because a project declares its root before it is equipped and
+// codefall-equip writes the runners afterwards (ADR-007).
+var testFields = []fieldSpec{
+	{FieldTestDir, true, isTestDir},
+	{FieldTestRunners, false, isRunners},
+}
+
+// Test is the test block's declaration, read out of a document that Validate accepts: where the
+// cases live, and which runners are installed. Runners is empty for a project that has declared a
+// root and is not equipped yet.
+type Test struct {
+	Dir     string
+	Runners []string
+}
+
+// testRunners is every runner codefall knows, as a set, so the validator and the schema read one
+// definition.
+var testRunners = map[string]bool{
+	RunnerPlaywright: true,
+	RunnerGoTest:     true,
+}
+
+// TestRunners returns the known runner names, sorted.
+func TestRunners() []string {
+	return slices.Sorted(maps.Keys(testRunners))
 }
 
 // trackerFields is the shape of each known tracker's block, keyed by the value of "tracker" that
@@ -193,6 +252,12 @@ func RequiredReviewFields() []string {
 // definition order.
 func RequiredLocalFields() []string {
 	return requiredNames(localFields)
+}
+
+// RequiredTestFields returns the fields the test block must carry once it is present, in definition
+// order.
+func RequiredTestFields() []string {
+	return requiredNames(testFields)
 }
 
 // Harnesses returns the harnesses a document names, in the order it names them. A document whose
@@ -243,6 +308,52 @@ func LocalCommands(doc Document) mo.Option[Local] {
 	return mo.Some(Local{Start: startText, Update: updateText})
 }
 
+// TestDeclaration returns what the document declares about testing, and None when it declares
+// nothing. A block Validate would reject — no directory, a directory that is not a relative path, a
+// runner codefall does not know — is None here too, by the same rule the local block follows: the
+// caller has already been told what is wrong with it, and a block nothing can act on is not a
+// declaration (ADR-007).
+func TestDeclaration(doc Document) mo.Option[Test] {
+	value, present := lookup(doc, BlockTest)
+	if !present {
+		return mo.None[Test]()
+	}
+
+	block, ok := value.(map[string]any)
+	if !ok {
+		return mo.None[Test]()
+	}
+
+	dir, dirPresent := lookup(block, FieldTestDir)
+	if !dirPresent {
+		return mo.None[Test]()
+	}
+
+	root, isText := dir.(string)
+	if !isText || isTestDir(root) != "" {
+		return mo.None[Test]()
+	}
+
+	declared := Test{Dir: root}
+
+	runners, listed := block[FieldTestRunners]
+	if !listed || runners == nil {
+		return mo.Some(declared)
+	}
+
+	if isRunners(runners) != "" {
+		return mo.None[Test]()
+	}
+
+	values, _ := runners.([]any)
+	for _, value := range values {
+		name, _ := value.(string)
+		declared.Runners = append(declared.Runners, name)
+	}
+
+	return mo.Some(declared)
+}
+
 func requiredNames(fields []fieldSpec) []string {
 	names := []string{}
 
@@ -274,6 +385,18 @@ func ParseTracker(name string) (string, error) {
 func ValidateRepo(repo string) error {
 	if !repoRegexp.MatchString(repo) {
 		return fmt.Errorf("repository %q must be written as owner/name", repo)
+	}
+
+	return nil
+}
+
+// ValidateTestDir reports whether a testing root is written the way the format accepts one. It is
+// the field-level half of the table's own check, for the form that validates the answer as it is
+// typed, before there is a document to hold it.
+func ValidateTestDir(dir string) error {
+	if !testDirRegexp.MatchString(dir) {
+		return fmt.Errorf("testing directory %q must be a relative path inside the project, such as %q",
+			dir, DefaultTestDir)
 	}
 
 	return nil
@@ -320,14 +443,15 @@ func Validate(doc Document) []string {
 		}
 	}
 
-	// The review and local blocks are independent of the tracker, so they are checked before the
-	// tracker's own block decides whether there is anything further to say.
+	// The review, local, and test blocks are independent of the tracker, so they are checked before
+	// the tracker's own block decides whether there is anything further to say.
 	for _, block := range []struct {
 		name   string
 		fields []fieldSpec
 	}{
 		{BlockReview, reviewFields},
 		{BlockLocal, localFields},
+		{BlockTest, testFields},
 	} {
 		if _, present := lookup(doc, block.name); present && !rejected[block.name] {
 			problems = append(problems, validateBlock(doc, block.name, block.fields)...)
@@ -481,6 +605,53 @@ func isHarnesses(v any) string {
 		if _, err := harness.Parse(name); err != nil {
 			return unknownValue(name, harness.All())
 		}
+	}
+
+	return ""
+}
+
+// isTestDir accepts the testing root: a relative path inside the project, which is what makes it
+// mean the same thing to every machine the project is checked out on.
+func isTestDir(v any) string {
+	dir, ok := v.(string)
+	if !ok {
+		return "must be a string"
+	}
+
+	if !testDirRegexp.MatchString(dir) {
+		return fmt.Sprintf("must be a relative path inside the project, such as %q", DefaultTestDir)
+	}
+
+	return ""
+}
+
+// isRunners accepts the runners a project has installed: any number of them, each one codefall
+// knows, and none of them twice. An empty list is accepted rather than refused, because it is what a
+// project that has declared a testing root and not been equipped yet looks like — doctor reports
+// that and codefall-equip fills it in (ADR-007).
+func isRunners(v any) string {
+	values, ok := v.([]any)
+	if !ok {
+		return "must be an array of runner names"
+	}
+
+	seen := map[string]bool{}
+
+	for _, value := range values {
+		name, ok := value.(string)
+		if !ok {
+			return "must be an array of runner names"
+		}
+
+		if !testRunners[name] {
+			return unknownValue(name, TestRunners())
+		}
+
+		if seen[name] {
+			return fmt.Sprintf("names %q twice", name)
+		}
+
+		seen[name] = true
 	}
 
 	return ""

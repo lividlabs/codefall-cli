@@ -31,17 +31,20 @@ func (s Status) String() string {
 }
 
 // Category is the part of a project's setup a check belongs to. The report groups by category, so a
-// healthy project is five lines rather than fifteen.
+// healthy project is six lines rather than nineteen.
 type Category struct {
 	ID    string
 	Title string
 }
 
-// The five categories, in the order doctor reports them.
+// The six categories, in the order doctor reports them. Testing sits between Local environment and
+// Beads for the same reason Local environment sits where it does: the first four are about the
+// project, and the last two are about tools on the machine.
 var (
 	CategorySettings  = Category{ID: "settings", Title: "Settings"}
 	CategoryHarnesses = Category{ID: "harnesses", Title: "Harnesses"}
 	CategoryLocal     = Category{ID: "local", Title: "Local environment"}
+	CategoryTesting   = Category{ID: "testing", Title: "Testing"}
 	CategoryBeads     = Category{ID: "beads", Title: "Beads"}
 	CategoryGitHub    = Category{ID: "github", Title: "GitHub CLI"}
 )
@@ -83,13 +86,15 @@ func (c Check) Fail(detail string, remedy mo.Option[string]) Result {
 	return Result{Check: c, Status: StatusFail, Detail: mo.Some(detail), Remedy: remedy}
 }
 
-// The fifteen checks doctor runs, in the order it runs them.
+// The nineteen checks doctor runs, in the order it runs them.
 var (
 	CodefallDir      = Check{ID: "codefall-dir", Title: ".codefall/ exists", Category: CategorySettings}
 	SettingsFile     = Check{ID: "settings-file", Title: ".codefall/settings.json exists", Category: CategorySettings}
 	SettingsJSON     = Check{ID: "settings-json", Title: "settings.json is valid JSON", Category: CategorySettings}
 	SettingsComplete = Check{ID: "settings-complete", Title: "settings.json is complete", Category: CategorySettings}
 	ReviewsIgnored   = Check{ID: "reviews-ignored", Title: ".ignore hides review findings", Category: CategorySettings}
+	// TestsIgnored is the same question for the reports an agentic test run commits (ADR-007).
+	TestsIgnored = Check{ID: "tests-ignored", Title: ".ignore hides test run reports", Category: CategorySettings}
 	// StampIgnored is whether the refresh stamp, a per-machine file, is kept out of the repository.
 	StampIgnored = Check{ID: "stamp-ignored", Title: ".gitignore hides the refresh stamp", Category: CategorySettings}
 	// HarnessesInstalled is whether codefall's extension is actually where each harness the settings
@@ -107,6 +112,15 @@ var (
 	// the project when the command names a path.
 	LocalRunnable = Check{ID: "local-runnable",
 		Title: "the local commands name programs that exist", Category: CategoryLocal}
+	// TestDeclared is whether the settings say where the project's test cases live (ADR-007).
+	TestDeclared = Check{ID: "test-declared",
+		Title: "the testing root is declared", Category: CategoryTesting}
+	// TestEquipped is whether a runner is declared, which is what says the harness has been set up.
+	TestEquipped = Check{ID: "test-equipped",
+		Title: "a test runner is declared", Category: CategoryTesting}
+	// TestDirExists is whether the directory the project declared is there for a verb to find.
+	TestDirExists = Check{ID: "test-dir-exists",
+		Title: "the declared testing directory exists", Category: CategoryTesting}
 	BeadsInstalled   = Check{ID: "bd-installed", Title: "bd is on PATH", Category: CategoryBeads}
 	BeadsInitialized = Check{ID: "beads-initialized", Title: "Beads is initialized here", Category: CategoryBeads}
 	GHInstalled      = Check{ID: "gh-installed", Title: "gh is on PATH", Category: CategoryGitHub}
