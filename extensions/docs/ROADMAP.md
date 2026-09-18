@@ -32,4 +32,5 @@ The process resembles the waterfall process of yore but the ability it iterate o
  - [x] implement skill integrated with Beads, including the concept transition to `Active`
  - [x] review skill: findings under `.codefall/reviews/`, reviewed by a subagent or another harness
  - [x] test skill: case files under the testing root, the `spec` and `agentic` modalities, run reports under `.codefall/tests/`
+ - [x] equip sets the test harness up as well as the local scripts: a spec runner per surface, declared in `test.runners` and with its commands recorded in the testing root's `AGENTS.md`
  - [ ] scaffold skill for Flutter projects

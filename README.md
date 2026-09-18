@@ -120,7 +120,7 @@ TODO: rename the skill names to the actual
 | [`implement`](extensions/skills/codefall-implement/SKILL.md) | Execute the graph: claim ready beads, build each in an isolated worker worktree with tests as part of done, verify against acceptance criteria, open PRs, and walk the waves until the frontier is empty. Never merges to `main`. | in progress |
 | [`review`](extensions/skills/codefall-review/SKILL.md) | Review something and fix what the user accepts: uncommitted work, a branch, an open pull request, a path, a document, or a description of what to look at. A subagent or another harness reviews, the session triages with you and applies what you take, and every finding is committed under `.codefall/reviews/`. | in progress |
 | [`test`](extensions/skills/codefall-test/SKILL.md) | Run what the project declares: every suite, the subset your changed files reach, a named subset, or one test case in its `spec` or `agentic` modality. A spec case runs through the project's own runner; an agentic case is driven step by step through a browser or the shell and judged against the case's criteria. Every run is reported under `.codefall/tests/`. | in progress |
-| [`equip`](extensions/skills/codefall-equip/SKILL.md) | Equip a project with the two local-environment scripts `refresh` runs — `start`, which brings its services up, and `update`, which makes the local environment match the checkout — by finding what the project already has or drafting them from what the repository shows, then declaring them in `.codefall/settings.json`. | in progress |
+| [`equip`](extensions/skills/codefall-equip/SKILL.md) | Equip a project with what the other verbs need it to have: the local-environment scripts `refresh` runs — `start`, which brings its services up, and `update`, which makes the local environment match the checkout — and the test harness `test` runs cases through, a spec runner per surface pointed at the testing root. Finds what the project already has or drafts it from what the repository shows, then declares it in `.codefall/settings.json`. | in progress |
 | [`refresh`](extensions/skills/codefall-refresh/SKILL.md) | Bring the checkout and the local environment current: fetch, fast-forward `main` when that is safe, run the declared `start` and `update`, record the commit the environment now matches, and turn a failure into a sentence that says what to do. The routine before starting new work. | in progress |
 
 ### Concepts
@@ -363,6 +363,17 @@ real bug, a wrong expectation, a flake, or agent variance with an occurrence cou
 tracker issues only when you say so. Setting the runner up is `equip`'s job, writing the case is
 `implement`'s, and `test` names the remedy when either is missing rather than doing it for you.
 
+**`equip` sets the runner up, as its own pull request.** It reads the testing root, searches for a
+runner configuration and for wherever your end-to-end tests live today, and asks one question with
+what it found: declare what is already there, or set up the default for each surface — Playwright
+for a browser front end, an Electron shell, or an HTTP API; `go test` for a Go surface. React
+Native, Tauri, and Flutter have no spec runner in this version and are refused for that modality,
+with agentic cases still open to them. What it writes is the runner's configuration pointed at
+`<root>/test-cases`, the runner's name in `test.runners`, its run-all and run-one commands in the
+testing root's `AGENTS.md`, and whatever the runner's own install needs — Playwright's browsers, for
+one — added to `update`. The proof is the runner listing nothing against an empty tree. Nothing
+rides along: a task's pull request never sets up a harness.
+
 ### Reviews
 
 `review` reads something, says what is wrong with it, and fixes what you accept. Point it at nothing
@@ -410,7 +421,8 @@ under `local` in `.codefall/settings.json` as plain shell commands, so a Makefil
 package script is as good as a script of the project's own, and anyone can run them from a terminal.
 On an existing project `equip` searches first and asks one question with what it found; on a new
 one `scaffold` writes them at code depth. Both are idempotent and never destructive: "bring the
-project up to date?" has to be a question anyone can always answer yes to.
+project up to date?" has to be a question anyone can always answer yes to. The scripts are one of
+`equip`'s two tracks — the test harness above is the other — and one run equips one of them.
 
 **`refresh` runs them, and is the thing to run instead of pulling by hand.** It fetches,
 fast-forwards `main` when the tree is clean and the move is safe, runs `start`, runs `update` when

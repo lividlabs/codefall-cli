@@ -20,6 +20,10 @@ The following items are outstanding in order to complete the first verion of the
   - on an existing repo, search first and confirm with evidence: name the candidate scripts it
     found and ask whether to declare them or draft new ones; a candidate that fails the contract
     (not idempotent) is reported, never declared
+  - [x] a second track for the test harness: search for a runner configuration, ask one question,
+    set up the runner each surface takes, declare it in `test.runners`, record its commands in the
+    testing root's `AGENTS.md`, and revise `update` for the runner's own install; setting a harness
+    up is its own pull request
 - [x] `refresh` — bring the checkout and the local environment current: start what is down, run
   `update`, record the stamp, explain failures in plain terms; never drafts a script
 - [x] point-of-introduction rules — `design` names the script change in the task, `implement`

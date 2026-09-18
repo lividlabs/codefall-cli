@@ -934,6 +934,47 @@ Decided at scaffold, 2026-08-16.
   and every verb that writes or runs a case looks for it. A project with no declaration skips the two
   checks below it, which have nothing to ask about until there is a root.
 
+- **Equip sets the test harness up, 2026-09-17.** The third code pull request of the ADR-007 stack.
+  `codefall-equip` now equips two things: the local scripts it already owned, and the spec runner
+  `codefall-test` runs cases through. ADR-005 never restricted what equip may own, so the widening is
+  a change to its own `SKILL.md` and nothing else.
+  **The testing procedure went in as a second track chosen by the argument**, `local` or `test`,
+  rather than as more steps on the existing one. The two share the search-first shape and nothing
+  else — different evidence, a different question, a different block written, a different proof — and
+  in the user's project they are two pull requests, so a single run would have put two confirmation
+  gates and two real-service proofs in one turn and made a user who came to revise `update` sit
+  through a runner interview. The argument is also what lets `codefall-scaffold` and
+  `codefall-implement` name the track they follow, which is the local one in both cases. The
+  local-scripts procedure and its contract are unchanged.
+  **The detail lives in `reference/testing.md`**, because `SKILL.md` had about 1,800 tokens of
+  headroom and the procedure needs a configuration file, two runners' commands, and a table of what
+  to search for. The skill carries the eight steps and the gates; the reference carries what each
+  step writes.
+  **The runner follows the surface**, per ADR-007: Playwright for a browser front end, an Electron
+  shell, or an HTTP API; `go test` for a Go surface; React Native, Tauri, and Flutter refused for the
+  `spec` modality in this version, with agentic cases still open to them. A runner outside the two
+  names the settings enum accepts — Cypress, WebdriverIO — is reported as exactly that rather than
+  declared under a name it does not have, because `test.runners` is what the check scripts and doctor
+  read. Setting a Playwright configuration up means `testDir` on `<root>/test-cases` so a spec is
+  collected where its case already sits, `testMatch` on the `.e2e.ts` suffix so the case's own
+  markdown is never collected, `retries: 0` and one worker, and every artefact under the git-ignored
+  `<root>/.artifacts/`. `go test` means a package under `<root>/test-cases/<area>/` with the
+  `_e2e_test.go` suffix and a `//go:build e2e` tag, so an ordinary unit run never reaches one.
+  **The proof is an empty tree.** The runner's list command against no cases shows the configuration
+  collects from the declared root, and `check-cases.sh` passes with zero cases while proving the root
+  it reads is the root the configuration points at. Writing a case to prove the runner would put
+  authoring in the wrong verb. `go test` has nothing to compile until the first spec exists and
+  answers `matched no packages`; that is recorded as the expected answer rather than worked around.
+  **The runner's own install is an `update` step**, revised by the local track's step 3 — Playwright's
+  browsers are in no lockfile — which keeps the contract, since installing browsers already present
+  exits `0` quickly.
+  **Preflight gained the `test=` line** beside `local=`: `undeclared` when there is no block or one
+  `Validate` would reject, `unequipped` when no runner is named, `equipped` when one is. Without jq it
+  answers `unknown` where a `test` key is present, since the runners cannot be read, and `undeclared`
+  where the key is absent — the one place it does not copy `local`, which answers `unknown` for an
+  absent key. Exit codes are untouched; the line was proven against four settings files and against a
+  `PATH` with no jq on it.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

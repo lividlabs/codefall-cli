@@ -3,7 +3,7 @@
 Why `SKILL.md` looks the way it does: what was taken from elsewhere, what was rejected, and what was
 tried and dropped. None of this is instruction — the skill is the instruction. This exists so nobody
 re-adds something that was removed on purpose. The reasoning behind the contract itself is
-ADR-005 in the repository's `docs/adrs/`.
+ADR-005 in the repository's `docs/adrs/`, and the reasoning behind the testing track is ADR-007.
 
 ## Taken
 
@@ -23,6 +23,12 @@ anything is declared, and the user takes it or not.
 **`codefall-implement`'s definition of done** — a change that makes the scripts stale changes the
 scripts in the same pull request, the same way tests and docs are part of done rather than a
 follow-up.
+
+**demo-flights' `dev-test-backfill`, step 1** — a testing cycle does not grow its own tooling. There,
+a state no existing harness can produce is recorded as an unforceable criterion rather than
+answered by building something new mid-run. Codefall takes the same position and makes it
+structural: the harness is built by this verb, in its own pull request, and no run that is about
+cases changes what runs them.
 
 ## Rejected
 
@@ -62,3 +68,28 @@ the one thing in this skill that reaches outside the repository, so it is a yes-
 
 **Two calls of `update` are the proof.** The second call exiting `0` quickly is the contract made
 observable: cheap when nothing changed, and safe to run again.
+
+**Two tracks chosen by the argument, rather than one run that does both.** The testing procedure
+went in as a second Process section, picked by `local` or `test`, and not as steps 7 onward of the
+existing one. The two share the search-first shape and nothing else: different evidence, a different
+question, a different block written, a different proof, and in the user's project a different pull
+request. A single run would put two confirmation gates and two real-service proofs in one turn, and
+would leave a user who came to revise `update` after adding a migration waiting through a runner
+interview. The argument also gives `codefall-scaffold` and `codefall-implement` a way to name the
+track they follow, which is the local one in both cases.
+
+**The harness is its own pull request.** ADR-005's point-of-introduction rule makes a task's pull
+request carry the script change the task caused, and stops there. Setting a runner up is not caused
+by a task: it adds a dependency, a configuration file, an `update` step, and a settings key, none of
+which the task's reviewer asked to read. `codefall-implement` names this skill and leaves the beads
+that need a case unstarted instead.
+
+**Names in settings, commands in the testing root's `AGENTS.md`.** The split is by reader. Programs
+read the runner names — the check scripts decide which runner-specific rules apply, doctor decides
+whether the project is equipped — and only a person or an agent runs a command, which is also the
+only part that varies with the project's own idiom.
+
+**An empty tree is what proves a harness.** The runner's list command against no cases shows the
+configuration collects from the declared root, and that is the whole claim this verb makes. Writing
+a case to prove the runner would put authoring in the wrong verb and leave a test behind that nobody
+designed.
