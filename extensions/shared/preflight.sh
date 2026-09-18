@@ -19,6 +19,8 @@
 #   default_branch   the branch origin/HEAD names, else main or master when one exists
 #   behind / ahead   commits on origin/<default_branch> not in HEAD, and the reverse
 #   local            declared | undeclared | unknown — whether settings carry a `local` block
+#   test             undeclared | unequipped | equipped | unknown — whether settings carry a `test`
+#                    block, and whether it names a runner (ADR-007)
 #   refresh_stamp    the commit `refresh` last succeeded at, or `none`
 #   refresh          current | stale | undeclared — the stamp against HEAD, when declared
 #
@@ -94,6 +96,36 @@ local_declared() {
   fi
 }
 
+# Where the project stands on testing: no `test` block is `undeclared`, a block naming no runner is
+# `unequipped`, and a block naming one is `equipped` (ADR-007). A block `Validate` would reject —
+# `dir` missing or not a string — is `undeclared`, because nothing can read a root that is not
+# there. Without jq a `test` key anywhere counts as declared, but its runners cannot be read, so the
+# state is `unknown` — the word `local` falls back to when it cannot see a shape — and a file with no
+# `test` key at all is `undeclared`.
+test_state() {
+  if [ ! -f "$settings_file" ]; then
+    printf 'undeclared\n'
+    return
+  fi
+
+  if command -v jq >/dev/null 2>&1; then
+    if ! jq -e '(.test.dir | type) == "string"' "$settings_file" >/dev/null 2>&1; then
+      printf 'undeclared\n'
+    elif jq -e '((.test.runners // []) | length) > 0' "$settings_file" >/dev/null 2>&1; then
+      printf 'equipped\n'
+    else
+      printf 'unequipped\n'
+    fi
+    return
+  fi
+
+  if grep -q '"test"[[:space:]]*:' "$settings_file" 2>/dev/null; then
+    printf 'unknown\n'
+  else
+    printf 'undeclared\n'
+  fi
+}
+
 checkout() {
   if [ "$(git rev-parse --is-inside-work-tree 2>/dev/null)" != "true" ]; then
     emit "checkout=not_a_repository"
@@ -135,6 +167,7 @@ checkout() {
   local declared
   declared=$(local_declared)
   emit "local=$declared"
+  emit "test=$(test_state)"
 
   local stamped=""
   if [ -f "$stamp_file" ]; then
