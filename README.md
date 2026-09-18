@@ -92,6 +92,15 @@ missing, and a rerun never rewrites one. `.ignore` gains the two directories cod
 nobody greps, and `.gitignore` gains the refresh stamp and the testing root's `.artifacts/`.
 [ADR-007](docs/adrs/ADR-007-test-cases.md) records what the tree is for.
 
+Init also registers two hooks with each harness that reads them, merged into the harness's own hook
+file beside whatever the project already registered. A `PreToolUse` guard denies any command that
+would merge or push to the default branch. A `SessionStart` notice says what the project needs done
+— the checkout behind the default branch, an environment that has not been refreshed since `HEAD`
+moved, a testing root or a runner nobody has declared, a Beads precondition that is blocking — and
+prints nothing when everything is current. It reports and names the verb that fixes each thing; it
+never pulls, never runs the project's `update`, and never fails a session it could not read.
+Antigravity has no session event, so it gets the guard alone.
+
 `codefall doctor` reports on the declaration in a **Testing** category: it warns when no testing root
 is declared, naming `codefall init`; warns when no test runner is declared, naming `/codefall-equip`;
 and fails when the directory the project declared is not there. Like every other category, it names
@@ -452,7 +461,8 @@ dependency, a migration, or generated code changes the scripts in the same pull 
 names it in the task, `implement` counts it toward done, `review` carries a lens for it. `init`
 writes the rule into `AGENTS.md`, `doctor` checks the declaration and that the stamp is
 git-ignored, and every verb that reads the repository reports when `main` has moved or the
-environment is stale.
+environment is stale. The session-start notice reports the same two things as the session opens,
+so the first thing you hear about a moved `main` is not the merge conflict.
 
 ### The stance
 

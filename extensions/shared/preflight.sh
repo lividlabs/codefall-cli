@@ -9,13 +9,18 @@
 # precondition: setup is done or it is not. The script reports which, and never repairs anything —
 # a skill reads the key=value lines to tell the user what is missing and which command fixes it.
 #
-# Usage: preflight.sh [project-dir]      (default: .)
+# Usage: preflight.sh [--no-fetch] [project-dir]      (default: .)
+#
+# --no-fetch skips `git fetch` and emits `fetch=skipped`; `behind` and `ahead` are then answered
+# from the refs the checkout already has. Nothing else changes. It is for a caller that cannot
+# wait on the network — the session-start notice hook is the one that asks for it — and every
+# skill runs the default, which fetches.
 #
 # Checkout lines (always emitted inside a repository)
 #   checkout         ok | not_a_repository | no_remote | no_default_branch
 #   branch           the current branch, or `detached`
 #   dirty            true when the working tree has changes, staged or not
-#   fetch            ok | failed — `git fetch origin`, without prompting for credentials
+#   fetch            ok | failed | skipped — `git fetch origin`, without prompting for credentials
 #   default_branch   the branch origin/HEAD names, else main or master when one exists
 #   behind / ahead   commits on origin/<default_branch> not in HEAD, and the reverse
 #   local            declared | undeclared | unknown — whether settings carry a `local` block
@@ -33,6 +38,12 @@
 set -uo pipefail
 
 emit() { printf '%s\n' "$*"; }
+
+fetching=yes
+if [ "${1:-}" = "--no-fetch" ]; then
+  fetching=
+  shift
+fi
 
 project_dir=${1:-.}
 
@@ -142,7 +153,9 @@ checkout() {
 
   if git remote get-url origin >/dev/null 2>&1; then
     # Never wait on a credential prompt: a skill runs this with nobody at the keyboard for it.
-    if GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="ssh -o BatchMode=yes" \
+    if [ -z "$fetching" ]; then
+      emit "fetch=skipped"
+    elif GIT_TERMINAL_PROMPT=0 GIT_SSH_COMMAND="ssh -o BatchMode=yes" \
       git fetch --quiet origin >/dev/null 2>&1; then
       emit "fetch=ok"
     else

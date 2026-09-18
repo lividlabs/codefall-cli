@@ -17,17 +17,27 @@ import (
 
 // The definitions the embedded tree serves, one per harness. They mirror extensions/hooks/<harness>/,
 // and the merge reads what comes back through the same doorway the real FS uses.
+// notice is the session-start notice as a definition names it: a codefall script, so the merge
+// knows the entry as codefall's own, beside a prime that is nobody's script.
+const notice = `"$(git rev-parse --show-toplevel)/.codefall/hooks/shared/codefall-session-notice.sh" --hook-json`
+
 var hookDefinitions = map[string][]byte{
 	"hooks/claude/hooks.json": []byte(`{
   "hooks": {
     "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "guard"}]}],
-    "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}]
+    "SessionStart": [
+      {"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]},
+      {"matcher": "", "hooks": [{"type": "command", "command": ` + quoted(notice) + `}]}
+    ]
   }
 }`),
 	"hooks/codex/hooks.json": []byte(`{
   "hooks": {
     "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "guard"}]}],
-    "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}]
+    "SessionStart": [
+      {"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]},
+      {"matcher": "", "hooks": [{"type": "command", "command": ` + quoted(notice) + `}]}
+    ]
   }
 }`),
 	"hooks/antigravity/hooks.json": []byte(`{
@@ -36,6 +46,17 @@ var hookDefinitions = map[string][]byte{
   }
 }`),
 	"hooks/opencode/codefall.js": []byte("// the adapter\n"),
+}
+
+// quoted is a command as the JSON string literal a definition holds it as, so a test can write a
+// command with quotes in it the way the shipped definitions do.
+func quoted(command string) string {
+	encoded, err := json.Marshal(command)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(encoded)
 }
 
 // hookResult is what the fourth step did in a run that got that far.
@@ -171,18 +192,23 @@ func TestHookMergeKeepsWhatTheFileAlreadySays(t *testing.T) {
 	}
 
 	sessions := document.Hooks["SessionStart"]
-	if len(sessions) != 2 || sessions[0].Hooks[0].Command != "echo hello" ||
-		sessions[1].Hooks[0].Command != "bd prime --hook-json" {
-		t.Errorf("SessionStart = %+v, want the project's entry first, codefall's second", sessions)
+	if len(sessions) != 3 || sessions[0].Hooks[0].Command != "echo hello" ||
+		sessions[1].Hooks[0].Command != "bd prime --hook-json" ||
+		sessions[2].Hooks[0].Command != notice {
+		t.Errorf("SessionStart = %+v, want the project's entry first, then the prime and the notice",
+			sessions)
 	}
 }
 
 // A destination that already has every entry in the definition — dedupe is per entry, not all or
 // nothing — is left alone, whatever else the file says.
 func TestHookMergeSkipsWhatIsAlreadyThere(t *testing.T) {
-	const before = `{"hooks": {
+	before := `{"hooks": {
   "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "guard"}]}],
-  "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}]
+  "SessionStart": [
+    {"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]},
+    {"matcher": "", "hooks": [{"type": "command", "command": ` + quoted(notice) + `}]}
+  ]
 }}`
 
 	files := settled(before)
@@ -464,21 +490,19 @@ func TestHookRefusesAHarnessItDoesNotKnow(t *testing.T) {
 	}
 }
 
-// claudeDefinition is the Claude definition with one guard and one prime, as the embedded tree
-// ships them. Tests that care what the merge does with a particular destination seed their own
-// source from it.
+// claudeDefinition is the Claude definition with one guard, one prime, and the session-start
+// notice, as the embedded tree ships them. Tests that care what the merge does with a particular
+// destination seed their own source from it.
 func claudeDefinition(t *testing.T, guard string) map[string][]byte {
 	t.Helper()
 
-	quoted, err := json.Marshal(guard)
-	if err != nil {
-		t.Fatalf("encode %q: %v", guard, err)
-	}
-
 	definitions := maps.Clone(hookDefinitions)
 	definitions["hooks/claude/hooks.json"] = []byte(`{"hooks": {
-  "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": ` + string(quoted) + `}]}],
-  "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}]
+  "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": ` + quoted(guard) + `}]}],
+  "SessionStart": [
+    {"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]},
+    {"matcher": "", "hooks": [{"type": "command", "command": ` + quoted(notice) + `}]}
+  ]
 }}`)
 
 	return definitions
@@ -581,11 +605,15 @@ func TestHookMergeAppendsOnlyTheCommandsThatAreNew(t *testing.T) {
 
 // A project that primes Beads under a narrower matcher has said what it wants. codefall's entry
 // matches everything, so the project's narrowing already covers it: adding it would prime on every
-// session source and twice on the one the project chose.
+// session source and twice on the one the project chose. The notice beside it is codefall's own
+// entry and is already registered here, so the whole definition is a skip.
 func TestHookMergeLeavesANarrowedMatcherAlone(t *testing.T) {
-	const before = `{"hooks": {
+	before := `{"hooks": {
   "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "guard"}]}],
-  "SessionStart": [{"matcher": "startup", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}]
+  "SessionStart": [
+    {"matcher": "startup", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]},
+    {"matcher": "", "hooks": [{"type": "command", "command": ` + quoted(notice) + `}]}
+  ]
 }}`
 
 	files := settled(before)
@@ -601,6 +629,74 @@ func TestHookMergeLeavesANarrowedMatcherAlone(t *testing.T) {
 
 	if got := string(files.files[claudeFull]); got != before {
 		t.Errorf(".claude/settings.json = %q, want it untouched", got)
+	}
+}
+
+// The definition registers two commands on SessionStart: a prime that is nobody's script, and the
+// notice, which is codefall's. A project installed before the notice existed runs the prime already,
+// so only the notice joins — and it joins as its own entry rather than being folded into the one
+// the destination already has.
+func TestHookMergeAddsTheNoticeBesideAPrimeItAlreadyRuns(t *testing.T) {
+	const before = `{"hooks": {
+  "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command", "command": "guard"}]}],
+  "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}]
+}}`
+
+	files := settled(before)
+
+	report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Run(t.Context(), beadsRequest(), nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if got := hookResult(t, report).Outcome; got != domain.OutcomeDone {
+		t.Errorf("outcome = %v, want DONE", got)
+	}
+
+	var commands []string
+	for _, entry := range eventEntries(t, files, "SessionStart") {
+		commands = append(commands, commandsOf(entry)...)
+	}
+
+	if want := []string{"bd prime --hook-json", notice}; !slices.Equal(commands, want) {
+		t.Errorf("SessionStart commands = %q, want %q — the prime runs once and the notice joins",
+			commands, want)
+	}
+}
+
+// The notice is codefall's own entry, known by the script its command names, so a command that
+// changes — the flag, the path a subdirectory install writes in — replaces the registration rather
+// than leaving the old one running beside the new one. Everything else the event holds is the
+// project's: its own entry stays where it is, and the prime is not registered twice.
+func TestHookMergeReplacesTheNoticeWhenItsCommandChanges(t *testing.T) {
+	const stale = `"$(git rev-parse --show-toplevel)/.codefall/hooks/shared/codefall-session-notice.sh"`
+
+	files := settled(`{"hooks": {
+  "SessionStart": [
+    {"matcher": "", "hooks": [{"type": "command", "command": "echo hello"}]},
+    {"matcher": "", "hooks": [{"type": "command", "command": ` + quoted(stale) + `}]},
+    {"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}
+  ]
+}}`)
+
+	report, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).Run(t.Context(), beadsRequest(), nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if got := hookResult(t, report).Outcome; got != domain.OutcomeDone {
+		t.Errorf("outcome = %v, want DONE", got)
+	}
+
+	var commands []string
+	for _, entry := range eventEntries(t, files, "SessionStart") {
+		commands = append(commands, commandsOf(entry)...)
+	}
+
+	want := []string{"echo hello", notice, "bd prime --hook-json"}
+	if !slices.Equal(commands, want) {
+		t.Errorf("SessionStart commands = %q, want %q — the stale notice replaced in place, "+
+			"the project's entry and the prime left as they are", commands, want)
 	}
 }
 

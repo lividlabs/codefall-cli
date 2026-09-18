@@ -1013,6 +1013,40 @@ Decided at scaffold, 2026-08-16.
   `codefall-test` ~2,990. The two large skills have under 60 tokens of headroom each, so the next
   addition to either one moves text to a reference file before it adds a line.
 
+- **The session-start notice, 2026-09-17.** The last pull request of the ADR-007 stack, and the slot
+  the refresh skill left open. `hooks/shared/codefall-session-notice.sh` reads the shared preflight
+  and turns the lines that need attention into one short notice: the checkout behind the default
+  branch, an environment that has not been refreshed since `HEAD` moved or has no scripts declared,
+  a testing root or a runner nobody declared, a blocked Beads precondition quoted with its remedy.
+  Every line names the verb that fixes it. The notice prints nothing when everything is current,
+  always exits `0`, never pulls, never runs `update`, and writes no file — ADR-005's rule about what
+  a hook may do, and the reason a session that cannot be read still opens.
+  **The bound on the fetch is `read -t` rather than `timeout`.** The notice runs preflight and reads
+  its report line by line; every line arrives at once except the one the fetch precedes, so a wait of
+  five seconds for the next line is a wait on the network and nothing else. A report that never
+  reaches its `beads` line is a run the bound cut off, and the notice runs preflight again with
+  `--no-fetch` — the flag preflight gains here, which skips the fetch, emits `fetch=skipped`, and
+  answers `behind` and `ahead` from the refs the checkout already has. `timeout` and `gtimeout` were
+  the obvious bound and were rejected: neither is on a stock macOS, which is where this runs, and
+  taking a coreutils dependency for one hook costs more than the five lines of shell. Preflight's
+  default is untouched, and no skill passes an argument other than the project directory.
+  **The output contract is selected by a flag**, the way the merge guard's `--antigravity` selects
+  its deny shape. `--hook-json` emits `{"hookSpecificOutput": {"hookEventName": "SessionStart",
+  "additionalContext": …}}`, which is what `bd prime --hook-json` already emits into the same event
+  and what Claude Code's and Codex's definitions register the notice beside; plain text is the
+  default, which is what the OpenCode plugin puts into `session.prompt`. A machine with no `python3`
+  to build the JSON with prints the text instead, because Claude Code adds a `SessionStart` hook's
+  plain stdout to the session as well. Antigravity has no session event and registers nothing.
+  **The notice is a second `SessionStart` entry, not a second command inside the prime's entry.**
+  Folded in beside `bd prime`, an upgrade of a project that already runs the prime would append the
+  notice as its own entry — the merge appends only what is new — and the next upgrade would replace
+  that entry with the whole definition, registering the prime a second time. As its own entry it is
+  codefall's by the script its command names, so an upgrade replaces it and leaves the prime and the
+  project's own entries alone. That is the identity rule from **What the hook merge calls the same
+  entry**, exercised for the first time on an event the project also registers things on.
+  The notice does not gate anything: a verb's own preflight run stays unconditional, and both always
+  run.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

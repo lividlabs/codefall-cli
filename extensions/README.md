@@ -21,9 +21,14 @@ This directory is the extension. Everything above it is packaging.
 
 Skills are explicitly invoked and carry `disable-model-invocation: true`, so none fire on their own.
 The extension also ships hooks per harness, defined under [`hooks/`](hooks/): a `PreToolUse` guard
-that denies merges and pushes to the default branch everywhere, plus a `SessionStart` prime on what
-Beads knows for the harnesses that have the event (Claude Code and Codex). The shared script the
-guards run lives in `hooks/shared/`; `codefall init` merges the definitions or copies the plugin.
+that denies merges and pushes to the default branch everywhere, plus, for the harnesses that have
+the event (Claude Code, Codex, and OpenCode), a `SessionStart` prime on what Beads knows and a
+notice naming what the project needs done — the checkout behind the default branch, an environment
+that has not been refreshed since `HEAD` moved, a testing root or a runner nobody has declared, a
+Beads precondition that is blocking. The notice reads the shared preflight, prints nothing when
+everything is current, and reports only: no hook pulls or runs the project's `update`. The shared
+scripts both hooks run live in `hooks/shared/`; `codefall init` merges the definitions or copies
+the plugin.
 
 `codefall init` copies three of the directories here and leaves the rest. `skills/` goes into each
 chosen harness's own skills directory, because that is the only part a harness finds by convention.
