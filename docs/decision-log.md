@@ -819,6 +819,58 @@ Decided at scaffold, 2026-08-16.
   No clean-up, as ADR-006 says: the pull request description lists what an earlier install wrote
   under `.claude/` and `.agents/` that this one does not.
 
+- **The testing decisions, 2026-09-17.** Recorded as ADR-007; the implementation follows in the next
+  five pull requests of this stack — the `test` block and init's tree, the `codefall-test` verb,
+  equip's widened scope, the rules in design and implement, and the session-start notice. The gap is
+  that codefall says where an expectation is written and never what verifies the wired product, and
+  the thing worth writing down is not a procedure but a rule about where an expectation may come
+  from, since a test written from the code certifies the code's bugs as readily as its behaviour.
+  The design is taken from `demo-flights`, ADR 0011 and its `testing/CLAUDE.md`, written for that
+  project's backfill of a shipped flight-booking application. Adopted as it stands: the case file as
+  the one home for a case's inputs, prompts, and expectations; the file path as the identifier with
+  no registry; sibling pairing checked both ways; two modalities and no `manual` one; the two
+  agentic verdict vocabularies and the per-step attempt counts; the anomaly sweep; no mocking at any
+  layer; an unforceable state dropped as a criterion and recorded; and the triage classes, including
+  agent variance as its own class rather than flake, because the nondeterminism is in the product.
+  Left behind, all of it project knowledge rather than contract: the Sabre CERT notes about which
+  routes carry which inventory, the stranded-booking ledger, the npm aliases, and the TypeScript
+  loader the case files are read through. The shape those take here is a scoped `AGENTS.md` under
+  the testing root that the project fills in — S1, **what a program reads is in settings, what an
+  agent reads is in `<root>/AGENTS.md`** — and a runner the project declares.
+  Three things changed on the way across. **GitHub issues stop being the source of criteria**: the
+  model used them because an issue was the only record that predated the code, and codefall has
+  specs with numbered criteria, so a project needs no issue tracker to write a case. **The spec's
+  criteria became the floor rather than the whole list**, which was the QA-expansion concern:
+  pinning a case to the spec alone makes the spec the ceiling too, and boundaries, negative paths,
+  and error handling are the work, so a criterion beyond the spec is marked `derived`, cites the
+  requirement it elaborates, and says in one line what it adds. A gap that turns up goes back to
+  `codefall-specify` rather than being settled in the case, which append-only numbering makes safe.
+  **Agentic run reports are committed** under `.codefall/tests/` beside the review findings, which
+  was Plan B against a Plan A that ignored everything a run produced; split by kind is what it
+  bought — counted variance across runs in prose that is cheap to keep, with the runner output,
+  traces, HTML reports, and run-scoped accounts still ignored under `<root>/.artifacts/`.
+  Alternatives seen and not taken. **Runner names in `<root>/AGENTS.md` with everything else** —
+  amended to settings as S2, because the check scripts and doctor are programs and would be parsing
+  prose; the commands stayed prose, so the split by reader survives with one exception it explains.
+  **A new verb for test setup** rather than widening `codefall-equip`: the narrowing to the `local`
+  block was only ever in equip's own `SKILL.md`, ADR-005 does not restrict it, and a project equips
+  once. **Setup inside the task's pull request** that first needs a case: refused, a task's PR that
+  also installs a test runner is two changes in one review, and the cost taken instead is that a
+  bead can stop with `codefall-equip` named. **`codefall-implement` deciding modality**, which is
+  where it sat first: moved to `codefall-design`, because the derived criteria need a sign-off and
+  the task plan is where the user already approves one, and the bead's criteria are then the signal
+  implement reads to know a case is owed. **A static registry of drivers**: refused, the agent reads
+  its own tool list and names what it found, and one live call proves it before the run depends on
+  it. And the hook: "backup" was a misreading of what the session-start notice is for — it is an
+  early notice and never a conditional gate, so it and every verb's own preflight run both always
+  run.
+  Two things the implementation settles that the record does not. Whether a committed run report is
+  Markdown only, as the model's were, or Markdown beside a JSON record with a schema the way
+  `codefall-review` writes its findings — the JSON would make variance counts mechanical. And how
+  the `CODEFALL TESTING` section names a configurable directory when the two sections init already
+  writes are static embedded text: either the body is filled from settings, or it refers to the
+  `test` block without naming the path.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
