@@ -31,5 +31,5 @@ The process resembles the waterfall process of yore but the ability it iterate o
  - [x] design skill integrated with Beads, this requires a Beads configuration in the application
  - [x] implement skill integrated with Beads, including the concept transition to `Active`
  - [x] review skill: findings under `.codefall/reviews/`, reviewed by a subagent or another harness
- - [ ] test skill
+ - [x] test skill: case files under the testing root, the `spec` and `agentic` modalities, run reports under `.codefall/tests/`
  - [ ] scaffold skill for Flutter projects

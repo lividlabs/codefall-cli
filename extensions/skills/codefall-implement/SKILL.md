@@ -48,7 +48,7 @@ Read each when its step says to; none is loaded up front.
 | --- | --- | --- |
 | Executing tasks from the graph | What the tasks are, or their edges | `codefall-design` |
 | Branches, worktrees, commits, PRs | Merging anything to `main` | the user |
-| Every test the current work needs | Regression campaigns and fresh-context retesting | `test` |
+| Every test the current work needs | Regression campaigns and fresh-context retesting | `codefall-test` |
 | Harness checks on its own diffs | Independent review and verdicts | `review` |
 | Bead lifecycle: claim, close, discovered work | Creating or re-cutting the task graph | `codefall-design` |
 | The concept's `Active` transition | Any other document transition | the owning verb |
@@ -60,7 +60,7 @@ survive contact with the code, say what you found and hand the graph back to `co
 - **Implement writes every test the current work needs** — planned by the design's Testing
   Strategy or discovered mid-task, unit, integration, and end-to-end alike. A missing test is
   written, not sent back to `codefall-design`.
-- **The `test` verb owns what comes after the work lands**: regression passes, coverage campaigns,
+- **`codefall-test` owns what comes after the work lands**: regression passes, coverage campaigns,
   agentic testing in a fresh context.
 
 ## One bead or the graph
