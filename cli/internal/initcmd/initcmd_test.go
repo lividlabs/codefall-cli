@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/fs"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -92,9 +93,9 @@ func TestHookDefinitionsPointAtScriptsThatLand(t *testing.T) {
 	}
 }
 
-// The OpenCode plugin is the one definition that is not JSON, so its pin is textual: the guard it
-// delegates to is the same shared script the others name.
-func TestOpenCodePluginPointsAtTheSharedScript(t *testing.T) {
+// The OpenCode plugin is the one definition that is not JSON, so its pin is textual: the guard and
+// the session-start notice it delegates to are the same shared scripts the others name.
+func TestOpenCodePluginPointsAtTheSharedScripts(t *testing.T) {
 	tree := extensions.Files()
 
 	body, err := fs.ReadFile(tree, "hooks/opencode/codefall.js")
@@ -102,15 +103,72 @@ func TestOpenCodePluginPointsAtTheSharedScript(t *testing.T) {
 		t.Fatalf("read hooks/opencode/codefall.js from the embedded tree: %v", err)
 	}
 
-	// The plugin lands at <install>/.opencode/plugins/codefall.js and reaches the guard from its own
-	// directory, so two levels up is the install directory and .codefall/ is below it.
-	const referenced = "/../../" + installDir + "/hooks/shared/codefall-block-merge-to-main.sh"
-	if !strings.Contains(string(body), referenced) {
-		t.Errorf("the plugin does not name %s — a renamed script would leave its guard pointing at nothing", referenced)
+	for _, script := range []string{"codefall-block-merge-to-main.sh", "codefall-session-notice.sh"} {
+		// The plugin lands at <install>/.opencode/plugins/codefall.js and reaches the scripts from
+		// its own directory, so two levels up is the install directory and .codefall/ is below it.
+		referenced := "/../../" + installDir + "/hooks/shared/" + script
+		if !strings.Contains(string(body), referenced) {
+			t.Errorf("the plugin does not name %s — a renamed script would leave it pointing at nothing",
+				referenced)
+		}
+
+		if _, err := fs.Stat(tree, "hooks/shared/"+script); err != nil {
+			t.Errorf("hooks/shared/%s: %v", script, err)
+		}
+	}
+}
+
+// What the JSON harnesses register on SessionStart: the Beads prime, and the notice as a second
+// command, so an upgrade recognises the notice by its own script name and replaces that entry alone.
+// Antigravity has no session event, and its definition says nothing about one.
+func TestSessionStartRegistersTheNoticeBesideThePrime(t *testing.T) {
+	tree := extensions.Files()
+
+	for _, source := range []string{"hooks/claude/hooks.json", "hooks/codex/hooks.json"} {
+		t.Run(source, func(t *testing.T) {
+			body, err := fs.ReadFile(tree, source)
+			if err != nil {
+				t.Fatalf("read %s from the embedded tree: %v", source, err)
+			}
+
+			var document struct {
+				Hooks map[string]any `json:"hooks"`
+			}
+
+			if err := json.Unmarshal(body, &document); err != nil {
+				t.Fatalf("decode %s: %v", source, err)
+			}
+
+			commands := commandsIn(document.Hooks["SessionStart"])
+
+			if !slices.Contains(commands, "bd prime --hook-json") {
+				t.Errorf("SessionStart = %q, want the Beads prime among them", commands)
+			}
+
+			notices := 0
+			for _, command := range commands {
+				if strings.Contains(command, "codefall-session-notice.sh") {
+					notices++
+
+					if !strings.Contains(command, "--hook-json") {
+						t.Errorf("%q does not select the JSON contract the event reads", command)
+					}
+				}
+			}
+
+			if notices != 1 {
+				t.Errorf("SessionStart = %q, want exactly one command running the notice", commands)
+			}
+		})
 	}
 
-	if _, err := fs.Stat(tree, "hooks/shared/codefall-block-merge-to-main.sh"); err != nil {
-		t.Errorf("hooks/shared/codefall-block-merge-to-main.sh: %v", err)
+	body, err := fs.ReadFile(tree, "hooks/antigravity/hooks.json")
+	if err != nil {
+		t.Fatalf("read hooks/antigravity/hooks.json from the embedded tree: %v", err)
+	}
+
+	if strings.Contains(string(body), "codefall-session-notice.sh") {
+		t.Error("the Antigravity definition registers the notice, and that harness has no session event")
 	}
 }
 

@@ -20,6 +20,15 @@
             "command": "bd prime --hook-json"
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$(git rev-parse --show-toplevel)/.codefall/hooks/shared/codefall-session-notice.sh\" --hook-json"
+          }
+        ]
       }
     ]
   }

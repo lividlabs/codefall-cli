@@ -46,28 +46,36 @@ func TestRepositoryRoot(t *testing.T) {
 	}
 }
 
-// rootedClaudeDefinition is the Claude definition as the embedded tree ships it: the guard named
-// from the repository root, the prime a bare command.
+// rootedClaudeDefinition is the Claude definition as the embedded tree ships it: the guard and the
+// session-start notice named from the repository root, the prime a bare command.
 var rootedClaudeDefinition = []byte(`{
   "hooks": {
     "PreToolUse": [{"matcher": "Bash", "hooks": [{"type": "command",
       "command": "\"$(git rev-parse --show-toplevel)/.codefall/hooks/shared/codefall-block-merge-to-main.sh\""}]}],
-    "SessionStart": [{"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]}]
+    "SessionStart": [
+      {"matcher": "", "hooks": [{"type": "command", "command": "bd prime --hook-json"}]},
+      {"matcher": "", "hooks": [{"type": "command",
+        "command": "\"$(git rev-parse --show-toplevel)/.codefall/hooks/shared/codefall-session-notice.sh\" --hook-json"}]}
+    ]
   }
 }`)
 
-// A subdirectory install copies the scripts below the root, so the guard has to be named there. A
-// command that does not name the root is left as it is, and at the root nothing changes at all.
+// A subdirectory install copies the scripts below the root, so every command naming one has to name
+// it there — the guard and the notice alike. A command that does not name the root is left as it
+// is, and at the root nothing changes at all.
 func TestHookWritesTheSubdirectoryIntoCommandsThatNameTheRoot(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		prefix string
 		guard  string
+		notice string
 	}{
 		{name: "a subdirectory", prefix: "apps/web/",
-			guard: `"$(git rev-parse --show-toplevel)/apps/web/.codefall/hooks/shared/codefall-block-merge-to-main.sh"`},
+			guard:  `"$(git rev-parse --show-toplevel)/apps/web/.codefall/hooks/shared/codefall-block-merge-to-main.sh"`,
+			notice: `"$(git rev-parse --show-toplevel)/apps/web/.codefall/hooks/shared/codefall-session-notice.sh" --hook-json`},
 		{name: "the root", prefix: "",
-			guard: `"$(git rev-parse --show-toplevel)/.codefall/hooks/shared/codefall-block-merge-to-main.sh"`},
+			guard:  `"$(git rev-parse --show-toplevel)/.codefall/hooks/shared/codefall-block-merge-to-main.sh"`,
+			notice: `"$(git rev-parse --show-toplevel)/.codefall/hooks/shared/codefall-session-notice.sh" --hook-json`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			files := settled("")
@@ -90,6 +98,10 @@ func TestHookWritesTheSubdirectoryIntoCommandsThatNameTheRoot(t *testing.T) {
 			commands := strings.Join(commandsOf(written), "\n")
 			if !strings.Contains(commands, tc.guard) {
 				t.Errorf("commands =\n%s\nwant the guard as %s", commands, tc.guard)
+			}
+
+			if !strings.Contains(commands, tc.notice) {
+				t.Errorf("commands =\n%s\nwant the notice as %s", commands, tc.notice)
 			}
 
 			if !strings.Contains(commands, "bd prime --hook-json") {
