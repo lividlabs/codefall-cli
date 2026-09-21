@@ -6,12 +6,13 @@ relative to `cli/` unless it says otherwise.
 
 A Go command-line tool. One surface, one app, one module.
 
-**State: three components and six shared modules.** `internal/doctor/` (`codefall doctor`) is the
+**State: three components and seven shared modules.** `internal/doctor/` (`codefall doctor`) is the
 first component and the reference for the rules below; `internal/initcmd/` (`codefall init`) is the
 second, and follows it; `internal/create/` (`codefall create`) is the third, and runs init's command
 in the directory it makes. `internal/shared/ui/` holds the palette, the marks, the colour-profile
 writer, and the spinner runner; `internal/shared/process/` holds the command runner and the file
-system. `internal/shared/harness/` holds the harnesses codefall can set up and where each one reads
+system; `internal/shared/buildinfo/` holds the version the binary reports, for `--version` and for
+the manifest init writes. `internal/shared/harness/` holds the harnesses codefall can set up and where each one reads
 skills, `internal/shared/manifest/` the `.codefall/manifest.json` format,
 `internal/shared/settings/` the `.codefall/settings.json` format, and `internal/shared/text/` the
 string helpers both components need — all four **pure** (ADR-003), so the inner layers may import
@@ -98,7 +99,7 @@ The why lives in the ADRs. This file is the operative rules only — never resta
 - Cobra (`github.com/spf13/cobra`) defines the command tree; `fang.Execute` runs it from
   `cmd/codefall/main.go`, the only importer of `github.com/charmbracelet/fang`. Fang owns help,
   usage, error, `--version`, `completion`, and `man` output — change it with `fang.With*` options,
-  never with Cobra templates.
+  never with Cobra templates. The version is `buildinfo.Display()`, passed with `fang.WithVersion`.
 - Commands are built in a component's `presentation/`, exported through its facade, and mounted on
   the root in the composition root. Flags are `pflag` — never the standard library `flag`.
 - A component's facade exports `Register(do.Injector)` and `Command(do.Injector) *cobra.Command`;
@@ -189,6 +190,11 @@ The why lives in the ADRs. This file is the operative rules only — never resta
   that package.** Go's `internal/` rule restricts naming a package, not holding a value: `o :=
   orders.Find(id)` infers the type and `o.Total()` works, while `var o *domain.Order` does not
   compile. Neither the compiler nor `depguard` catches this — ADR-001 is a review rule.
+- **The linker ignores a `-X` flag that names no variable, without a warning.** GoReleaser's
+  default flags stamp `main.version`, which does not exist, and releases through 0.14.0 reported
+  "unknown (built from source)" because of it. `.goreleaser.yml` names
+  `internal/shared/buildinfo`'s variables instead, and `buildinfo_test.go` fails when the two
+  disagree — moving the package or renaming a variable means changing both.
 - **A v1-generation Charm import compiles and quietly doubles the dependency graph.** On any change
   to `go.mod`, check `go mod graph` for a `github.com/charmbracelet/lipgloss` or `bubbletea` line
   without `/v2`. Nothing else catches it (ADR-002).

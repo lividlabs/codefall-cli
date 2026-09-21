@@ -20,6 +20,7 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/create"
 	"github.com/lividlabs/codefall-cli/cli/internal/doctor"
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/buildinfo"
 )
 
 func main() {
@@ -64,6 +65,9 @@ func run(args []string, stdout, stderr io.Writer) error {
 	return fang.Execute(
 		context.Background(),
 		root,
+		// The string carries its own commit, so fang.WithCommit is not used: Fang would append a
+		// second one, and it has no way to say a build had uncommitted changes.
+		fang.WithVersion(buildinfo.Display()),
 		fang.WithColorSchemeFunc(codefallColorScheme),
 		fang.WithErrorHandler(renderError),
 	)

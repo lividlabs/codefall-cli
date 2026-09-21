@@ -14,6 +14,7 @@ import (
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/application"
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/buildinfo"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/ui"
@@ -157,7 +158,7 @@ func TestInitCommandPassesTheFlagsToTheUseCase(t *testing.T) {
 		IssuesProject: mo.Some(3),
 		Harnesses:     []string{harness.ClaudeCode},
 		TestDir:       "e2e",
-		CLIVersion:    cliVersion(),
+		CLIVersion:    buildinfo.Version(),
 		Force:         true,
 	}
 
@@ -640,12 +641,12 @@ func TestInitCommandIsANoOpOnlyForTheHarnessItInstalled(t *testing.T) {
 	}{
 		{
 			name:      "the same harness at the same version",
-			installed: application.Installation{Versions: map[string]string{harness.ClaudeCode: cliVersion()}},
+			installed: application.Installation{Versions: map[string]string{harness.ClaudeCode: buildinfo.Version()}},
 			wantRun:   false,
 		},
 		{
 			name:      "another harness at the same version",
-			installed: application.Installation{Versions: map[string]string{harness.ClaudeCode: cliVersion()}},
+			installed: application.Installation{Versions: map[string]string{harness.ClaudeCode: buildinfo.Version()}},
 			args:      []string{"--harness", harness.Antigravity},
 			wantRun:   true,
 		},
@@ -654,7 +655,7 @@ func TestInitCommandIsANoOpOnlyForTheHarnessItInstalled(t *testing.T) {
 			// what decides — not whichever install happened to finish last.
 			name: "one of several recorded harnesses, at the same version",
 			installed: application.Installation{Versions: map[string]string{
-				harness.ClaudeCode: cliVersion(), harness.Codex: cliVersion()}},
+				harness.ClaudeCode: buildinfo.Version(), harness.Codex: buildinfo.Version()}},
 			args:    []string{"--harness", harness.Codex},
 			wantRun: false,
 		},
@@ -797,7 +798,7 @@ func TestInitCommandIsNotANoOpWhileTheTestingRootIsUndeclared(t *testing.T) {
 	initialize.exists = true
 	initialize.harnesses = mo.Some([]string{harness.ClaudeCode})
 	initialize.installed = mo.Some(application.Installation{
-		Versions: map[string]string{harness.ClaudeCode: cliVersion()}})
+		Versions: map[string]string{harness.ClaudeCode: buildinfo.Version()}})
 
 	out, err := run(t, initialize)
 	if err != nil {
