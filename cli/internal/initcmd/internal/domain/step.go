@@ -27,7 +27,7 @@ var (
 	HookStep      = Step{ID: "hook", Title: "Registering codefall's hooks"}
 	AgentsStep    = Step{ID: "agents", Title: "Writing codefall's sections to AGENTS.md"}
 	TestingStep   = Step{ID: "testing", Title: "Setting up the testing tree"}
-	IgnoreStep    = Step{ID: "ignore", Title: "Writing the ignore entries"}
+	IgnoreStep    = Step{ID: "ignore", Title: "Writing the ignore and attributes entries"}
 )
 
 // Outcome is what a step did. A step that could not do its work returns an error instead: there is

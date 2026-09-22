@@ -15,7 +15,7 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 )
 
-// settings runs checks 1 to 4, and hands on to the three ignore-entry checks. Each of the first four
+// settings runs checks 1 to 4, and hands on to the four ignore-entry checks. Each of the first four
 // is the prerequisite of the next, so the first failure ends the group and the remaining checks are
 // absent from the report.
 //
@@ -92,10 +92,12 @@ func (d *Diagnose) settings(_ context.Context, dir string, results []domain.Resu
 	return d.ignored(dir, results)
 }
 
-// ignoredEntries is what each of the two ignore files has to name, one check each and in the order
+// ignoredEntries is what each of the three files has to name, one check each and in the order
 // doctor reports them. The .ignore entries are what codefall commits and nobody greps: review
 // findings, and the report an agentic test run leaves (ADR-007). The .gitignore entry is the refresh
-// stamp, which belongs to one machine (ADR-005).
+// stamp, which belongs to one machine (ADR-005). The .gitattributes entry is the union merge for
+// bd's append-only interaction log, which is committed and would otherwise conflict on every merge
+// of two branches that both appended to it.
 //
 // A run's own output under the testing root is git-ignored too, but the entry names a path the
 // project chose, and doctor's report is about what codefall can check without knowing it.
@@ -107,17 +109,19 @@ var ignoredEntries = []struct {
 	{domain.ReviewsIgnored, settings.IgnoreName, settings.IgnoreEntry},
 	{domain.TestsIgnored, settings.IgnoreName, settings.IgnoreEntryTests},
 	{domain.StampIgnored, settings.GitIgnoreName, settings.RefreshStamp},
+	{domain.InteractionsMerged, settings.GitAttributesName, settings.InteractionsAttribute},
 }
 
-// ignored is checks 5 to 7: each entry codefall needs in an ignore file is there.
+// ignored is checks 5 to 8: each entry codefall needs in an ignore or attributes file is there.
 //
 // They warn rather than fail. Nothing stops working without an entry — findings and reports are
 // still written and still tracked, and every other verb behaves identically. What goes wrong is
 // quieter: agents searching the codebase start reading old findings as if they were code, and a
-// committed stamp tells every other clone it was current at a commit it never refreshed at. That is
-// worth reporting and is not worth an exit status.
+// committed stamp tells every other clone it was current at a commit it never refreshed at, and a
+// merge of the interaction log stops on a conflict that has only one right answer. That is worth
+// reporting and is not worth an exit status.
 //
-// Each check is independent of the ones beside it, so all three run whatever any of them found.
+// Each check is independent of the ones beside it, so all four run whatever any of them found.
 func (d *Diagnose) ignored(dir string, results []domain.Result) []domain.Result {
 	for _, want := range ignoredEntries {
 		results = append(results, d.entryIgnored(dir, want.check, want.file, want.entry))

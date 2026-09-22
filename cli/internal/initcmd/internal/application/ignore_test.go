@@ -10,16 +10,18 @@ import (
 )
 
 var (
-	ignoreFull    = filepath.Join(workingDir, settings.IgnoreName)
-	gitIgnoreFull = filepath.Join(workingDir, settings.GitIgnoreName)
+	ignoreFull        = filepath.Join(workingDir, settings.IgnoreName)
+	gitIgnoreFull     = filepath.Join(workingDir, settings.GitIgnoreName)
+	gitAttributesFull = filepath.Join(workingDir, settings.GitAttributesName)
 	// The testing root the fixture's request declares, which is what the artifacts entry names.
 	artifactsEntry = settings.TestArtifacts(settings.DefaultTestDir)
 )
 
-// gitIgnored is a .gitignore that already names both of its entries, for the tests about the other
-// file.
+// gitIgnored is a .gitignore that already names both of its entries and a .gitattributes that
+// already names its one, for the tests about the other file.
 func gitIgnored(files *fakeFileSystem) *fakeFileSystem {
 	files.files[gitIgnoreFull] = []byte(settings.RefreshStamp + "\n" + artifactsEntry + "\n")
+	files.files[gitAttributesFull] = []byte(settings.InteractionsAttribute + "\n")
 
 	return files
 }
@@ -54,7 +56,7 @@ func TestIgnoreStepWritesTheFilesWhenThereAreNone(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	if want := "wrote .ignore and wrote .gitignore"; result.Detail != want {
+	if want := "wrote .ignore, wrote .gitignore and wrote .gitattributes"; result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
@@ -70,6 +72,31 @@ func TestIgnoreStepWritesTheFilesWhenThereAreNone(t *testing.T) {
 		settings.TestArtifactsComment + "\n" + artifactsEntry + "\n"
 	if got := string(files.files[gitIgnoreFull]); got != want {
 		t.Errorf("%s =\n%q\nwant\n%q", settings.GitIgnoreName, got, want)
+	}
+
+	want = settings.GitAttributesComment + "\n" + settings.InteractionsAttribute + "\n"
+	if got := string(files.files[gitAttributesFull]); got != want {
+		t.Errorf("%s =\n%q\nwant\n%q", settings.GitAttributesName, got, want)
+	}
+}
+
+// A project that already declares attributes — line endings, linguist overrides — keeps them and
+// gains the merge driver after them.
+func TestIgnoreStepAddsTheMergeDriverToAGitattributesThatIsAlreadyThere(t *testing.T) {
+	files := settled("{}")
+	files.files[ignoreFull] = []byte(settings.IgnoreEntry + "\n" + settings.IgnoreEntryTests + "\n")
+	files.files[gitIgnoreFull] = []byte(settings.RefreshStamp + "\n" + artifactsEntry + "\n")
+	files.files[gitAttributesFull] = []byte("* text=auto\n")
+
+	result := ignoreResult(t, files)
+
+	if want := "added " + settings.InteractionsAttribute + " to .gitattributes"; result.Detail != want {
+		t.Errorf("detail = %q, want %q", result.Detail, want)
+	}
+
+	want := "* text=auto\n\n" + settings.GitAttributesComment + "\n" + settings.InteractionsAttribute + "\n"
+	if got := string(files.files[gitAttributesFull]); got != want {
+		t.Errorf("%s =\n%q\nwant\n%q", settings.GitAttributesName, got, want)
 	}
 }
 
@@ -98,6 +125,7 @@ func TestIgnoreStepAddsTheEntriesToAGitignoreThatIsAlreadyThere(t *testing.T) {
 	files := settled("{}")
 	files.files[ignoreFull] = []byte(settings.IgnoreEntry + "\n" + settings.IgnoreEntryTests + "\n")
 	files.files[gitIgnoreFull] = []byte("node_modules/\ndist/\n")
+	files.files[gitAttributesFull] = []byte(settings.InteractionsAttribute + "\n")
 
 	result := ignoreResult(t, files)
 
@@ -218,7 +246,8 @@ func TestIgnoreStepLeavesAFileThatAlreadyNamesItsEntries(t *testing.T) {
 				}
 
 				want := ".ignore already names " + settings.IgnoreEntry + " and " + settings.IgnoreEntryTests +
-					" and .gitignore already names " + settings.RefreshStamp + " and " + artifactsEntry
+					", .gitignore already names " + settings.RefreshStamp + " and " + artifactsEntry +
+					" and .gitattributes already names " + settings.InteractionsAttribute
 				if result.Detail != want {
 					t.Errorf("detail = %q, want %q", result.Detail, want)
 				}

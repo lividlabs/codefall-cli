@@ -97,6 +97,10 @@ var (
 	TestsIgnored = Check{ID: "tests-ignored", Title: ".ignore hides test run reports", Category: CategorySettings}
 	// StampIgnored is whether the refresh stamp, a per-machine file, is kept out of the repository.
 	StampIgnored = Check{ID: "stamp-ignored", Title: ".gitignore hides the refresh stamp", Category: CategorySettings}
+	// InteractionsMerged is whether bd's append-only interaction log is merged by union, so two
+	// branches that both appended to it do not conflict.
+	InteractionsMerged = Check{ID: "interactions-merged",
+		Title: ".gitattributes merges bd's interaction log by union", Category: CategorySettings}
 	// HarnessesInstalled is whether codefall's extension is actually where each harness the settings
 	// record would read it.
 	HarnessesInstalled = Check{ID: "harnesses-installed",

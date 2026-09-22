@@ -10,7 +10,7 @@ import (
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/text"
 )
 
-// beads runs checks 15 and 16. A missing bd is a failure; a directory bd does not yet know about is
+// beads runs checks 16 and 17. A missing bd is a failure; a directory bd does not yet know about is
 // only a warning, because `codefall init` will own initialising it.
 //
 // There is deliberately no test for a literal .beads/ directory: BEADS_DIR relocates it, so `bd

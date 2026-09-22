@@ -28,9 +28,12 @@ type ignoreFile struct {
 // ignoreFiles is what the step writes. The .ignore entries keep what codefall commits and nobody
 // greps — review findings, and the report an agentic test run leaves (ADR-007) — out of every search
 // that goes through ripgrep. The .gitignore entries keep out what belongs to one machine or one run:
-// the refresh stamp (ADR-005), and everything a test run produces that is not its report.
+// the refresh stamp (ADR-005), and everything a test run produces that is not its report. The
+// .gitattributes entry is the one line that is not about ignoring: bd's interaction log is
+// append-only and committed, and a union merge is what keeps two branches' appends from conflicting.
 //
-// It is a function because the last entry names the testing root, which the project chose.
+// It is a function because the .gitignore's last entry names the testing root, which the project
+// chose.
 func ignoreFiles(root string) []ignoreFile {
 	return []ignoreFile{
 		{file: settings.IgnoreName, entries: []ignoreEntry{
@@ -41,12 +44,15 @@ func ignoreFiles(root string) []ignoreFile {
 			{entry: settings.RefreshStamp, comment: settings.GitIgnoreComment},
 			{entry: settings.TestArtifacts(root), comment: settings.TestArtifactsComment},
 		}},
+		{file: settings.GitAttributesName, entries: []ignoreEntry{
+			{entry: settings.InteractionsAttribute, comment: settings.GitAttributesComment},
+		}},
 	}
 }
 
-// ignore is the step that writes the ignore entries.
+// ignore is the step that writes the ignore entries, and the attributes entry beside them.
 //
-// Either file may already be the project's own, holding entries that have nothing to do with
+// Any of the files may already be the project's own, holding entries that have nothing to do with
 // codefall, so this step appends rather than writes: overwriting a file that has drifted is the one
 // thing the extension's rules never allow. A file that already names its entries is left exactly as
 // it is, which is what makes a rerun a no-op rather than a growing list of duplicates.
