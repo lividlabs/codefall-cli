@@ -20,6 +20,7 @@ import (
 
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/application"
 	"github.com/lividlabs/codefall-cli/cli/internal/initcmd/internal/domain"
+	"github.com/lividlabs/codefall-cli/cli/internal/shared/buildinfo"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/harness"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/settings"
 	"github.com/lividlabs/codefall-cli/cli/internal/shared/ui"
@@ -37,7 +38,7 @@ type InitializeUseCase interface {
 	RepositoryRoot(ctx context.Context, dir string) mo.Option[string]
 	// Installed reads what finished runs recorded in .codefall/manifest.json: the version each
 	// harness was installed at, or None when there is no manifest or it records no usable version.
-	// The gate compares it one harness at a time against the binary's own tag.
+	// The gate compares it one harness at a time against the binary's own version.
 	Installed(dir string) (mo.Option[application.Installation], error)
 	// ChosenHarnesses reads the harnesses .codefall/settings.json records, or None when there are no
 	// settings or they record none. A rerun installs for what the project already chose rather than
@@ -200,7 +201,7 @@ func buildRequest(
 	}
 
 	request := application.Request{Dir: dir, Harnesses: chosen, Force: flags.force,
-		CLIVersion: cliVersion()}
+		CLIVersion: buildinfo.Version()}
 
 	if flags.tracker != "" {
 		tracker, err := settings.ParseTracker(flags.tracker)
