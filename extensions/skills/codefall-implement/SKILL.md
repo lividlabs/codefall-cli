@@ -244,7 +244,7 @@ command that fixes it, and stop:
 **Never run the remedy.** `bd init` writes and commits real files; that is the user's decision.
 
 Then read the checkout lines. `behind` above `0` or `refresh=stale` means the environment may not
-match what the work will build on: say so and offer `/codefall-refresh` before continuing.
+match what the work will build on: say so and run `/codefall-refresh` before continuing.
 `refresh=undeclared` names `/codefall-equip` instead. Never pull the checkout or run the local
 commands from here; `refresh` owns both.
 

@@ -172,7 +172,7 @@ over the command that fixes it, and **stop**:
 | `unreadable` | bd found a database and could not read it | quote `beads_detail` |
 
 Then read the checkout lines. `behind` above `0` or `refresh=stale` means the environment may not
-match `main`: say so and offer `/codefall-refresh` before continuing. `refresh=undeclared` names
+match `main`: say so and run `/codefall-refresh` before continuing. `refresh=undeclared` names
 `/codefall-equip` instead. Never pull the checkout or run the local commands from here.
 
 **Never run the remedy.** `bd init` writes `.beads/`, git hooks, `.claude/settings.json`, and a
