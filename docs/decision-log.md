@@ -1103,6 +1103,19 @@ Decided at scaffold, 2026-08-16.
   even though what init installs is not. Doctor gains no check; the section is one more marked
   span the agents step already replaces. Not a breaking change: a new section and a new shared
   file, nothing renamed or removed.
+- **The AGENTS.md sections stay self-contained, 2026-09-22.** The Beads section doubled in
+  PR #100, and every harness reads the four sections at session start (chars/4 on 2026-09-22:
+  Codefall ~234 tokens, Beads ~664, Local ~228, Testing ~209). Seen and not taken: pointers to
+  files under `docs/codefall/`, and pointers to files under `.codefall/shared/`. No file is
+  added; the sections get shorter in place. Most of each section is a rule the agent has to have
+  in context to follow. The rest — the Dolt model, the no-remote case, what the interaction log
+  is, what `refresh` runs — is reference that `.codefall/shared/workflow.md` already carries and
+  the Codefall section already points at, and `bd prime` prints the command reference where a
+  harness has a session event. Antigravity and Muse have none, so the quick-reference block
+  stays. `docs/codefall/` would be a second home for shipped files, which ADR-006 rules out, and
+  the manifest and doctor know only `.codefall/`; a file under `.codefall/shared/` would hold
+  what workflow.md holds. The rewrite removes about 450 tokens from every session start, and a
+  linked file would save nothing further. Not a breaking change.
 
 ## Open
 
