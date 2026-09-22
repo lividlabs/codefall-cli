@@ -1,6 +1,6 @@
 ---
 name: codefall-refresh
-description: Bring the checkout and the local environment current — fetch, fast-forward the default branch when that is safe, run the project's declared start and update commands, record the commit the environment now matches, and turn any failure into a sentence that says what to do. Safe to run at any time; the routine before starting new work.
+description: Bring the checkout, the Beads database, and the local environment current — fetch, fast-forward the default branch when that is safe, sync the beads with their Dolt remote, run the project's declared start and update commands, record the commit the environment now matches, and turn any failure into a sentence that says what to do. Safe to run at any time; the routine before starting new work.
 argument-hint: "[path]"
 disable-model-invocation: true
 allowed-tools:
@@ -13,10 +13,10 @@ allowed-tools:
 
 # Refresh
 
-Bring the checkout and the local environment current, in that order, and say what happened in
-plain words. This is the thing to run before starting new work, and the thing to run instead of
-pulling by hand: a pull moves the code and leaves the database, the dependencies, and the generated
-code where they were.
+Bring the checkout, the Beads database, and the local environment current, in that order, and say
+what happened in plain words. This is the thing to run before starting new work, and the thing to
+run instead of pulling by hand: a git pull moves the code and leaves the team's beads, the database,
+the dependencies, and the generated code where they were.
 
 Refreshing is not equipping. This skill runs the `start` and `update` commands the project declared
 under `local` in `.codefall/settings.json`; it never drafts or edits them. A project with nothing
@@ -36,6 +36,7 @@ a file `codefall init` installed in the project's own `.codefall/`.
 | In scope | Out of scope | Whose |
 | --- | --- | --- |
 | Fetching, and fast-forwarding the default branch when safe | Rebasing or merging a feature branch | the user |
+| Syncing the beads with their Dolt remote | Wiring the remote, or resolving a conflict the sync halts on | the user |
 | Running the declared `start` and `update` | Drafting, editing, or declaring them | `codefall-equip` |
 | Recording the stamp after a clean `update` | Any other file in the project | — |
 | Saying what failed and what to do | Fixing the script that failed | `codefall-equip` |
@@ -81,14 +82,13 @@ The target is the path argument, or the working directory. Read `.codefall/setti
 
 ### 2. Read the checkout
 
-Run the shared check; the checkout lines are the ones this verb reads, and the Beads lines are
-none of its business.
+Run the shared check. The checkout lines decide step 3, and the `beads` line decides step 4.
 
 ```bash
 "../../../.codefall/shared/preflight.sh" .
 ```
 
-Note `branch`, `dirty`, `fetch`, `default_branch`, `behind`, `ahead`, and `refresh`.
+Note `branch`, `dirty`, `fetch`, `default_branch`, `behind`, `ahead`, `refresh`, and `beads`.
 
 ### 3. Move the checkout, if it is safe
 
@@ -96,7 +96,31 @@ Apply [the table](#what-refresh-moves-and-when). The one moving case is
 `git pull --ff-only origin <default_branch>`; a pull that is refused is reported, never retried
 with a merge or a rebase. After a move, `HEAD` has changed, so the stamp is compared again.
 
-### 4. Bring the environment level
+### 4. Sync the beads
+
+Skip this step when preflight said `beads=blocked`: say so in the report, and leave the remedy to
+the verb that needs beads. Otherwise:
+
+```bash
+bd sync
+```
+
+One command: pull the team's claims and closes from the Dolt remote, halt on a conflict, repair the
+blocked flags the merged edges changed, and push whatever this machine wrote and never published.
+Nothing in git moves. Read the exit code:
+
+| Exit | Meaning | Say |
+| --- | --- | --- |
+| `0`, output says no remote is configured | No Dolt remote is wired | The database is this machine's. `bd dolt push --yes` adopts the git origin as the remote, and is the user's to run |
+| `0` | Pulled and pushed | Synced, in the report |
+| `2` | A conflict bd could not settle; nothing pushed | Which issues, from bd's output, and that `bd conflicts` resolves it by hand |
+| `3` | Another writer won the push race; nothing pushed | Transient: run `/codefall-refresh` again |
+| `4` | Uncommitted changes are stuck in the working set; nothing pushed | Quote the line; the user clears it, and nothing here retries |
+| `1` | Transport, authentication, or storage | Quote the line; the fix is the environment's |
+
+Never run `bd dolt push --force`, `bd dolt pull --strategy`, or `bd conflicts resolve` from here.
+
+### 5. Bring the environment level
 
 Run the declared `start`, always: it is idempotent and cheap when everything is up, and `update`
 may assume it ran.
@@ -107,9 +131,9 @@ it regardless. A stamp that matches is the skip: say the environment was already
 
 Run both from the project root, as declared, through the shell. Show the output as it arrives
 when it is short; summarize it when it is long, and keep the last twenty lines of stderr for
-step 5.
+step 6.
 
-### 5. Say what happened
+### 6. Say what happened
 
 A clean exit from both: write the stamp.
 
@@ -129,11 +153,12 @@ that is done". A failure that is the script's — a command not found, a wrong p
 
 No stamp is written after a failure.
 
-### 6. Report
+### 7. Report
 
 One block, short:
 
 - The checkout: moved from `<short>` to `<short>`, or left alone and why.
+- The beads: synced, no remote, skipped because beads is blocked, or halted and why.
 - The environment: `start` ran; `update` ran or was skipped as current.
 - The stamp: written at `<short>`, or not, and why.
 - Anything owed: the rebase the user has to do, the `codefall init` for `.gitignore`, the
@@ -145,6 +170,8 @@ One block, short:
   `codefall-equip`; a script that fails is reported to it.
 - **Moves the checkout in one case only**: default branch, clean tree, fast-forward. Never
   merges, never rebases, never stashes.
+- **Syncs the beads with `bd sync` and never settles what it halts on.** No force push, no
+  strategy flag, no remote wired from here.
 - **Always brings the environment level with the checkout it finds**, even when the checkout is
   left alone.
 - **`start` always, `update` when the stamp says so** or the user asks.

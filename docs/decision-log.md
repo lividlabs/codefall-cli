@@ -1047,6 +1047,34 @@ Decided at scaffold, 2026-08-16.
   The notice does not gate anything: a verb's own preflight run stays unconditional, and both always
   run.
 
+- **Beads sync, the interaction log, and its default, 2026-09-22.** Three things bd's own
+  `AGENTS.md` section says that codefall's did not. First, where the beads live: a local Dolt
+  database, with the team's copy under `refs/dolt/data` on the git remote, moved by `bd dolt pull`
+  and `bd dolt push` and by nothing else — a git pull leaves it where it was, and
+  `.beads/issues.jsonl` is an export, not the sync. bd's section is conservative by design: its
+  session-close protocol syncs only when the repository's instructions say to, and codefall's
+  section said not to. It now says to: pull before reading the graph, push after every write and
+  before the work that follows it, so a claim is visible before the result. `codefall-design`
+  pulls before reading the graph and pushes once the graph verifies; `codefall-implement` already
+  pushed after every claim and close, and now after discovered work too; `codefall-refresh` runs
+  `bd sync` — pull, positive conflict check, repair of the blocked flags merged edges change, push —
+  rather than a pull alone, because a pull leaves a crashed session's unpushed closes on one machine
+  and `bd ready` stale on edges merged from elsewhere, and its exit codes are explicit enough to
+  turn into a sentence each. It is the one push from a verb whose scope is otherwise run-only, and
+  it publishes only Dolt commits already made; nothing in git moves. A project with no Dolt remote
+  is told so once, and `bd dolt push --yes`, which adopts the git origin, is named as the user's to
+  run. Second, `.beads/interactions.jsonl`: bd's optional append-only interaction log, committed
+  when it is on, and the file agents kept mistaking for a stray change in a pull request. Init now
+  appends `.beads/interactions.jsonl merge=union` to `.gitattributes`, the same append-only-if-
+  missing treatment the ignore files get, and doctor warns when the line is absent; the section
+  says what the file is and that a conflict in it is never resolved by hand. Third, its default:
+  bd 1.3 leaves `audit.enabled` commented out and off, and init now writes `audit: enabled: false`
+  into the database's `config.yaml` through `bd config set`, right after `bd init` and only then —
+  a database that was already there may have turned the log on, and that is its decision to keep.
+  `bd config set` rather than an edit because bd knows where the database is and codefall does not.
+  bd warns that the key is unrecognised and writes it anyway; `bd audit --help` names that exact
+  command as the way to set it.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

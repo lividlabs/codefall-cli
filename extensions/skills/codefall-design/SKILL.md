@@ -208,7 +208,7 @@ framed the work. A concept's **Environment & constraints** section is written fo
   and link it; the user may want to revise that one.
 - **The code** — the components this touches, their facades, and what already exists that this can
   use. Read the artifacts, not their names.
-- **The graph** — `bd list` and `bd search` for work that already exists against this area. A task
+- **The graph** — `bd dolt pull`, then `bd list` and `bd search` for existing work. A task
   this design would create that is already a bead is a dependency edge, not a new task.
 
 Report what you found before designing. If the work already exists, in code or in the graph, say so
@@ -312,7 +312,7 @@ Do not commit.
 ### 9. Create the graph
 
 Read `reference/beads.md`. Build the plan file from the staging table, dry-run it, create it, set
-`--spec-id` and `--acceptance` on every task bead, then verify with `bd ready` and `bd dep cycles`.
+`--spec-id` and `--acceptance` on every task bead, verify with `bd ready` and `bd dep cycles`, and push.
 
 If the ready set does not match the roots of the staging table, fix the edges now, before the table
 collapses.
@@ -383,6 +383,7 @@ your own initiative.
   never as a follow-up.
 - **Verify the graph before collapsing the table.** `bd ready` and `bd dep cycles`, against the
   staging table's roots.
+- **Every bead write is pushed**: step 9, and every revision.
 - **A removed task's bead is reported, never closed silently.** Work may already have happened
   against it.
 - **A ticket must not change under someone holding it.** An untouched bead is edited whatever

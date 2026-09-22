@@ -32,6 +32,7 @@ var (
 const (
 	pluginInstall = "claude extension install codefall@codefall --scope project -y"
 	beadsInit     = "bd init --non-interactive --skip-agents"
+	beadsAuditOff = "bd config set audit.enabled false"
 	beadsInfo     = "bd info"
 	gitWorkTree   = "git rev-parse --is-inside-work-tree"
 	gitStaged     = "git diff --cached --quiet"

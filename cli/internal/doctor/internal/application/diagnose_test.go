@@ -24,12 +24,13 @@ var (
 	// A file the manifest records for each harness, which is what tells an install apart from a
 	// skills directory that was already there: the skills go into the directory the harness reads,
 	// and only a finished run puts them there.
-	claudeSkill   = filepath.Join(workingDir, ".claude", "skills", "design", "SKILL.md")
-	agentsSkill   = filepath.Join(workingDir, ".agents", "skills", "design", "SKILL.md")
-	settingsPath  = filepath.Join(codefallDir, "settings.json")
-	manifestPath  = filepath.Join(workingDir, manifest.Name)
-	ignorePath    = filepath.Join(workingDir, settings.IgnoreName)
-	gitIgnorePath = filepath.Join(workingDir, settings.GitIgnoreName)
+	claudeSkill       = filepath.Join(workingDir, ".claude", "skills", "design", "SKILL.md")
+	agentsSkill       = filepath.Join(workingDir, ".agents", "skills", "design", "SKILL.md")
+	settingsPath      = filepath.Join(codefallDir, "settings.json")
+	manifestPath      = filepath.Join(workingDir, manifest.Name)
+	ignorePath        = filepath.Join(workingDir, settings.IgnoreName)
+	gitIgnorePath     = filepath.Join(workingDir, settings.GitIgnoreName)
+	gitAttributesPath = filepath.Join(workingDir, settings.GitAttributesName)
 	// The script the fixture's local block names, by the relative path the block uses.
 	localScript = filepath.Join(workingDir, "scripts", "local.sh")
 	// The directory the fixture's settings declare their test cases live in.
@@ -41,6 +42,8 @@ var (
 	testsIgnoreRemedy = "add " + settings.IgnoreEntryTests + " to " + settings.IgnoreName +
 		", or run codefall init again"
 	stampRemedy = "add " + settings.RefreshStamp + " to " + settings.GitIgnoreName +
+		", or run codefall init again"
+	mergeRemedy = "add " + settings.InteractionsAttribute + " to " + settings.GitAttributesName +
 		", or run codefall init again"
 	leftoverRemedy = "remove the files " + manifest.Name +
 		" lists for codex; codefall never deletes what it wrote"
@@ -204,8 +207,9 @@ func healthy() (*fakeFileSystem, *fakeCommandRunner) {
 			manifestPath: []byte(installedManifest),
 			ignorePath: []byte(settings.IgnoreComment + "\n" + settings.IgnoreEntry + "\n\n" +
 				settings.IgnoreTestsComment + "\n" + settings.IgnoreEntryTests + "\n"),
-			gitIgnorePath: []byte("node_modules/\n\n" + settings.GitIgnoreComment + "\n" + settings.RefreshStamp + "\n"),
-			localScript:   []byte("#!/usr/bin/env bash\n"),
+			gitIgnorePath:     []byte("node_modules/\n\n" + settings.GitIgnoreComment + "\n" + settings.RefreshStamp + "\n"),
+			gitAttributesPath: []byte(settings.GitAttributesComment + "\n" + settings.InteractionsAttribute + "\n"),
+			localScript:       []byte("#!/usr/bin/env bash\n"),
 		},
 		errs: map[string]error{},
 	}
@@ -246,6 +250,7 @@ var allPass = []outcome{
 	{domain.ReviewsIgnored.ID, domain.StatusPass},
 	{domain.TestsIgnored.ID, domain.StatusPass},
 	{domain.StampIgnored.ID, domain.StatusPass},
+	{domain.InteractionsMerged.ID, domain.StatusPass},
 	{domain.HarnessesInstalled.ID, domain.StatusPass},
 	{domain.HarnessesLeftOver.ID, domain.StatusPass},
 	{domain.LocalDeclared.ID, domain.StatusPass},
@@ -287,6 +292,7 @@ var (
 	afterCodefallDir = []string{
 		domain.SettingsFile.ID, domain.SettingsJSON.ID, domain.SettingsComplete.ID,
 		domain.ReviewsIgnored.ID, domain.TestsIgnored.ID, domain.StampIgnored.ID,
+		domain.InteractionsMerged.ID,
 		domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
 		domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 		domain.TestDeclared.ID, domain.TestEquipped.ID, domain.TestDirExists.ID,
@@ -294,6 +300,7 @@ var (
 	afterSettingsFile = []string{
 		domain.SettingsJSON.ID, domain.SettingsComplete.ID,
 		domain.ReviewsIgnored.ID, domain.TestsIgnored.ID, domain.StampIgnored.ID,
+		domain.InteractionsMerged.ID,
 		domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
 		domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 		domain.TestDeclared.ID, domain.TestEquipped.ID, domain.TestDirExists.ID,
@@ -301,12 +308,14 @@ var (
 	afterSettingsJSON = []string{
 		domain.SettingsComplete.ID,
 		domain.ReviewsIgnored.ID, domain.TestsIgnored.ID, domain.StampIgnored.ID,
+		domain.InteractionsMerged.ID,
 		domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
 		domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 		domain.TestDeclared.ID, domain.TestEquipped.ID, domain.TestDirExists.ID,
 	}
 	afterSettingsDone = []string{
 		domain.ReviewsIgnored.ID, domain.TestsIgnored.ID, domain.StampIgnored.ID,
+		domain.InteractionsMerged.ID,
 		domain.HarnessesInstalled.ID, domain.HarnessesLeftOver.ID,
 		domain.LocalDeclared.ID, domain.LocalRunnable.ID,
 		domain.TestDeclared.ID, domain.TestEquipped.ID, domain.TestDirExists.ID,
@@ -471,6 +480,28 @@ func TestDiagnoseRun(t *testing.T) {
 			target:     domain.StampIgnored.ID,
 			wantDetail: ".gitignore does not name " + settings.RefreshStamp,
 			wantRemedy: mo.Some(stampRemedy),
+		},
+		{
+			// Without the union merge, two branches that both appended to bd's interaction log
+			// conflict on every merge, over a file that has only one right resolution.
+			name: ".gitattributes is missing, so the interaction log would conflict on merge",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				delete(f.files, gitAttributesPath)
+			},
+			want:       outcomes(map[string]domain.Status{domain.InteractionsMerged.ID: domain.StatusWarn}),
+			target:     domain.InteractionsMerged.ID,
+			wantDetail: ".gitattributes not found",
+			wantRemedy: mo.Some(mergeRemedy),
+		},
+		{
+			name: ".gitattributes is there but does not name the merge driver",
+			mutate: func(f *fakeFileSystem, _ *fakeCommandRunner) {
+				f.files[gitAttributesPath] = []byte("* text=auto\n")
+			},
+			want:       outcomes(map[string]domain.Status{domain.InteractionsMerged.ID: domain.StatusWarn}),
+			target:     domain.InteractionsMerged.ID,
+			wantDetail: ".gitattributes does not name " + settings.InteractionsAttribute,
+			wantRemedy: mo.Some(mergeRemedy),
 		},
 		{
 			// The skills directory a harness reads may well exist for its own reasons; what says

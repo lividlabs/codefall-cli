@@ -20,6 +20,15 @@ const beadsCommand = "bd"
 
 var beadsInitArgs = []string{"init", "--non-interactive", "--skip-agents"}
 
+// beadsAuditOffArgs turns bd's interaction log off explicitly in the database's config.yaml, right
+// after bd init. bd 1.3 leaves the key commented out and off; writing it makes the project's choice
+// visible in the file, so a teammate who finds .beads/interactions.jsonl appearing in a pull request
+// can see it was turned on deliberately and where. bd config set is asked rather than the file
+// edited because bd knows where the database is (BEADS_DIR relocates it) and codefall does not.
+// It runs only on a database this step just made: a project that already has Beads may have
+// turned the log on, and that is its decision to keep.
+var beadsAuditOffArgs = []string{"config", "set", "audit.enabled", "false"}
+
 // skipHooksArg is what an install below the repository root adds. bd init points the clone's
 // core.hooksPath at its own .beads/hooks, and that setting is one value for the whole repository:
 // claiming it from a subdirectory would take the repository's git hooks away from everyone working
@@ -86,11 +95,38 @@ func (i *Initialize) beads(ctx context.Context, request Request) (domain.StepRes
 	// and it does that on a run that worked. A successful run has nothing to complain about, so what
 	// it said there is dropped.
 	if strings.Contains(result.Stdout, beadsCommitted) {
-		return domain.BeadsStep.Done(fmt.Sprintf("%s (bd init committed what it wrote as %q)",
-			done, beadsCommitMessage)), nil
+		done = fmt.Sprintf("%s (bd init committed what it wrote as %q)", done, beadsCommitMessage)
 	}
 
-	return domain.BeadsStep.Done(done), nil
+	note, err := i.beadsAuditOff(ctx, request.Dir)
+	if err != nil {
+		return domain.StepResult{}, err
+	}
+
+	return domain.BeadsStep.Done(done + note), nil
+}
+
+// beadsAuditOff writes the interaction-log default into the database bd init just made, and says so
+// as a clause of the step's sentence. bd refusing is reported in the same clause rather than failing
+// the step: the log is off by default anyway, so the database works either way, and what the
+// project loses is only the explicit line in its config.yaml.
+func (i *Initialize) beadsAuditOff(ctx context.Context, dir string) (string, error) {
+	result, err := i.probe(ctx, dir, beadsCommand, beadsAuditOffArgs...)
+	if err != nil {
+		return "", err
+	}
+
+	if result.ExitCode != 0 {
+		detail := text.FirstLine(result.Stderr)
+		if detail == "" {
+			detail = text.FirstLine(result.Stdout)
+		}
+
+		return fmt.Sprintf("; %s exited %d (%s), so the interaction log is at bd's default",
+			commandLine(beadsCommand, beadsAuditOffArgs), result.ExitCode, detail), nil
+	}
+
+	return ", with the interaction log off in its config.yaml", nil
 }
 
 // beadsInitialized asks bd whether this directory already has a database. `bd info` is the question

@@ -22,7 +22,10 @@ installs for each:
   needs attention — `main` moved, the environment stale, a runner nobody declared, a Beads
   precondition blocking. The notice reports and never pulls or runs anything;
 - marked sections in the project's `AGENTS.md` — Beads, Local environment, Testing — and the testing
-  root with its `test-cases/` directory.
+  root with its `test-cases/` directory;
+- the entries other tools read: `.ignore` for what codefall commits and nobody greps, `.gitignore`
+  for the refresh stamp and a test run's output, and `.gitattributes` for a union merge of bd's
+  append-only interaction log, each appended only when the file does not already name it.
 
 `codefall doctor` checks that all of it is present and runnable. [ADR-006](adrs/ADR-006-install-layout.md)
 records the layout.
@@ -56,9 +59,10 @@ Four verbs sit beside the chain rather than in it:
   runner per surface, declared in `test.runners`, its commands recorded in the testing root's
   `AGENTS.md` ([ADR-007](adrs/ADR-007-test-cases.md)). One run equips one track, and setting a
   harness up is its own pull request.
-- **`refresh`** is what to run instead of pulling by hand: fetch, fast-forward `main` when safe, run
-  `start`, run `update` when the commit moved, record the commit in a git-ignored stamp. It never
-  rebases a feature branch or stashes a dirty tree.
+- **`refresh`** is what to run instead of pulling by hand: fetch, fast-forward `main` when safe,
+  `bd sync` the beads with their Dolt remote, run `start`, run `update` when the commit moved,
+  record the commit in a git-ignored stamp. It never rebases a feature branch, stashes a dirty
+  tree, or settles a conflict the sync halts on.
 - **`graft`** brings a scaffolded project's documents up to the current templates, reporting each
   difference with its provenance and applying only what the user takes. It also handles first-time
   adoption of the stance on an existing repo.
@@ -77,6 +81,10 @@ dependency, a migration, or generated code changes `start` or `update` in the sa
   progress, and done; the spec document stays canonical.
 - **Beads** is authoritative for task state from the moment a design's staged task plan is approved
   and becomes beads. A design keeps only the mapping of what became what, never a duplicate list.
+  The database on a machine is a local Dolt copy; the team's is `refs/dolt/data` on the git remote,
+  and only `bd dolt pull` and `bd dolt push` move it. Every verb that writes a bead pushes after the
+  write, and `refresh` syncs before work starts, so `bd ready` answers for the team and not for one
+  checkout. A project with no Dolt remote is told so once and works on this machine alone.
 - **A bead closes at done** — criteria verified, checks green, PR open — not at merge. Gates carry
   the merge seam: every PR gates a "landed" bead inside the epic, and the next session's `bd gate
   check` turns merges into bead state.

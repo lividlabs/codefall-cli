@@ -17,7 +17,7 @@ import (
 // rule for everything equip sets up.
 const equipTestRemedy = "run /codefall-equip to set the project's test harness up"
 
-// testing runs checks 12 to 14: the project says where its test cases live, a runner is declared to
+// testing runs checks 13 to 15: the project says where its test cases live, a runner is declared to
 // run them, and the directory it declared is there (ADR-007).
 //
 // It reads the same settings the settings group validated, so whatever skipped those checks skips

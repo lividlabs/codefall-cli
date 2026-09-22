@@ -111,6 +111,21 @@ const (
 	TestArtifactsComment = "# codefall test run output: logs, traces, reports, and whatever a run created."
 )
 
+// bd's optional interaction log, and the .gitattributes entry that keeps it from conflicting. With
+// `audit.enabled` set, bd appends one JSON line per agent interaction to .beads/interactions.jsonl,
+// and the file is committed alongside whatever bead work it accompanies. Two branches that each
+// appended to it conflict on every merge unless git is told the file is append-only, which is what
+// merge=union says: keep both sides, in order. init adds the entry whether or not the log is on,
+// because the cost of a line nothing reads is nothing, and doctor warns when it is missing.
+const (
+	// GitAttributesName is git's attributes file, at the same level as .gitignore.
+	GitAttributesName = ".gitattributes"
+	// InteractionsAttribute is the line itself: the path, and the merge driver for it.
+	InteractionsAttribute = ".beads/interactions.jsonl merge=union"
+	// GitAttributesComment says why the line is there, for whoever finds the file later.
+	GitAttributesComment = "# bd's interaction log is append-only: a merge keeps both sides instead of conflicting."
+)
+
 // TestArtifacts is the .gitignore entry for a testing root's run output. The root is the project's
 // to choose, so the entry is built from it rather than written down.
 func TestArtifacts(root string) string {

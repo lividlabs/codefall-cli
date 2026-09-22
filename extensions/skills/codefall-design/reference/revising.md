@@ -12,7 +12,7 @@ Then, row by row:
 | --- | --- |
 | The row changed | Edited or replaced, decided by whether anyone is holding the bead — below |
 | The row is new | A new local ID, a new bead, appended to the mapping line |
-| An edge changed | `bd dep add` or `bd dep remove`, then re-verify with `bd ready` |
+| An edge changed | `bd dep add` or `bd dep remove`, then re-verify with `bd ready` and `bd dep cycles` |
 | The row is gone | Its local ID retires. **Report the bead and let the user choose** — close it, or leave it open because work already happened against it |
 
 **A removed row is never closed silently.** Somebody may be holding that ticket, and a design edit
@@ -47,5 +47,8 @@ record of what the task used to be survives. **The local ID does not change** �
 
 **A row that has become two separate tasks is a removal plus two additions**, not a replacement, and
 the removal goes through the report-don't-close rule above.
+
+**Push when the last row is done.** `bd dolt push` once, after every edit, replacement, and edge
+change, so the graph a teammate reads is the one the mapping line now describes.
 
 Say per row which you did and why, in the report.

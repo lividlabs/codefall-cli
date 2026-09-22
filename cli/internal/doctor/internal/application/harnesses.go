@@ -17,7 +17,7 @@ import (
 // initRemedy is what to do about a harness the project chose and codefall was never run for.
 const initRemedy = "codefall init"
 
-// harnesses runs checks 8 and 9, both of which read .codefall/manifest.json, so the file is read
+// harnesses runs checks 9 and 10, both of which read .codefall/manifest.json, so the file is read
 // once here and handed to each of them.
 func (d *Diagnose) harnesses(_ context.Context, dir string, results []domain.Result) []domain.Result {
 	// Settings doctor has already complained about say nothing about which harnesses were chosen, and

@@ -66,9 +66,11 @@ bead gets no gate.
 
 ```bash
 bd create "Parser drops trailing comma" --deps discovered-from:<bead> -p 2
+bd dolt push
 ```
 
-Workers report discoveries in their result JSON; the root files them.
+Workers report discoveries in their result JSON; the root files them, and pushes as after every
+other write.
 
 ## Session end
 

@@ -8,6 +8,7 @@ Read before creating the graph (step 9).
 - The test case in a bead's criteria
 - The plan file
 - Verify the graph
+- Publish the graph
 
 ## What gets created
 
@@ -136,3 +137,14 @@ bd dep cycles     # must find none
 **The ready set must be exactly the rows whose Depends on column is `—`**, plus the epic. If a task
 with prerequisites is ready, or a root task is not, the edges went in backwards — fix them before
 collapsing the table, while the local IDs still line up with what you sent.
+
+## Publish the graph
+
+```bash
+bd dolt push
+```
+
+A bead write is this machine's until it is pushed: the database is Dolt, and the team's copy is
+`refs/dolt/data` on the git remote. Push once the graph verifies and before the table collapses,
+so a teammate's `bd ready` shows the same roots the mapping line records. A project with no Dolt
+remote says it skipped and exits 0: say once that the graph is this machine's, and carry on.

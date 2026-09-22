@@ -41,8 +41,38 @@ func TestBeadsStepSkipsARepositoryThatAlreadyHasBeads(t *testing.T) {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
-	if got := commandsAsked(runner); slices.Contains(got, beadsInit) {
+	got := commandsAsked(runner)
+	if slices.Contains(got, beadsInit) {
 		t.Errorf("asked %q, want bd init not to have run", got)
+	}
+
+	// A database that was already there may have turned the interaction log on; that is its choice.
+	if slices.Contains(got, beadsAuditOff) {
+		t.Errorf("asked %q, want the interaction log's default left alone", got)
+	}
+}
+
+// bd declining to write the default is a clause of the sentence, not a failed step: the log is off
+// by default, so the database works either way.
+func TestBeadsStepReportsWhenTheInteractionLogDefaultCouldNotBeWritten(t *testing.T) {
+	runner := uninitialized()
+	runner.runs[beadsInit] = CommandResult{Stdout: "bd initialized successfully!\n"}
+	runner.runs[beadsAuditOff] = CommandResult{ExitCode: 1, Stderr: "Error: unknown key\n"}
+
+	report, err := NewInitialize(settled("{}"), runner, newFakeExtensionSource()).Run(t.Context(), beadsRequest(), nil)
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	result := beadsResult(t, report)
+	if result.Outcome != domain.OutcomeDone {
+		t.Errorf("outcome = %v, want DONE", result.Outcome)
+	}
+
+	want := "initialized Beads; bd config set audit.enabled false exited 1 (Error: unknown key), " +
+		"so the interaction log is at bd's default"
+	if result.Detail != want {
+		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 }
 
@@ -63,12 +93,12 @@ func TestBeadsStepInitializesBeads(t *testing.T) {
 				Stderr: "⚠ No Dolt remote configured\n",
 			},
 			want: `initialized Beads (bd init committed what it wrote as ` +
-				`"bd init: initialize beads issue tracking")`,
+				`"bd init: initialize beads issue tracking"), with the interaction log off in its config.yaml`,
 		},
 		{
 			name:   "bd had nothing to commit",
 			result: CommandResult{Stdout: "✓ Created .beads/\nbd initialized successfully!\n"},
-			want:   "initialized Beads",
+			want:   "initialized Beads, with the interaction log off in its config.yaml",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -89,8 +119,14 @@ func TestBeadsStepInitializesBeads(t *testing.T) {
 				t.Errorf("detail = %q, want %q", result.Detail, tc.want)
 			}
 
-			if got := commandsAsked(runner); !slices.Contains(got, beadsInit) {
+			got := commandsAsked(runner)
+			if !slices.Contains(got, beadsInit) {
 				t.Errorf("asked %q, want %q among them", got, beadsInit)
+			}
+
+			// The interaction log's default is written into the database bd init just made, after it.
+			if slices.Index(got, beadsAuditOff) < slices.Index(got, beadsInit) {
+				t.Errorf("asked %q, want %q after %q", got, beadsAuditOff, beadsInit)
 			}
 
 			// bd is asked about the directory init was pointed at, not wherever the process started.
@@ -190,13 +226,14 @@ func TestBeadsStepLeavesTheRepositoryGitHooksAloneBelowTheRoot(t *testing.T) {
 		{
 			name:    "at the root",
 			command: "bd init --non-interactive --skip-agents",
-			detail:  "initialized Beads",
+			detail:  "initialized Beads, with the interaction log off in its config.yaml",
 		},
 		{
 			name:    "below the root",
 			prefix:  "apps/web/",
 			command: "bd init --non-interactive --skip-agents --skip-hooks",
-			detail:  "initialized Beads without its git hooks, which belong to the whole repository",
+			detail: "initialized Beads without its git hooks, which belong to the whole repository, " +
+				"with the interaction log off in its config.yaml",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

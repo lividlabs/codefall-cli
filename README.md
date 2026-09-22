@@ -83,13 +83,16 @@ A skill names a shared file `../../../.codefall/shared/<file>`, which is the sam
 skills directory. Nothing installed is a symlink, and no maintainer document from this repository is
 installed into your project. [ADR-006](docs/adrs/ADR-006-install-layout.md) records why.
 
-Init also writes into the project's own files. `AGENTS.md` gains three marked sections — Beads, Local
-environment, and Testing — each replaced between its markers on a rerun and never touching a word
-outside them, and Claude Code gets a one-line `CLAUDE.md` pointing at it when the project has none.
+Init also writes into the project's own files. The Beads database it initializes gets
+`audit.enabled: false` written into `.beads/config.yaml`, so bd's interaction log stays off until the
+project turns it on. `AGENTS.md` gains three marked sections — Beads, Local environment, and Testing
+— each replaced between its markers on a rerun and never touching a word outside them, and Claude Code gets a one-line `CLAUDE.md` pointing at it when the project has none.
 The testing root it asked about is created with a `test-cases/` directory and skeleton `AGENTS.md` and
 `README.md` files, which are yours from the moment they exist: each is written only when it is
 missing, and a rerun never rewrites one. `.ignore` gains the two directories codefall commits and
-nobody greps, and `.gitignore` gains the refresh stamp and the testing root's `.artifacts/`.
+nobody greps, `.gitignore` gains the refresh stamp and the testing root's `.artifacts/`, and
+`.gitattributes` gains a union merge for bd's append-only interaction log, so two branches that both
+appended to it merge without a conflict.
 [ADR-007](docs/adrs/ADR-007-test-cases.md) records what the tree is for.
 
 Init also registers two hooks with each harness that reads them, merged into the harness's own hook
@@ -130,7 +133,7 @@ TODO: rename the skill names to the actual
 | [`review`](extensions/skills/codefall-review/SKILL.md) | Review something and fix what the user accepts: uncommitted work, a branch, an open pull request, a path, a document, or a description of what to look at. A subagent or another harness reviews, the session triages with you and applies what you take, and every finding is committed under `.codefall/reviews/`. | in progress |
 | [`test`](extensions/skills/codefall-test/SKILL.md) | Run what the project declares: every suite, the subset your changed files reach, a named subset, or one test case in its `spec` or `agentic` modality. A spec case runs through the project's own runner; an agentic case is driven step by step through a browser or the shell and judged against the case's criteria. Every run is reported under `.codefall/tests/`. | in progress |
 | [`equip`](extensions/skills/codefall-equip/SKILL.md) | Equip a project with what the other verbs need it to have: the local-environment scripts `refresh` runs — `start`, which brings its services up, and `update`, which makes the local environment match the checkout — and the test harness `test` runs cases through, a spec runner per surface pointed at the testing root. Finds what the project already has or drafts it from what the repository shows, then declares it in `.codefall/settings.json`. | in progress |
-| [`refresh`](extensions/skills/codefall-refresh/SKILL.md) | Bring the checkout and the local environment current: fetch, fast-forward `main` when that is safe, run the declared `start` and `update`, record the commit the environment now matches, and turn a failure into a sentence that says what to do. The routine before starting new work. | in progress |
+| [`refresh`](extensions/skills/codefall-refresh/SKILL.md) | Bring the checkout, the beads, and the local environment current: fetch, fast-forward `main` when that is safe, sync the Beads database with its Dolt remote, run the declared `start` and `update`, record the commit the environment now matches, and turn a failure into a sentence that says what to do. The routine before starting new work. | in progress |
 
 ### Concepts
 
@@ -450,9 +453,10 @@ project up to date?" has to be a question anyone can always answer yes to. The s
 `equip`'s two tracks — the test harness above is the other — and one run equips one of them.
 
 **`refresh` runs them, and is the thing to run instead of pulling by hand.** It fetches,
-fast-forwards `main` when the tree is clean and the move is safe, runs `start`, runs `update` when
-the commit has moved since the last clean run, and records that commit in a per-machine stamp so
-the next session on the same commit does nothing. A failure comes back as one sentence saying what
+fast-forwards `main` when the tree is clean and the move is safe, syncs the Beads database with its
+Dolt remote so the graph it reads is the team's, runs `start`, runs `update` when the commit has
+moved since the last clean run, and records that commit in a per-machine stamp so the next session
+on the same commit does nothing. A failure comes back as one sentence saying what
 failed, what it means, and what to do. A feature branch is never rebased and a dirty tree is never
 stashed; the environment is brought level with the checkout either way.
 
