@@ -105,8 +105,10 @@ before asking anything, name what was found, and ask one question:
 > Are these the start and update commands, or should I draft new ones?
 
 A user who knows corrects it. A user who does not know takes what was found. A repository with
-nothing gets the draft offer. **Never ask whether something exists before looking**: the repository
-answers that faster than the person, and the person may not know.
+nothing gets the draft offer. A repository whose scripts were written for a different caller — a
+first-clone setup that prompts, a sync that pulls — gets the draft offer too, with the steps the
+draft keeps from those scripts named. **Never ask whether something exists before looking**: the
+repository answers that faster than the person, and the person may not know.
 
 The testing track works the same way. A project that already runs end-to-end tests has a runner
 configuration and a directory holding them, and both are found and named before the question is
@@ -150,11 +152,17 @@ Read `reference/signals.md`. Two searches:
   `scripts/` directory, a Taskfile or mise tasks, a `bin/setup` — whose names or bodies say start,
   up, setup, bootstrap, migrate, sync, dev.
 - **Signals** of the tools the environment needs — lockfiles, a compose file, a migrations
-  directory, a codegen config, an `.env.example` — which decide what a draft has to do and what a
-  candidate has to cover.
+  directory, a codegen config, a dotenv sample file — which decide what a draft has to do and what
+  a candidate has to cover.
 
-Check each candidate against [the contract](#the-contract) by reading it, not by running it. A
-candidate that resets, drops, or deletes fails; say which line and why.
+Check each candidate against [the contract](#the-contract) by reading it, not by running it, and
+say which of two things a candidate that does not keep it is. A candidate that resets, drops, or
+deletes is **wrong** for any caller; say which line and why. A candidate that prompts, or that
+pulls before it migrates, is **written for a different caller** — a first-clone setup, a sync
+someone runs by hand — and is correct for that caller; say so in those words, and say what
+`codefall-refresh` needs instead: "`scripts/sync.sh` is right for what it does. Refresh runs
+`update` with nobody at the keyboard and with the checkout its own, so it needs the same steps
+without the git ones." Never tell the user their scripts are broken when they are not.
 
 Then ask the one question, with what was found beside it. Three answers:
 
@@ -162,6 +170,11 @@ Then ask the one question, with what was found beside it. Three answers:
 - **Draft new.** Go to step 3 with the signals.
 - **Revise what is declared.** The block already exists and the user says the tools changed. Go to
   step 3 with the declared scripts open.
+
+When no candidate keeps the contract, the first answer is not offered. Ask draft or revise only —
+revise only when a `local` block is declared — and name the steps of the existing scripts the
+draft reuses verbatim, so the user sees what they keep: "the draft takes your sync script's
+compose, install, and `prisma migrate deploy` steps, minus the git steps and the dirty-tree guard."
 
 ### 3. Draft or revise
 
@@ -173,9 +186,11 @@ Read `templates/local.sh`. The shape follows the project:
   its subcommands and the declaration pointing at each.
 
 Each step in `update` is the tool's own idempotent form: `npm ci` not `npm install`, `migrate
-deploy` not `migrate reset`, `go mod download`, `uv sync`. An `.env` is copied from `.env.example`
-only when missing, never overwritten. `start` uses the compose file's own wait (`up -d --wait`)
-where it has one. Every step carries a one-line comment saying what it brings current.
+deploy` not `migrate reset`, `go mod download`, `uv sync`. A step whose tool has no cheap no-op —
+`npm ci` reinstalls every run — is guarded the way the template shows. The project's sample env
+file is copied to the file its tooling loads only when that file is missing, never overwritten,
+and before any step that reads it. `start` uses the compose file's own wait (`up -d --wait`) where
+it has one. Every step carries a one-line comment saying what it brings current.
 
 A **revision** changes only what the introduced tool needs and leaves the rest of the script as
 the project wrote it. Show the diff, not the whole file.

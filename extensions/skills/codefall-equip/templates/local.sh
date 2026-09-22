@@ -20,12 +20,20 @@ start() {
 }
 
 update() {
-  # <One line per step, in this order: runtimes, dependencies, generated code, migrations, .env.>
+  # <One line per step, in this order: runtimes, the env file, dependencies, generated code,
+  # migrations. The env file comes before anything that reads it: the migration step below takes
+  # its database URL from there.>
   # mise install
-  # npm ci
+  # [ -f <env file> ] || cp <sample file> <env file>
+  #   <sample file> is what the project commits — .env.example, .env.sample — and <env file> is
+  #   what its tooling loads: .env for most dotenv loaders, .env.local for Next.js.
+  # lock=$(git hash-object package-lock.json)
+  # [ "$lock" = "$(cat node_modules/.codefall-lock 2>/dev/null)" ] || {
+  #   npm ci   # reinstalls from scratch every run, so it runs only when the lockfile changed
+  #   echo "$lock" > node_modules/.codefall-lock
+  # }
   # npx prisma generate
   # npx prisma migrate deploy
-  # [ -f .env ] || cp .env.example .env
   :
 }
 
