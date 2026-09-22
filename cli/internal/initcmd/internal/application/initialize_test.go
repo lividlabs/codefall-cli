@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io/fs"
+	"maps"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -189,8 +190,15 @@ type fakeExtensionSource struct {
 	data   map[string][]byte
 }
 
+// newFakeExtensionSource answers with the hook definitions and the documents under agents/: the two
+// kinds of file a step reads from the tree one at a time rather than copies. Each test gets its own
+// map, so one that replaces a file to break it breaks it for itself alone.
 func newFakeExtensionSource() *fakeExtensionSource {
-	return &fakeExtensionSource{data: hookDefinitions}
+	data := make(map[string][]byte, len(hookDefinitions)+len(agentsDocuments))
+	maps.Copy(data, hookDefinitions)
+	maps.Copy(data, agentsDocuments)
+
+	return &fakeExtensionSource{data: data}
 }
 
 // fetched is the one file the fake answers with for each subtree a caller names.

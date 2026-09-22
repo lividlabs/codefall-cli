@@ -63,12 +63,12 @@ func TestTestingStepMakesTheTreeAndDeclaresTheRoot(t *testing.T) {
 		}
 	}
 
-	if got := string(files.files[testingAgentsFull]); got != domain.TestingAgents {
-		t.Errorf("testing/AGENTS.md =\n%s\nwant the skeleton", got)
+	if got, want := string(files.files[testingAgentsFull]), string(agentsDocuments["agents/testing/AGENTS.md"]); got != want {
+		t.Errorf("testing/AGENTS.md =\n%s\nwant the skeleton from the tree:\n%s", got, want)
 	}
 
-	if got := string(files.files[testingReadmeFull]); got != domain.TestingReadme {
-		t.Errorf("testing/README.md =\n%s\nwant the skeleton", got)
+	if got, want := string(files.files[testingReadmeFull]), string(agentsDocuments["agents/testing/README.md"]); got != want {
+		t.Errorf("testing/README.md =\n%s\nwant the skeleton from the tree:\n%s", got, want)
 	}
 
 	if got := string(files.files[testingClaudeFull]); got != claudePointer {
@@ -231,6 +231,25 @@ func TestTestingStepRefusesARootOutsideTheProject(t *testing.T) {
 		t.Context(), request)
 	if err == nil || !strings.Contains(err.Error(), "relative path inside the project") {
 		t.Errorf("testing error = %v, want it to refuse the root", err)
+	}
+}
+
+// A skeleton the tree does not hold is a binary shipped wrong: the step stops and names the file,
+// before it writes anything at the root.
+func TestTestingStepRefusesASkeletonTheTreeDoesNotHold(t *testing.T) {
+	files := settled("{}")
+
+	source := newFakeExtensionSource()
+	delete(source.data, "agents/testing/README.md")
+
+	_, err := NewInitialize(files, toolsInstalled(), source).Run(t.Context(), beadsRequest(), nil)
+	if err == nil || !strings.Contains(err.Error(), "read agents/testing/README.md") {
+		t.Errorf("Run error = %v, want it to name the skeleton the tree does not hold", err)
+	}
+
+	if _, written := files.files[testingAgentsFull]; written {
+		t.Errorf("testing/AGENTS.md = %q, want nothing written when a skeleton is missing",
+			files.files[testingAgentsFull])
 	}
 }
 

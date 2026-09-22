@@ -20,6 +20,12 @@ import (
 const (
 	testCasesDir = "test-cases"
 	readmeName   = "README.md"
+
+	// testingSkeletons is the directory of the embedded tree that holds the two documents init
+	// writes at the testing root when they are missing, each under the name it lands with. They are
+	// skeletons and not templates: written once, and never afterwards. From the moment one exists
+	// it is the project's document, and `codefall-equip` is what fills the runners in (ADR-007).
+	testingSkeletons = "agents/testing"
 )
 
 // testRoot is the testing root a run works with: the answer the request carries, and the format's
@@ -151,12 +157,27 @@ func (i *Initialize) writeTestingTree(request Request, root string) ([]string, e
 		}
 	}
 
-	documents := []struct {
+	documents := make([]struct {
 		name string
 		body string
+	}, 0, 3)
+
+	for _, skeleton := range []struct {
+		name   string
+		source string
 	}{
-		{agentsName, domain.TestingAgents},
-		{readmeName, domain.TestingReadme},
+		{agentsName, testingSkeletons + "/" + agentsName},
+		{readmeName, testingSkeletons + "/" + readmeName},
+	} {
+		body, err := i.source.Read(skeleton.source)
+		if err != nil {
+			return nil, fmt.Errorf("read %s: %w", skeleton.source, err)
+		}
+
+		documents = append(documents, struct {
+			name string
+			body string
+		}{skeleton.name, string(body)})
 	}
 
 	// The pointer is the same one line the root of the project gets, and for the same reason: Claude

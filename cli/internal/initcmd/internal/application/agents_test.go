@@ -16,17 +16,42 @@ var (
 	claudeMemoryFull = filepath.Join(workingDir, "CLAUDE.md")
 )
 
+// agentsDocuments is what the fake tree holds under agents/: the four sections, each between its
+// markers the way the shipped files are, and the two skeletons the testing step writes. Stand-ins
+// for the real words, which the facade test pins against the real tree; what the application
+// layer's tests need is that the step reads them from here and splices them where they go.
+var agentsDocuments = map[string][]byte{
+	"agents/sections/codefall.md": []byte(domain.CodefallSectionBegin + "\n## Codefall\n\nThe chain, " +
+		"and `.codefall/shared/workflow.md` for the rest.\n" + domain.CodefallSectionEnd + "\n"),
+	"agents/sections/beads.md": []byte(domain.BeadsSectionBegin + "\n## Beads\n\nThe tracker.\n" +
+		domain.BeadsSectionEnd + "\n"),
+	"agents/sections/local.md": []byte(domain.LocalSectionBegin + "\n## Local environment\n\nRun refresh.\n" +
+		domain.LocalSectionEnd + "\n"),
+	"agents/sections/testing.md": []byte(domain.TestingSectionBegin + "\n## Testing\n\nCases live under `" +
+		domain.TestingRootPlaceholder + "/`.\n" + domain.TestingSectionEnd + "\n"),
+	"agents/testing/AGENTS.md": []byte("# Testing\n\n## Runners\n\nNone declared yet.\n"),
+	"agents/testing/README.md": []byte("# Test cases\n\n| Case ID | Modalities | Variants | Notes |\n"),
+}
+
 // What a file that has been through the step says, without the newline that ends each section: the
 // Codefall section, the Beads section, the Local environment section, the Testing section for the
 // root the fixture declares, and the four together as a file that had nothing else gains them.
 var (
-	codefallSection = strings.TrimSuffix(domain.CodefallSection, "\n")
-	beadsSection    = strings.TrimSuffix(domain.BeadsSection, "\n")
-	localSection    = strings.TrimSuffix(domain.LocalSection, "\n")
-	testingSection  = strings.TrimSuffix(domain.TestingSection(settings.DefaultTestDir), "\n")
+	codefallSection = sectionFixture("agents/sections/codefall.md", settings.DefaultTestDir)
+	beadsSection    = sectionFixture("agents/sections/beads.md", settings.DefaultTestDir)
+	localSection    = sectionFixture("agents/sections/local.md", settings.DefaultTestDir)
+	testingSection  = sectionFixture("agents/sections/testing.md", settings.DefaultTestDir)
 	threeSections   = beadsSection + "\n\n" + localSection + "\n\n" + testingSection
 	allSections     = codefallSection + "\n\n" + threeSections
 )
+
+// sectionFixture is one section as it lands in a file: the fake tree's words with the root filled in
+// and without the newline that ends the file.
+func sectionFixture(source, root string) string {
+	body := strings.ReplaceAll(string(agentsDocuments[source]), domain.TestingRootPlaceholder, root)
+
+	return strings.TrimSuffix(body, "\n")
+}
 
 // agentsResult is what the fifth step did in a run that got that far.
 func agentsResult(t *testing.T, report domain.Report) domain.StepResult {
@@ -374,6 +399,88 @@ func TestAgentsStepReportsAFileItCannotUse(t *testing.T) {
 			_, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).agents(t.Context(), beadsRequest())
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Errorf("agents error = %v, want it to mention %q", err, tc.want)
+			}
+		})
+	}
+}
+
+// The Testing section names the root the project declared, wherever the request puts it, and no
+// placeholder survives into somebody's file.
+func TestAgentsStepNamesTheDeclaredTestingRoot(t *testing.T) {
+	files := settled("{}")
+
+	request := beadsRequest()
+	request.TestDir = "packages/web/e2e"
+
+	if _, err := NewInitialize(files, toolsInstalled(), newFakeExtensionSource()).agents(t.Context(), request); err != nil {
+		t.Fatalf("agents: %v", err)
+	}
+
+	got := string(files.files[agentsFull])
+
+	if strings.Contains(got, domain.TestingRootPlaceholder) {
+		t.Errorf("AGENTS.md still holds %q:\n%s", domain.TestingRootPlaceholder, got)
+	}
+
+	if !strings.Contains(got, "packages/web/e2e/") {
+		t.Errorf("AGENTS.md does not name the declared root:\n%s", got)
+	}
+}
+
+// A section the tree does not hold, or one whose markers are not where the splice expects them, is a
+// binary shipped wrong. The step stops before it reads or writes anything of the project's, and
+// names the file, so a broken build fails every install the same way rather than writing a section
+// a later run could not find.
+func TestAgentsStepRefusesASectionTheTreeShipsWrong(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		body []byte
+		want string
+	}{
+		{
+			name: "the file is not in the tree",
+			body: nil,
+			want: "read agents/sections/beads.md",
+		},
+		{
+			name: "the opening marker is not the first line",
+			body: []byte("## Beads\n" + domain.BeadsSectionBegin + "\n\nWords.\n" + domain.BeadsSectionEnd + "\n"),
+			want: "agents/sections/beads.md does not open with " + domain.BeadsSectionBegin,
+		},
+		{
+			name: "the closing marker is not the last line",
+			body: []byte(domain.BeadsSectionBegin + "\n\nWords.\n" + domain.BeadsSectionEnd + "\n\nMore.\n"),
+			want: "agents/sections/beads.md does not close with " + domain.BeadsSectionEnd,
+		},
+		{
+			name: "the file does not end with a newline",
+			body: []byte(domain.BeadsSectionBegin + "\n\nWords.\n" + domain.BeadsSectionEnd),
+			want: "agents/sections/beads.md does not close with " + domain.BeadsSectionEnd,
+		},
+		{
+			name: "a marker appears twice",
+			body: []byte(domain.BeadsSectionBegin + "\n\n" + domain.BeadsSectionBegin + "\n" + domain.BeadsSectionEnd + "\n"),
+			want: "agents/sections/beads.md holds a marker more than once",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			files := settled("{}")
+			files.files[agentsFull] = []byte("# Project\n")
+
+			source := newFakeExtensionSource()
+			if tc.body == nil {
+				delete(source.data, "agents/sections/beads.md")
+			} else {
+				source.data["agents/sections/beads.md"] = tc.body
+			}
+
+			_, err := NewInitialize(files, toolsInstalled(), source).agents(t.Context(), beadsRequest())
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("agents error = %v, want it to say %q", err, tc.want)
+			}
+
+			if got := string(files.files[agentsFull]); got != "# Project\n" {
+				t.Errorf("AGENTS.md = %q, want it untouched", got)
 			}
 		})
 	}

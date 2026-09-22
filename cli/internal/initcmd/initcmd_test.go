@@ -261,6 +261,114 @@ func TestSkillsReachSharedFilesByTheInstalledPath(t *testing.T) {
 	}
 }
 
+// The agents step reads its four sections from agents/sections/ and the testing step its two
+// skeletons from agents/testing/, and the extension step copies none of it. The application layer's
+// tests run over stand-ins, so this is the pin against the real words: each section opens and
+// closes with the markers the domain names, the Testing section holds the placeholder the step
+// fills and names the verbs a reader needs from it, the Codefall section names the installed
+// detail file, and each skeleton is a whole document. It states the table again, the way the hook
+// test does: a pin, not a second source of truth.
+func TestTheTreeShipsTheSectionsInitWrites(t *testing.T) {
+	tree := extensions.Files()
+
+	for _, tc := range []struct {
+		source string
+		begin  string
+		end    string
+		names  []string
+	}{
+		{
+			source: "agents/sections/codefall.md",
+			begin:  "<!-- BEGIN CODEFALL PROCESS -->",
+			end:    "<!-- END CODEFALL PROCESS -->",
+			names:  []string{installDir + "/shared/workflow.md"},
+		},
+		{
+			source: "agents/sections/beads.md",
+			begin:  "<!-- BEGIN CODEFALL BEADS -->",
+			end:    "<!-- END CODEFALL BEADS -->",
+		},
+		{
+			source: "agents/sections/local.md",
+			begin:  "<!-- BEGIN CODEFALL LOCAL -->",
+			end:    "<!-- END CODEFALL LOCAL -->",
+			names:  []string{"/codefall-refresh", "/codefall-equip"},
+		},
+		{
+			source: "agents/sections/testing.md",
+			begin:  "<!-- BEGIN CODEFALL TESTING -->",
+			end:    "<!-- END CODEFALL TESTING -->",
+			names:  []string{"{{TESTING_ROOT}}", "/codefall-implement", "/codefall-test", "/codefall-equip"},
+		},
+	} {
+		t.Run(tc.source, func(t *testing.T) {
+			data, err := fs.ReadFile(tree, tc.source)
+			if err != nil {
+				t.Fatalf("read %s from the embedded tree: %v — the agents step writes this section", tc.source, err)
+			}
+
+			body := string(data)
+
+			if !strings.HasPrefix(body, tc.begin+"\n") {
+				t.Errorf("%s does not open with %s", tc.source, tc.begin)
+			}
+
+			if !strings.HasSuffix(body, "\n"+tc.end+"\n") {
+				t.Errorf("%s does not close with %s and a newline", tc.source, tc.end)
+			}
+
+			if strings.Count(body, tc.begin) != 1 || strings.Count(body, tc.end) != 1 {
+				t.Errorf("%s holds a marker more than once — a later run would replace the wrong span", tc.source)
+			}
+
+			if strings.Contains(body, "../../shared/") || strings.Contains(body, "../../../"+installDir) {
+				t.Errorf("%s names a file by a skill's relative path, and it is read from the project root", tc.source)
+			}
+
+			for _, name := range tc.names {
+				if !strings.Contains(body, name) {
+					t.Errorf("%s does not name %s", tc.source, name)
+				}
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		source   string
+		headings []string
+	}{
+		{
+			source: "agents/testing/AGENTS.md",
+			headings: []string{
+				"## Runners", "## Setup and state-forcing commands", "## Real side effects", "## Environment notes",
+			},
+		},
+		{
+			source:   "agents/testing/README.md",
+			headings: []string{"| Case ID | Modalities | Variants | Notes |"},
+		},
+	} {
+		t.Run(tc.source, func(t *testing.T) {
+			data, err := fs.ReadFile(tree, tc.source)
+			if err != nil {
+				t.Fatalf("read %s from the embedded tree: %v — the testing step writes this skeleton", tc.source, err)
+			}
+
+			body := string(data)
+
+			if !strings.HasPrefix(body, "# ") || !strings.HasSuffix(body, "\n") {
+				t.Errorf("%s is not a whole document:\n%s", tc.source, body)
+			}
+
+			for _, heading := range tc.headings {
+				if !strings.Contains(body, heading) {
+					t.Errorf("%s has no %q:\n%s", tc.source, heading, body)
+				}
+			}
+		})
+	}
+}
+
 // commandsIn collects every command string in a decoded hook document, whatever depth the
 // harness's format keeps it at.
 func commandsIn(value any) []string {
