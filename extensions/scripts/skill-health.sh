@@ -18,7 +18,8 @@
 #   tokens        estimated two ways, chars/4 and words*1.33; the larger is judged: under 5000
 #   description   under 1024 characters
 #   name          frontmatter name matches the directory
-#   invocation    disable-model-invocation: true
+#   invocation    disable-model-invocation: true, except for the skills listed in
+#                 MODEL_INVOCABLE, which carry no such line
 #   references    every ./ or ../ path SKILL.md names resolves
 #   depth         a referenced file names no further file that SKILL.md does not also name
 #   contents      a referenced file over 100 lines has a table of contents
@@ -44,6 +45,8 @@ set -uo pipefail
 LINES_MAX=500
 TOKENS_MAX=5000
 DESC_MAX=1024
+# Skills an agent may invoke on its own; every other skill carries disable-model-invocation: true.
+MODEL_INVOCABLE="codefall-refresh"
 TOC_LINES=100
 
 strict=0
@@ -171,11 +174,20 @@ for dir in "${dirs[@]}"; do
     row "name" "frontmatter says '$fm_name', directory is '$name_dir'"; bad=1
   fi
 
-  if [ "$fm_dmi" = "true" ]; then
-    row "invocation" "ok"
-  else
-    row "invocation" "disable-model-invocation is not true"; bad=1
-  fi
+  case " $MODEL_INVOCABLE " in
+    *" $name_dir "*)
+      if [ -z "$fm_dmi" ]; then
+        row "invocation" "ok     (model-invocable)"
+      else
+        row "invocation" "disable-model-invocation is set; $name_dir is model-invocable and carries no such line"; bad=1
+      fi ;;
+    *)
+      if [ "$fm_dmi" = "true" ]; then
+        row "invocation" "ok"
+      else
+        row "invocation" "disable-model-invocation is not true"; bad=1
+      fi ;;
+  esac
 
   # References named by SKILL.md.
   : > "$tmp/resolved"

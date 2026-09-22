@@ -1159,6 +1159,26 @@ Decided at scaffold, 2026-08-16.
   records that the hook definitions are read from the binary and never copied, and this is one
   more file of that kind.
 
+- **`codefall-refresh` is model-invocable, 2026-09-22.** The one skill that carries no
+  `disable-model-invocation: true`. The rule held everywhere because no skill invoked another
+  through the harness (**Local environment: equip and refresh, 2026-09-16**), and refresh is the
+  one verb whose run has no stakes: it moves the checkout only on a fast-forward of a clean default
+  branch, runs scripts the project already declared, never drafts or settles anything, and writes
+  nothing but a git-ignored stamp. So an agent may run it when the session notice or preflight
+  reports the environment stale, and `implement`, `design`, and `specify` now run it at that point
+  instead of offering it. `test` still offers and never runs a remedy: a test run that moved the
+  checkout underneath itself would invalidate what it was about to test. Every other verb stays
+  deliberate — the interview verbs and `scaffold` write documents and beads, `implement` claims
+  and opens pull requests, `review` and `graft` have no meaning without a user taking findings,
+  `equip` drafts and confirms. `codefall-test` was the one arguable second: its `suites` and
+  `changed` modes are mechanical and its description already carries trigger phrases, but findings
+  are triaged with the user and the agentic modality drives the product, so it stays as it is.
+  With the flag off, refresh's description sits in the startup listing every session, so it was
+  cut to the first sentence and the "safe to run at any time" line. `skill-health.sh` holds the
+  exception as `MODEL_INVOCABLE`, and checks a listed skill for the absence of the line as it
+  checks every other for its presence. ADR-004's "every codefall skill sets" line is history and
+  stays as written.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

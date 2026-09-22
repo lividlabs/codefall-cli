@@ -218,7 +218,9 @@ The concept above them is what groups them, which is why a concept's `Related` l
 
 Skills are **explicitly invoked** — `/scaffold`, `/specify`, and so on. Each carries
 `disable-model-invocation: true`, so none of them fire on their own; scaffolding a project or filing
-an issue is a deliberate act, not something inferred from a passing remark.
+an issue is a deliberate act, not something inferred from a passing remark. `codefall-refresh` is
+the one exception: it writes nothing but a git-ignored stamp, so an agent may run it on its own
+when the environment is stale.
 
 ### Mockups
 

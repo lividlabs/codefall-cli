@@ -19,7 +19,8 @@ is where it is edited; `codefall init` installs the copy and replaces it on a re
 ## The chain
 
 Each verb is explicitly invoked (`disable-model-invocation: true`), reports what it found, offers, and
-applies only what the user takes. In order:
+applies only what the user takes. `refresh` is the one exception: it carries no such line, and an
+agent may run it when the environment is stale. In order:
 
 | Verb | Reads | Writes | Hands to |
 | --- | --- | --- | --- |

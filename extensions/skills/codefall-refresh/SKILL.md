@@ -1,8 +1,7 @@
 ---
 name: codefall-refresh
-description: Bring the checkout, the Beads database, and the local environment current — fetch, fast-forward the default branch when that is safe, sync the beads with their Dolt remote, run the project's declared start and update commands, record the commit the environment now matches, and turn any failure into a sentence that says what to do. Safe to run at any time; the routine before starting new work.
+description: Bring the checkout, the Beads database, and the local environment current — fetch, fast-forward the default branch when that is safe, sync the beads, run the project's declared start and update commands, and record the commit the environment now matches. Safe to run at any time; the routine before starting new work.
 argument-hint: "[path]"
-disable-model-invocation: true
 allowed-tools:
   - Read
   - Glob
