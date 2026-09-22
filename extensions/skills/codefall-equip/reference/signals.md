@@ -29,13 +29,17 @@ A README section that lists commands is not an entry point; it is the evidence f
 ## Signals and what they map to
 
 One row per signal. A draft's `update` runs the row's update step for every signal present, in the
-order the rows appear: dependencies before codegen, codegen before migrations. `start` runs every
-row's start step.
+order the rows appear: runtimes first, then the env file, then dependencies, then generated code,
+then migrations. The env file comes before anything that reads it — a migration tool takes its
+database URL from there, so on a fresh clone the copy has to happen before `migrate deploy` runs.
+`start` runs every row's start step.
 
 | Signal | Tool | `start` | `update` |
 | --- | --- | --- | --- |
+| `mise.toml`, `.tool-versions` | mise / asdf | — | `mise install` — first, before anything that needs a runtime |
+| `.env.example`, `.env.sample`, or any `.env*` sample the README names | dotenv | — | copy the project's sample file to the file its tooling loads, only when that file is missing — `.env` for most dotenv loaders, `.env.local` for Next.js; the README or the loader's config says which. When two tools read different files — Next.js loads `.env.local`, the Prisma CLI loads only `.env` — the draft copies to each file a step reads, or runs the step through the loader that reads the app's file |
 | `compose.yaml`, `docker-compose.yml` | Docker Compose | `docker compose up -d --wait` (`up -d` when the file has no healthchecks) | — |
-| `package-lock.json` | npm | — | `npm ci` |
+| `package-lock.json` | npm | — | `npm ci`, guarded by a lockfile stamp (below) |
 | `pnpm-lock.yaml` | pnpm | — | `pnpm install --frozen-lockfile` |
 | `yarn.lock` | Yarn | — | `yarn install --immutable` (Berry) or `yarn install --frozen-lockfile` (1.x) |
 | `bun.lock`, `bun.lockb` | Bun | — | `bun install --frozen-lockfile` |
@@ -46,6 +50,10 @@ row's start step.
 | `Gemfile.lock` | Bundler | — | `bundle install` |
 | `Cargo.lock` | Cargo | — | `cargo fetch` |
 | `mix.lock` | Mix | — | `mix deps.get` |
+| `sqlc.yaml` | sqlc | — | `sqlc generate` |
+| `codegen.ts`, `codegen.yml` | GraphQL Codegen | — | `graphql-codegen` |
+| `openapi*.yaml` with a generator config | OpenAPI generator | — | the project's generate command |
+| `buf.yaml`, `*.proto` with a build rule | protobuf | — | `buf generate` / the project's `protoc` rule |
 | `prisma/schema.prisma` | Prisma | — | `prisma generate`, then `prisma migrate deploy` |
 | `drizzle.config.*` | Drizzle | — | `drizzle-kit migrate` |
 | `knexfile.*` | Knex | — | `knex migrate:latest` |
@@ -53,15 +61,19 @@ row's start step.
 | `db/migrate/` with a `Rakefile` | Rails | — | `bin/rails db:migrate` |
 | `manage.py` | Django | — | `python manage.py migrate` |
 | `migrations/` with `goose` or `migrate` in `go.mod` or a Makefile | goose / golang-migrate | — | `goose up` / `migrate up` |
-| `sqlc.yaml` | sqlc | — | `sqlc generate` |
-| `codegen.ts`, `codegen.yml` | GraphQL Codegen | — | `graphql-codegen` |
-| `openapi*.yaml` with a generator config | OpenAPI generator | — | the project's generate command |
-| `buf.yaml`, `*.proto` with a build rule | protobuf | — | `buf generate` / the project's `protoc` rule |
-| `.env.example`, `.env.sample` | dotenv | — | `cp .env.example .env` only when `.env` is missing |
-| `mise.toml`, `.tool-versions` | mise / asdf | — | `mise install` — first, before anything that needs a runtime |
 
 A signal with no row is still a signal: read the tool's documentation for its idempotent
 install-or-sync form and its migrate-forward form, and use those.
+
+**`npm ci` is the one install step that is not cheap on a no-op.** It removes `node_modules` and
+reinstalls from the lockfile every run, so a draft guards it: hash `package-lock.json`, keep the
+hash in a stamp inside `node_modules/` — already git-ignored, and gone whenever the directory
+is — and run `npm ci` only when the hash differs. `templates/local.sh` shows the guard. The other
+install rows compare the lockfile against what is installed and answer "nothing to do" on their
+own: `pnpm install --frozen-lockfile`, `yarn install --immutable`, `bun install --frozen-lockfile`,
+`go mod download`, `uv sync`, `poetry install --sync`, `bundle install`, `cargo fetch`, and
+`mix deps.get` all do. A candidate that runs `npm ci` bare keeps the contract's safety and not its
+cost; offer the guard as a revision rather than reporting the candidate.
 
 ## What fails the contract
 
@@ -78,3 +90,10 @@ A candidate or a draft with any of these is reported with the line and never dec
 
 A candidate that does one of these on a flag — `make reset` beside `make up` — is fine; only the
 command being declared is judged.
+
+The list holds two kinds of candidate, and the report says which. The first three entries, and
+`npm install` beside a lockfile, are wrong for any caller: a script that resets, drops, or deletes
+costs someone data whoever runs it. A pull or a prompt is usually a script written for a different
+caller — a first-clone setup that asks for secrets once, a sync that someone runs by hand after
+fetching — and it is correct for that caller. SKILL.md step 2 says how to name each kind, and what
+the draft takes from the second.
