@@ -1103,6 +1103,37 @@ Decided at scaffold, 2026-08-16.
   even though what init installs is not. Doctor gains no check; the section is one more marked
   span the agents step already replaces. Not a breaking change: a new section and a new shared
   file, nothing renamed or removed.
+- **The AGENTS.md sections stay self-contained, 2026-09-22.** The Beads section doubled in
+  PR #100, and every harness reads the four sections at session start (chars/4 on 2026-09-22:
+  Codefall ~234 tokens, Beads ~664, Local ~228, Testing ~209). Seen and not taken: pointers to
+  files under `docs/codefall/`, and pointers to files under `.codefall/shared/`. No file is
+  added; the sections get shorter in place. Most of each section is a rule the agent has to have
+  in context to follow. The rest — the Dolt model, the no-remote case, what the interaction log
+  is, what `refresh` runs — is reference that `.codefall/shared/workflow.md` already carries and
+  the Codefall section already points at, and `bd prime` prints the command reference where a
+  harness has a session event. Antigravity and Muse have none, so the quick-reference block
+  stays. `docs/codefall/` would be a second home for shipped files, which ADR-006 rules out, and
+  the manifest and doctor know only `.codefall/`; a file under `.codefall/shared/` would hold
+  what workflow.md holds. The rewrite removes about 450 tokens from every session start, and a
+  linked file would save nothing further. Not a breaking change. **The rewrite, same day.** Beads
+  664 → 349 tokens, Local 228 → 149, Testing 209 → 144 (chars/4, markers included). Every rule
+  stayed; what left is the Dolt explanation, the hook that runs `bd prime`, the `bd create`
+  command line, what `refresh` records, and the numbered close protocol, now one sentence. The
+  three sections share one voice: each opens with the fact the rules rest on, tells the agent to
+  run a verb as `/codefall-<verb>` and names one as `codefall-<verb>` — the Beads section had
+  `/codefall-refresh` where it was naming, not telling — and closes with the same precedence line.
+  No Go code, test, or shipped file changed. **Beads then went back over its target, to ~399,**
+  after a session in which an agent created a bead, neither pulled nor pushed, and was confused by
+  the interaction log. Four things went back in: the enumeration of what counts as a write, since
+  a create had not read as one; the pull rule keyed to the start of a session rather than to
+  reading the graph, which a create skips; the clause that the log's appearance is expected and
+  not a stray change; and one sentence saying this section, not `bd prime`'s git-authority note,
+  decides Dolt sync. That last one is the likely cause: in the three harnesses with a session
+  event, `bd prime` prints "do not push, pull, or run remote sync" under bd's default
+  conservative profile, into the same session as the section, and bd's own text says repository
+  instructions override it without the section claiming that. Setting `agent.profile
+  team-maintainer` at init would fix the wording and also authorize git pushes at session close,
+  which the section forbids, so the sentence is the cheaper fix. Clarity over the target, there.
 
 ## Open
 

@@ -1,16 +1,13 @@
 <!-- BEGIN CODEFALL LOCAL -->
 ## Local environment
 
-This project's local environment is kept current by codefall's `refresh` verb. It runs the `start`
-and `update` commands declared under `local` in `.codefall/settings.json` and records the commit it
-last succeeded at. Both commands are safe to run at any time.
+`codefall-refresh` runs `start` and `update`, declared under `local` in `.codefall/settings.json`.
 
-- Before starting new work, and whenever the default branch has moved since the last refresh, run
-  `/codefall-refresh`. Run it rather than pulling by hand: it brings the environment along with the
-  checkout.
-- A change that adds infrastructure, a dependency, a migration, or generated code also changes the
-  `start` and `update` scripts, in the same pull request. `codefall-equip` is the procedure.
-- If no `local` block is declared, run `/codefall-equip` before anything else.
+- Run `/codefall-refresh` before new work and when the default branch moves; never pull by
+  hand.
+- A change that adds infrastructure, a dependency, a migration, or generated code changes `start`
+  or `update` in the same pull request; `codefall-equip` is the procedure.
+- No `local` block declared: run `/codefall-equip` first.
 
 Instructions from the user or elsewhere in this file take precedence over this section.
 <!-- END CODEFALL LOCAL -->
