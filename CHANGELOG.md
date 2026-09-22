@@ -6,6 +6,24 @@ below were written by hand, before that was wired up.
 Tags are bare version numbers (`0.1.2`), not `v`-prefixed, so they match the `ref` the marketplace
 pins. A `v0.1.1` tag also exists from before that convention was settled.
 
+## [0.15.0](https://github.com/lividlabs/codefall-cli/compare/v0.14.2...v0.15.0) (2026-09-22)
+
+
+### Features
+
+* **beads:** sync the Dolt remote, union-merge the interaction log, and default audit off ([#100](https://github.com/lividlabs/codefall-cli/issues/100)) ([76806b1](https://github.com/lividlabs/codefall-cli/commit/76806b1d3771d25dd6e0fee05ad15feab434deee))
+* **init:** write a Codefall section to AGENTS.md and install workflow.md ([#101](https://github.com/lividlabs/codefall-cli/issues/101)) ([c611b6b](https://github.com/lividlabs/codefall-cli/commit/c611b6b8c3b9e4c4de03eebf5808424e887df6fc))
+
+
+### Bug Fixes
+
+* **init:** shorten the AGENTS.md sections and let the Beads section decide Dolt sync over bd prime ([#102](https://github.com/lividlabs/codefall-cli/issues/102)) ([ff6225d](https://github.com/lividlabs/codefall-cli/commit/ff6225d14a54bdfe3c95a38cce69b9321b7a903a))
+
+
+### Documentation
+
+* describe how codefall works in AGENTS.md, with the chain in docs/workflow.md ([#98](https://github.com/lividlabs/codefall-cli/issues/98)) ([e63d07c](https://github.com/lividlabs/codefall-cli/commit/e63d07c32ee447af0ec4215b5efafd2ff65b98db))
+
 ## [0.14.2](https://github.com/lividlabs/codefall-cli/compare/v0.14.1...v0.14.2) (2026-09-22)
 
 
