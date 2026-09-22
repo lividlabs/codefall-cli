@@ -1115,7 +1115,14 @@ Decided at scaffold, 2026-08-16.
   stays. `docs/codefall/` would be a second home for shipped files, which ADR-006 rules out, and
   the manifest and doctor know only `.codefall/`; a file under `.codefall/shared/` would hold
   what workflow.md holds. The rewrite removes about 450 tokens from every session start, and a
-  linked file would save nothing further. Not a breaking change.
+  linked file would save nothing further. Not a breaking change. **The rewrite, same day.** Beads
+  664 → 349 tokens, Local 228 → 149, Testing 209 → 144 (chars/4, markers included). Every rule
+  stayed; what left is the Dolt explanation, the hook that runs `bd prime`, the `bd create`
+  command line, what `refresh` records, and the numbered close protocol, now one sentence. The
+  three sections share one voice: each opens with the fact the rules rest on, tells the agent to
+  run a verb as `/codefall-<verb>` and names one as `codefall-<verb>` — the Beads section had
+  `/codefall-refresh` where it was naming, not telling — and closes with the same precedence line.
+  No Go code, test, or shipped file changed.
 
 ## Open
 
