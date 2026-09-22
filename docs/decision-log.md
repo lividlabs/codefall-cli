@@ -1122,7 +1122,18 @@ Decided at scaffold, 2026-08-16.
   three sections share one voice: each opens with the fact the rules rest on, tells the agent to
   run a verb as `/codefall-<verb>` and names one as `codefall-<verb>` — the Beads section had
   `/codefall-refresh` where it was naming, not telling — and closes with the same precedence line.
-  No Go code, test, or shipped file changed.
+  No Go code, test, or shipped file changed. **Beads then went back over its target, to ~399,**
+  after a session in which an agent created a bead, neither pulled nor pushed, and was confused by
+  the interaction log. Four things went back in: the enumeration of what counts as a write, since
+  a create had not read as one; the pull rule keyed to the start of a session rather than to
+  reading the graph, which a create skips; the clause that the log's appearance is expected and
+  not a stray change; and one sentence saying this section, not `bd prime`'s git-authority note,
+  decides Dolt sync. That last one is the likely cause: in the three harnesses with a session
+  event, `bd prime` prints "do not push, pull, or run remote sync" under bd's default
+  conservative profile, into the same session as the section, and bd's own text says repository
+  instructions override it without the section claiming that. Setting `agent.profile
+  team-maintainer` at init would fix the wording and also authorize git pushes at session close,
+  which the section forbids, so the sentence is the cheaper fix. Clarity over the target, there.
 
 ## Open
 
