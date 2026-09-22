@@ -33,23 +33,79 @@ type section struct {
 	body  string
 }
 
-// sectionsFor is every section the step writes, in the order a file that has none gains them. Each
+// sectionSpec is where one section's words are in the embedded tree, with the markers the domain
+// says delimit it. The words are read from the tree the way the hook step reads a harness's
+// definition: content the binary ships and init splices into a project's file rather than copies.
+type sectionSpec struct {
+	name   string
+	begin  string
+	end    string
+	source string
+}
+
+// sectionsSource is the directory of the embedded tree that holds the sections, one file each. The
+// extension step copies nothing from under agents/: what is there is read here and written into
+// AGENTS.md, and a project never receives the files themselves.
+const sectionsSource = "agents/sections"
+
+// sectionSpecs is every section the step writes, in the order a file that has none gains them. Each
 // pair of markers is its own, so a project that has one section and not the others gains the ones
 // it is missing beside the one it has.
 //
 // The Codefall section goes first because it is the frame the other three sit inside: the chain of
 // verbs, and who is authoritative for what. A file that already has the other three gains it at the
 // end, after them, because the step never moves what somebody else wrote.
+var sectionSpecs = []sectionSpec{
+	{name: "Codefall", begin: domain.CodefallSectionBegin, end: domain.CodefallSectionEnd, source: sectionsSource + "/codefall.md"},
+	{name: "Beads", begin: domain.BeadsSectionBegin, end: domain.BeadsSectionEnd, source: sectionsSource + "/beads.md"},
+	{name: "Local environment", begin: domain.LocalSectionBegin, end: domain.LocalSectionEnd, source: sectionsSource + "/local.md"},
+	{name: "Testing", begin: domain.TestingSectionBegin, end: domain.TestingSectionEnd, source: sectionsSource + "/testing.md"},
+}
+
+// sectionsFor reads every section out of the tree, in the order the step writes them, with the
+// testing root filled in. It takes the root because the last section names it: the other three are
+// the same words in every project, and the path a project's cases live at is the project's own
+// (ADR-007). The placeholder is filled in every section rather than one, so a section that comes
+// to name the root later needs no change here.
 //
-// It takes the testing root because the last section names it: the other three are the same words
-// in every project, and the path a project's cases live at is the project's own (ADR-007).
-func sectionsFor(root string) []section {
-	return []section{
-		{name: "Codefall", begin: domain.CodefallSectionBegin, end: domain.CodefallSectionEnd, body: domain.CodefallSection},
-		{name: "Beads", begin: domain.BeadsSectionBegin, end: domain.BeadsSectionEnd, body: domain.BeadsSection},
-		{name: "Local environment", begin: domain.LocalSectionBegin, end: domain.LocalSectionEnd, body: domain.LocalSection},
-		{name: "Testing", begin: domain.TestingSectionBegin, end: domain.TestingSectionEnd, body: domain.TestingSection(root)},
+// A section the tree does not hold, or one whose markers are not where the splice expects them, is
+// an error naming the file: both are a binary shipped wrong, and neither is worth guessing around.
+func (i *Initialize) sectionsFor(root string) ([]section, error) {
+	sections := make([]section, 0, len(sectionSpecs))
+
+	for _, spec := range sectionSpecs {
+		data, err := i.source.Read(spec.source)
+		if err != nil {
+			return nil, fmt.Errorf("read %s: %w", spec.source, err)
+		}
+
+		body := strings.ReplaceAll(string(data), domain.TestingRootPlaceholder, root)
+
+		if err := marked(body, spec); err != nil {
+			return nil, err
+		}
+
+		sections = append(sections, section{name: spec.name, begin: spec.begin, end: spec.end, body: body})
 	}
+
+	return sections, nil
+}
+
+// marked checks a section against what the splice expects of it: one pair of markers, the opening
+// one the first line and the closing one the last, with the newline that ends the file after it. A
+// second marker in the body would make a later run replace the wrong span, and a section without
+// its pair would be written once and never found again.
+func marked(body string, spec sectionSpec) error {
+	switch {
+	case !strings.HasPrefix(body, spec.begin+"\n"):
+		return fmt.Errorf("%s does not open with %s", spec.source, spec.begin)
+	case !strings.HasSuffix(body, "\n"+spec.end+"\n"):
+		return fmt.Errorf("%s does not close with %s and a newline", spec.source, spec.end)
+	case strings.Count(body, spec.begin) != 1 || strings.Count(body, spec.end) != 1:
+		return fmt.Errorf("%s holds a marker more than once", spec.source)
+	}
+
+	return nil
 }
 
 // sectionChange is what the step did to one section, which is most of what it has to report.
@@ -105,6 +161,11 @@ func (i *Initialize) agents(_ context.Context, request Request) (domain.StepResu
 // that is already what would be written is not written at all, which is what makes a second run a
 // skip. The file is read once and written once, however many sections change.
 func (i *Initialize) writeSections(dir, root string) ([]string, error) {
+	sections, err := i.sectionsFor(root)
+	if err != nil {
+		return nil, err
+	}
+
 	body, err := i.readProjectFile(dir, agentsName)
 	if err != nil {
 		return nil, err
@@ -113,7 +174,6 @@ func (i *Initialize) writeSections(dir, root string) ([]string, error) {
 	existing, present := body.Get()
 	next := existing
 
-	sections := sectionsFor(root)
 	changes := make([]sectionChange, 0, len(sections))
 
 	for _, s := range sections {
@@ -190,8 +250,8 @@ func sectionPhrase(names []string) string {
 // The encoding of a section is here rather than in the domain, which holds the words and the
 // markers and nothing about how they are spliced into somebody's file.
 func sectionIn(existing string, s section) (string, sectionChange, error) {
-	// The embedded file ends with a newline after its closing marker. What is spliced into a file
-	// does not carry it, because where it lands decides what follows.
+	// The file in the tree ends with a newline after its closing marker. What is spliced into a
+	// file does not carry it, because where it lands decides what follows.
 	body := strings.TrimSuffix(s.body, "\n")
 
 	begin := strings.Index(existing, s.begin)

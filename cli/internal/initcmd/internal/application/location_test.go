@@ -2,7 +2,6 @@ package application
 
 import (
 	"encoding/json"
-	"maps"
 	"strings"
 	"testing"
 
@@ -83,7 +82,6 @@ func TestHookWritesTheSubdirectoryIntoCommandsThatNameTheRoot(t *testing.T) {
 			runner.runs[gitPrefix] = CommandResult{Stdout: tc.prefix + "\n"}
 
 			source := newFakeExtensionSource()
-			source.data = maps.Clone(hookDefinitions)
 			source.data["hooks/claude/hooks.json"] = rootedClaudeDefinition
 
 			if _, err := NewInitialize(files, runner, source).Run(t.Context(), beadsRequest(), nil); err != nil {

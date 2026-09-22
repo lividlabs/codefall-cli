@@ -36,7 +36,9 @@ chosen harness's own skills directory, because that is the only part a harness f
 whatever harnesses were chosen, because every path that reaches them is codefall's at both ends — a
 skill names a shared file `../../../.codefall/shared/<file>`, and every harness's hook definition
 names `.codefall/hooks/shared/…`. The per-harness definitions under `hooks/<harness>/` are read
-straight from the binary and never copied. This file, [`AGENTS.md`](AGENTS.md),
+straight from the binary and never copied, and so are the documents under [`agents/`](agents/): the
+four sections `init` writes into a project's `AGENTS.md` and the two skeletons it writes at the
+testing root. This file, [`AGENTS.md`](AGENTS.md),
 [`skills/AGENTS.md`](skills/AGENTS.md), [`docs/`](docs/), and each skill's `NOTES.md` are written for
 someone working on codefall and are installed nowhere.
 [ADR-006](../docs/adrs/ADR-006-install-layout.md) records the layout.

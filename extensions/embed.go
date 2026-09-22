@@ -7,7 +7,7 @@ import (
 	"io/fs"
 )
 
-//go:embed skills hooks shared README.md AGENTS.md docs
+//go:embed agents skills hooks shared README.md AGENTS.md docs
 var tree embed.FS
 
 // Files returns the embedded extension tree as a filesystem; callers walk it or copy it whole.

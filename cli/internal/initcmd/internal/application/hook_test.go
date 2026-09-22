@@ -508,10 +508,12 @@ func claudeDefinition(t *testing.T, guard string) map[string][]byte {
 	return definitions
 }
 
-// sourceOf is an extension source serving one set of definitions.
+// sourceOf is an extension source serving one set of definitions in place of the usual ones, with
+// the documents under agents/ as they always are: the run reads those after the hook step, and a
+// test about hooks has nothing to say about them.
 func sourceOf(definitions map[string][]byte) *fakeExtensionSource {
 	source := newFakeExtensionSource()
-	source.data = definitions
+	maps.Copy(source.data, definitions)
 
 	return source
 }
