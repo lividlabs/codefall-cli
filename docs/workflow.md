@@ -1,0 +1,89 @@
+# How codefall works
+
+codefall is a set of verbs — skills a coding harness runs on request — plus the CLI that installs
+them into a project. The verbs chain from an idea to open pull requests, and every step leaves
+something in the repository or in the task graph that the next step reads. Humans decide at each
+gate, and a human performs every merge to `main`. This file is the map; each verb's `SKILL.md`
+under [`extensions/skills/`](../extensions/skills/) holds the procedure, and the
+[README](../README.md) argues for it.
+
+## What `init` puts in place
+
+`codefall init` (or `codefall create` for a new directory) asks which harnesses the project uses and
+installs for each:
+
+- the skills, into the harness's own skills directory (`.claude/skills/`, `.agents/skills/`), because
+  that is the one place a harness finds them by convention;
+- `.codefall/`, once for all harnesses: `settings.json` (what the project told `init`, read back by
+  the verbs), `manifest.json` (what the last run wrote), `hooks/shared/` (the guard scripts), and
+  `shared/` (the files every skill reads and the scripts a verb runs);
+- two hooks: a `PreToolUse` guard that denies merges and pushes to the default branch, and, where
+  the harness has the event, a `SessionStart` prime on what Beads knows plus a notice naming what
+  needs attention — `main` moved, the environment stale, a runner nobody declared, a Beads
+  precondition blocking. The notice reports and never pulls or runs anything;
+- marked sections in the project's `AGENTS.md` — Beads, Local environment, Testing — and the testing
+  root with its `test-cases/` directory.
+
+`codefall doctor` checks that all of it is present and runnable. [ADR-006](adrs/ADR-006-install-layout.md)
+records the layout.
+
+## The chain
+
+Each verb is explicitly invoked (`disable-model-invocation: true`), reports what it found, offers, and
+applies only what the user takes. In order:
+
+| Verb | Reads | Writes | Hands to |
+| --- | --- | --- | --- |
+| `conceptualize` | whatever the user arrived with: a sentence, a vision doc, a folder of mockups | `docs/concepts/CONCEPT-NNN-slug.md`, the *why*; sources kept verbatim under `docs/concepts/sources/` | `scaffold` requires one; `specify` may draw on one |
+| `scaffold` | a concept; an interview for what a template cannot decide | ratified ADRs, scoped `AGENTS.md` files, optionally project files, boundary lint, and the `start` and `update` scripts | a project ready for `specify` |
+| `specify` | the idea or concept, and an audit of what already exists | `docs/specs/SPEC-NNN-slug.md`, the *what*: requirements with EARS acceptance criteria, mirrored to the tracker as a parent issue and one child per requirement | `design` |
+| `mock-up` | a design-tool export, or nothing | `docs/mockups/<slug>/`, matching the app's own design system | `design`; an issue labelled `requires-mockup` blocks design until it exists |
+| `design` | the spec, the concept, the code | `docs/designs/DESIGN-NNN-slug.md`, the *how*, scaled to the change; ADRs for hard-to-reverse choices; beads with dependency edges, each carrying its acceptance criteria and, where the task is verified through the wired product, the test case and its criteria | `implement` |
+| `implement` | ready beads, an epic, or a design | a worktree per task, the test case before the code, verification against the bead's criteria and the project's checks, a pull request per task, walked in parallel waves until the frontier is empty | the human, who merges |
+| `review` | anything live: uncommitted work, a branch, a PR, a path, a document | `.codefall/reviews/`, a JSON and Markdown pair per review; fixes on the target's branch for the findings the user takes | the human |
+| `test` | what the project declares: suites, the changed subset, or one case in its `spec` or `agentic` modality | `.codefall/tests/`, a report per run; findings triaged, never an edit that makes a run pass | tracker issues on the user's word |
+
+A contained fix skips the documents: `design` writes beads only when a change stays inside one
+component and comes to a task or two, and `specify` is for features, not every change.
+
+## Keeping the project current
+
+Four verbs sit beside the chain rather than in it:
+
+- **`equip`** builds and rebuilds what the other verbs need the project to have. One track is the
+  local environment: `start` and `update`, declared under `local` in `.codefall/settings.json`
+  ([ADR-005](adrs/ADR-005-local-environment-scripts.md)). The other is the test harness: a spec
+  runner per surface, declared in `test.runners`, its commands recorded in the testing root's
+  `AGENTS.md` ([ADR-007](adrs/ADR-007-test-cases.md)). One run equips one track, and setting a
+  harness up is its own pull request.
+- **`refresh`** is what to run instead of pulling by hand: fetch, fast-forward `main` when safe, run
+  `start`, run `update` when the commit moved, record the commit in a git-ignored stamp. It never
+  rebases a feature branch or stashes a dirty tree.
+- **`graft`** brings a scaffolded project's documents up to the current templates, reporting each
+  difference with its provenance and applying only what the user takes. It also handles first-time
+  adoption of the stance on an existing repo.
+- **`codefall init`** rerun (`upgrade`) reinstalls the skills and hooks for the harnesses already
+  recorded, replacing its own marked sections and registrations and touching nothing else.
+
+The scripts stay current at the point of introduction: a task that adds infrastructure, a
+dependency, a migration, or generated code changes `start` or `update` in the same pull request.
+`design` names it in the task, `implement` counts it toward done, and `review` carries a lens for it.
+
+## Who is authoritative for what
+
+- **Documents in the repository** are canonical for the why (concept), the what (spec), and the how
+  (design). Each carries a `Status` that describes the document only.
+- **The tracker** (GitHub Issues in this version) mirrors specs so people can see what is ready, in
+  progress, and done; the spec document stays canonical.
+- **Beads** is authoritative for task state from the moment a design's staged task plan is approved
+  and becomes beads. A design keeps only the mapping of what became what, never a duplicate list.
+- **A bead closes at done** — criteria verified, checks green, PR open — not at merge. Gates carry
+  the merge seam: every PR gates a "landed" bead inside the epic, and the next session's `bd gate
+  check` turns merges into bead state.
+- **A human performs every merge to `main`.** `implement` ends at open PRs and a reported bottom-up
+  merge order, and the guard hook denies the alternative in every harness.
+- **The context that finds a problem never fixes it.** `review` runs in a subagent or another
+  harness; the session triages and applies. A test criterion is never written from the
+  implementation it verifies, and never edited to make a run pass.
+- **A skill refuses only what it cannot do.** A missing runner, tool, or tracker profile is an exit;
+  disagreement about size or fit is said aloud and then the user's call is followed.

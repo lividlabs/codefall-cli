@@ -11,6 +11,20 @@ Decisions for the whole repository live in [`docs/adrs/`](docs/adrs/); the in-fl
 [`docs/decision-log.md`](docs/decision-log.md). Provenance for the scaffolded documents is
 `.codefall/scaffold.json`.
 
+## How codefall works
+
+`codefall init` installs the verbs into each harness a project uses, and `.codefall/` beside them
+with the settings, shared scripts, and hooks the verbs read. The verbs chain from an idea to open
+pull requests, and each leaves something the next one reads: `conceptualize` → `docs/concepts/`,
+`specify` → `docs/specs/` mirrored to the tracker, `mock-up` → `docs/mockups/`, `design` →
+`docs/designs/` and beads with dependency edges, `implement` → a worktree, a test case, and a pull
+request per task, `review` → `.codefall/reviews/`, `test` → `.codefall/tests/`. Beside the chain,
+`scaffold` starts a project, `graft` brings its documents current, and `equip` and `refresh` keep
+the local environment level with the checkout. Every verb is invoked deliberately and applies only
+what the user takes; a human performs every merge to `main`, and a hook denies the alternative.
+[`docs/workflow.md`](docs/workflow.md) holds the full chain, what each verb reads and writes, and
+who is authoritative for what.
+
 ## Workflow
 
 These hold for both components; each component's own file adds to them.
