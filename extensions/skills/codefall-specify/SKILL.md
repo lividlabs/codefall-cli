@@ -44,6 +44,8 @@ Read each when its step says to; none is loaded up front.
   refreshing, archiving. Read at step 12, and at step 3 for the duplicate search.
 - `../../../.codefall/shared/import-mockup.md` — the shared procedure for bringing a user's mockup into the
   repository. Read at step 8 when they have one.
+- `../../../.codefall/shared/landing.md` — the branch, the commit, and the offered pull request.
+  Read at step 11.
 
 ## Scope — what, not how
 
@@ -346,24 +348,29 @@ because the nouns here are ordinary English" — so the user can catch an omissi
 
 Then set the status: `Ready`, unless they said they are stopping and coming back, which is `Draft`.
 
-### 11. Write the spec
+### 11. Branch, then write the spec
 
-Write `docs/specs/SPEC-NNN-slug.md`, and `docs/specs/AGENTS.md` if it was missing.
+Branch first, per `../../../.codefall/shared/landing.md` — `spec/SPEC-NNN-slug`.
 
-Do not commit.
+Then write `docs/specs/SPEC-NNN-slug.md`, and `docs/specs/AGENTS.md` if it was missing. The commit
+waits for the mirror, which writes the issue number into the document.
 
 ### 12. Mirror to the tracker
 
 Follow the creation sequence in `trackers/github/PROFILE.md`. The document is canonical and the
 issues are generated from it, so this step never asks the user to re-approve content.
 
-### 13. Wrap up
-
-Report the spec path, its identifier, its status, every open question it carries, and the issues
-that were created, with links.
+### 13. Link back, commit, and wrap up
 
 If a concept framed this work, add the spec identifier to its `Related` line. Add the identifier and
 change nothing else in the file.
+
+Then land it per `../../../.codefall/shared/landing.md`: commit by path — the spec, the `AGENTS.md`,
+the concept — and offer the push and pull request, its body carrying `Relates to #<spec-issue>`.
+The merge is the user's.
+
+Report the spec path, its identifier, its status, every open question it carries, the issues that
+were created with links, the branch, and the pull request if one was opened.
 
 ## Other modes
 
@@ -378,7 +385,7 @@ Invoking this skill on an existing spec does one of four things. Ask which if it
 - **Split** a spec into siblings, per [cohesion and splitting](#cohesion-and-splitting).
 
 Every one of these is a user's decision. Report the state and offer; never transition a spec on your
-own initiative.
+own initiative. Each lands per `../../../.codefall/shared/landing.md`.
 
 ## Rules
 

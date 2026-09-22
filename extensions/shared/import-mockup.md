@@ -105,5 +105,7 @@ against, and leave the label on if they are unsure.
 
 ## Committing
 
-**Do not commit or open a pull request from inside this procedure.** The files land in the working
-tree and the user decides when they go in. Say what was added and leave it there.
+**This procedure writes files and does not commit them.** The verb that called it lands them with
+the rest of its run, per `landing.md` beside this file: `codefall-specify` with the spec,
+`codefall-mock-up` with the mockup directory, `codefall-conceptualize` with the concept. Say what was
+added and hand back.

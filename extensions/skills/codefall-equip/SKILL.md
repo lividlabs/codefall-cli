@@ -56,6 +56,8 @@ Read each when its step says to; none is loaded up front.
 - `reference/testing.md` — the whole testing procedure: what to search for, the runner each surface
   takes, what installing each one means, the exact shape of every write, and how the result is
   proven. Read at step 1 of the testing track.
+- `../../../.codefall/shared/landing.md` — the shared procedure for the branch, the commit, and the
+  offered pull request. Read before the first write on either track.
 
 ## Scope — what a project runs with, not the running
 
@@ -195,7 +197,9 @@ it has one. Every step carries a one-line comment saying what it brings current.
 A **revision** changes only what the introduced tool needs and leaves the rest of the script as
 the project wrote it. Show the diff, not the whole file.
 
-Show the full draft, or the diff, and confirm before writing anything.
+Show the full draft, or the diff, and confirm before writing anything. Then, before the first
+write, take the branch step of `../../../.codefall/shared/landing.md`: standing on the default
+branch, `git switch -c equip/local`; on another branch, ask once which to use.
 
 ### 4. Declare
 
@@ -227,9 +231,11 @@ stamp not being git-ignored is `codefall init`'s to fix; name it in the report.
 
 - What was declared, and whether it was found, drafted, or revised.
 - Whether the scripts were proven, and by which run.
-- What the user still owes the project: commit the scripts and the settings; run
-  `/codefall-refresh` once so the stamp exists; `codefall init` if doctor warned about
-  `.gitignore`.
+- The landing, per `../../../.codefall/shared/landing.md`: the scripts and the settings committed by
+  path on the branch, and the push and pull request offered — its own pull request, never another
+  verb's. The merge is the user's.
+- What the user still owes the project: run `/codefall-refresh` once so the stamp exists;
+  `codefall init` if doctor warned about `.gitignore`.
 
 ## Process — the test harness
 
@@ -260,7 +266,9 @@ about. Agentic cases stay available for it wherever `codefall-test` has a driver
 
 Install or declare it per `reference/testing.md`: the dependency, and a configuration whose test
 directory is `<root>/test-cases` and whose match is the runner's suffix, with retries off and one
-worker. Show the configuration and confirm before writing anything.
+worker. Show the configuration and confirm before writing anything. Then, before the first write,
+take the branch step of `../../../.codefall/shared/landing.md`: standing on the default branch,
+`git switch -c equip/test-harness`; on another branch, ask once which to use.
 
 ### 5. Declare and record
 
@@ -287,8 +295,10 @@ as well when the runner is Playwright; no cases yet is a pass. Then `codefall do
 ### 8. Report
 
 What was declared and whether it was found or installed; where the runner's line went; what
-`update` gained; what the proof showed. What the user still owes: commit the configuration, the
-settings, and `<root>/AGENTS.md` as their own pull request, then write the first case through
+`update` gained; what the proof showed. Then the landing, per `../../../.codefall/shared/landing.md`:
+the configuration, the settings, `<root>/AGENTS.md`, and the `update` revision committed by path on
+the branch, and the push and pull request offered — its own pull request, never another verb's.
+The merge is the user's. What the user still owes: write the first case through
 `/codefall-implement`.
 
 ## Rules

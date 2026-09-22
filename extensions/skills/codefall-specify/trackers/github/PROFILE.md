@@ -207,6 +207,10 @@ gh api graphql -f query='
 Then write the spec issue's number into the document's `**Issue:**` line. That line is how the next
 run finds the mirror.
 
+The `blob/main` link in each body resolves once the spec's pull request merges. Until then the pull
+request is where the document is, and its body carries `Relates to #<spec-issue>` so the two find
+each other.
+
 **`codefall-specify` writes no dependency links between issues.** GitHub supports them; ordering work is
 `codefall-design`'s decision, made against the build graph, and a guess recorded here would be a guess `codefall-design`
 has to unpick.

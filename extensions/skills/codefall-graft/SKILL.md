@@ -41,6 +41,8 @@ project.
   project doc carries a historical identifier.
 - `reference/pre-provenance.md` — everything graft does differently for a project scaffolded
   before `scaffold.json` existed. Read only when step 1 finds no provenance.
+- `../../../.codefall/shared/landing.md` — the shared procedure for the branch, the commit, and the
+  offered pull request. Read at step 5, before the first scion is applied.
 
 ## Scope — documents, not code
 
@@ -185,6 +187,9 @@ question, items grouped by whether they can be taken automatically.
 
 ### 5. Apply what the user takes — one scion at a time
 
+Before the first scion, take the branch step of `../../../.codefall/shared/landing.md`: standing
+on the default branch, `git switch -c graft/<YYYY-MM-DD>`; on another branch, ask once which to use.
+
 Only requested items, and only missing or untouched ones are ever taken. **Graft never rewrites a
 ratified ADR.** A taken revision lands as a new ADR that supersedes the old one, which stays on
 the record; the only in-place edit graft ever makes to an existing ADR is flipping its Status line
@@ -241,6 +246,9 @@ the graft should be reviewable as one coherent change.
 - What was **taken**, file by file.
 - What was **left**, and why — amended, edited, retired, or declined.
 - Stale references the user chose to keep, so they aren't rediscovered as a surprise.
+- The landing, per `../../../.codefall/shared/landing.md`: what took, committed by path on the
+  branch, and the push and pull request offered. The merge is the user's. A run where nothing took
+  has nothing to land.
 - What the user still owes the project: the hand-merges they said they'd do, and — after an
   adoption — the boundary-enforcement obligation, named exactly as `codefall-scaffold` names it after a
   docs-only run.

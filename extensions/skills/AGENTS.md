@@ -16,6 +16,10 @@ writing and changing a skill; the extension-wide rules, ADR immutability, prose,
   Recording an observable fact is the exception: a skill that owns a status transition sets it when
   the fact occurs and reports that it did — `codefall-implement` flipping a concept to `Active` at first
   claim is this shape. Judgment transitions — promote, archive, revise — stay offer-only.
+- A skill that writes to the repository lands its files per `../shared/landing.md`: the branch and
+  the commit are part of the write the user already confirmed, the push and the pull request are
+  one offer, and the merge is never the skill's. No skill says "do not commit"; the one prohibition
+  is the default branch, and the guard hook holds it.
 - **Refuse only what you cannot do.** A missing surface profile, a missing tool, an unsupported
   tracker — those are exits. Disagreeing about size, altitude, or fit is not: say what you think and
   why, then do what the user asks. `codefall-conceptualize`'s floor and `codefall-specify`'s cohesion check are both

@@ -211,7 +211,9 @@ Numbering is append-only at every level. A retired number is never reused, so a 
 spec and a child issue per requirement, carrying that requirement's story and criteria in full so
 nobody has to click through to work the ticket. Re-running `specify` regenerates those bodies. The
 spec's own `Status` is `Draft`, `Ready`, or `Archived` and describes the document only — whether the
-work is queued, underway, or done is the tracker's to say.
+work is queued, underway, or done is the tracker's to say. The spec lands on its own branch, committed
+once the mirror has written the issue number back, and the pull request that carries it to `main` is
+offered, never merged: that holds for every verb that writes a document, and only the merge is yours.
 
 A feature too large for one cohesive spec becomes sibling specs rather than a parent and children.
 The concept above them is what groups them, which is why a concept's `Related` line holds a list.
