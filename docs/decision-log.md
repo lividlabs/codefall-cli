@@ -1074,6 +1074,35 @@ Decided at scaffold, 2026-08-16.
   `bd config set` rather than an edit because bd knows where the database is and codefall does not.
   bd warns that the key is unrecognised and writes it anyway; `bd audit --help` names that exact
   command as the way to set it.
+- **Init writes the Codefall section, 2026-09-22.** PR #98 described how codefall works in this
+  repository's `AGENTS.md` and in `docs/workflow.md`, and neither reaches a project: nothing `init`
+  installed said which verbs exist, what order they run in, what each leaves for the next, or who
+  is authoritative for documents, the tracker, and Beads. An agent in a project learned the chain
+  only from a skill that names the next one. `codefall init` now writes a fourth marked section,
+  **Codefall**, between `<!-- BEGIN CODEFALL PROCESS -->` and `<!-- END CODEFALL PROCESS -->`,
+  from `internal/initcmd/internal/domain/codefall_section.md`, embedded beside the other three for
+  the same reason. It is first in `sectionsFor`, because it is the frame the other three sit
+  inside, so a file that has none opens with it; a file that already has the three gains it at the
+  end, after them, because the step never moves what somebody else wrote, including sections it
+  wrote itself on an earlier run. The section is one paragraph — the chain, the verbs beside it,
+  that every verb is invoked deliberately and applies only what the user takes, that a human
+  performs every merge, and one line on who is authoritative — and it points at
+  `.codefall/shared/workflow.md` for the rest rather than carrying it. The detail file ships from
+  `extensions/shared/`, which the extension step already copies into `.codefall/shared/` per
+  ADR-006; no conciseness pass on the sections has landed to choose another home. It holds the
+  chain table, the four verbs beside the chain, and who is authoritative for what, and not what
+  init puts in place, which is the CLI's business. **`docs/workflow.md` is the source and the copy
+  is checked, not hand-edited.** `extensions/scripts/workflow-sync.sh` compares the three shared
+  sections byte for byte, `--strict` fails CI when they differ, and `--write` copies them in,
+  keeping the copy's own opening. A header in each file saying the other is the copy was the
+  alternative, and nothing enforces a header; a generator was the other, and it would need a
+  header it did not overwrite, which is the same script with `--write` and no check. The copy
+  stays byte for byte, so the two ADR links in *Keeping the project current* became absolute
+  GitHub URLs, which resolve from a project's `.codefall/shared/` as `adrs/…` does not. The
+  `codefall init` rerun bullet stays in the copied section: upgrading is the project's concern
+  even though what init installs is not. Doctor gains no check; the section is one more marked
+  span the agents step already replaces. Not a breaking change: a new section and a new shared
+  file, nothing renamed or removed.
 
 ## Open
 

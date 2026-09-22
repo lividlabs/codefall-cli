@@ -85,8 +85,12 @@ installed into your project. [ADR-006](docs/adrs/ADR-006-install-layout.md) reco
 
 Init also writes into the project's own files. The Beads database it initializes gets
 `audit.enabled: false` written into `.beads/config.yaml`, so bd's interaction log stays off until the
-project turns it on. `AGENTS.md` gains three marked sections — Beads, Local environment, and Testing
-— each replaced between its markers on a rerun and never touching a word outside them, and Claude Code gets a one-line `CLAUDE.md` pointing at it when the project has none.
+project turns it on. `AGENTS.md` gains four marked sections — Codefall, Beads, Local environment,
+and Testing — each replaced between its markers on a rerun and never touching a word outside them,
+and Claude Code gets a one-line `CLAUDE.md` pointing at it when the project has none. The Codefall
+section is the frame the other three sit inside: the chain of verbs, the verbs beside it, and who is
+authoritative for what, with the detail in `.codefall/shared/workflow.md`, a copy of
+[`docs/workflow.md`](docs/workflow.md) that CI holds to its source.
 The testing root it asked about is created with a `test-cases/` directory and skeleton `AGENTS.md` and
 `README.md` files, which are yours from the moment they exist: each is written only when it is
 missing, and a rerun never rewrites one. `.ignore` gains the two directories codefall commits and

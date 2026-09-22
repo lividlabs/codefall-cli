@@ -1,38 +1,20 @@
 # How codefall works
 
-codefall is a set of verbs — skills a coding harness runs on request — plus the CLI that installs
-them into a project. The verbs chain from an idea to open pull requests, and every step leaves
+codefall is a set of verbs — skills a coding harness runs on request — plus the CLI that installed
+them into this project. The verbs chain from an idea to open pull requests, and every step leaves
 something in the repository or in the task graph that the next step reads. Humans decide at each
-gate, and a human performs every merge to `main`. This file is the map; each verb's `SKILL.md`
-under [`extensions/skills/`](../extensions/skills/) holds the procedure, and the
-[README](../README.md) argues for it. This file is edited here; the three sections from *The chain*
-on are copied into [`extensions/shared/workflow.md`](../extensions/shared/workflow.md), which `init`
-installs, by `extensions/scripts/workflow-sync.sh --write`, and CI fails when the copy drifts.
+gate, and a human performs every merge to `main`. This file is the map; each verb's `SKILL.md` in
+the harness's skills directory holds the procedure.
 
-## What `init` puts in place
+This is a copy. The source is `docs/workflow.md` in the
+[codefall repository](https://github.com/lividlabs/codefall-cli/blob/main/docs/workflow.md), which
+is where it is edited; `codefall init` installs the copy and replaces it on a rerun.
 
-`codefall init` (or `codefall create` for a new directory) asks which harnesses the project uses and
-installs for each:
+## Contents
 
-- the skills, into the harness's own skills directory (`.claude/skills/`, `.agents/skills/`), because
-  that is the one place a harness finds them by convention;
-- `.codefall/`, once for all harnesses: `settings.json` (what the project told `init`, read back by
-  the verbs), `manifest.json` (what the last run wrote), `hooks/shared/` (the guard scripts), and
-  `shared/` (the files every skill reads and the scripts a verb runs);
-- two hooks: a `PreToolUse` guard that denies merges and pushes to the default branch, and, where
-  the harness has the event, a `SessionStart` prime on what Beads knows plus a notice naming what
-  needs attention — `main` moved, the environment stale, a runner nobody declared, a Beads
-  precondition blocking. The notice reports and never pulls or runs anything;
-- marked sections in the project's `AGENTS.md` — Codefall, Beads, Local environment, Testing — and
-  the testing root with its `test-cases/` directory. The Codefall section is the frame the other
-  three sit inside, and it points at `.codefall/shared/workflow.md`, the installed copy of the
-  chain, the verbs beside it, and who is authoritative for what;
-- the entries other tools read: `.ignore` for what codefall commits and nobody greps, `.gitignore`
-  for the refresh stamp and a test run's output, and `.gitattributes` for a union merge of bd's
-  append-only interaction log, each appended only when the file does not already name it.
-
-`codefall doctor` checks that all of it is present and runnable. [ADR-006](adrs/ADR-006-install-layout.md)
-records the layout.
+- The chain
+- Keeping the project current
+- Who is authoritative for what
 
 ## The chain
 

@@ -17,13 +17,15 @@ var (
 )
 
 // What a file that has been through the step says, without the newline that ends each section: the
-// Beads section, the Local environment section, the Testing section for the root the fixture
-// declares, and the three together as a file that had nothing else gains them.
+// Codefall section, the Beads section, the Local environment section, the Testing section for the
+// root the fixture declares, and the four together as a file that had nothing else gains them.
 var (
-	beadsSection   = strings.TrimSuffix(domain.BeadsSection, "\n")
-	localSection   = strings.TrimSuffix(domain.LocalSection, "\n")
-	testingSection = strings.TrimSuffix(domain.TestingSection(settings.DefaultTestDir), "\n")
-	allSections    = beadsSection + "\n\n" + localSection + "\n\n" + testingSection
+	codefallSection = strings.TrimSuffix(domain.CodefallSection, "\n")
+	beadsSection    = strings.TrimSuffix(domain.BeadsSection, "\n")
+	localSection    = strings.TrimSuffix(domain.LocalSection, "\n")
+	testingSection  = strings.TrimSuffix(domain.TestingSection(settings.DefaultTestDir), "\n")
+	threeSections   = beadsSection + "\n\n" + localSection + "\n\n" + testingSection
+	allSections     = codefallSection + "\n\n" + threeSections
 )
 
 // agentsResult is what the fifth step did in a run that got that far.
@@ -56,8 +58,9 @@ func run(t *testing.T, markdown map[string][]byte) (*fakeFileSystem, domain.Step
 	return files, agentsResult(t, report)
 }
 
-// A project with no AGENTS.md gets one that is the two sections and nothing else, and the CLAUDE.md
-// that points at it.
+// A project with no AGENTS.md gets one that is the four sections and nothing else, the Codefall
+// section first because it is the frame the other three sit inside, and the CLAUDE.md that points
+// at it.
 func TestAgentsStepCreatesTheFilesThatAreNotThere(t *testing.T) {
 	files, result := run(t, nil)
 
@@ -65,13 +68,17 @@ func TestAgentsStepCreatesTheFilesThatAreNotThere(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	want := "created AGENTS.md with the Beads, Local environment and Testing sections and created CLAUDE.md"
+	want := "created AGENTS.md with the Codefall, Beads, Local environment and Testing sections and created CLAUDE.md"
 	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
 	if got := string(files.files[agentsFull]); got != allSections+"\n" {
 		t.Errorf("AGENTS.md =\n%s\nwant\n%s", got, allSections+"\n")
+	}
+
+	if !strings.HasPrefix(string(files.files[agentsFull]), domain.CodefallSectionBegin+"\n") {
+		t.Errorf("AGENTS.md opens %q, want the Codefall section first", firstLine(string(files.files[agentsFull])))
 	}
 
 	want = "See [AGENTS.md](AGENTS.md) — the rules for this repo live there, and there only.\n"
@@ -98,7 +105,7 @@ func TestAgentsStepAppendsToAFileThatAlreadySaysSomething(t *testing.T) {
 				t.Errorf("outcome = %v, want DONE", result.Outcome)
 			}
 
-			want := "added the Beads, Local environment and Testing sections to AGENTS.md and created CLAUDE.md"
+			want := "added the Codefall, Beads, Local environment and Testing sections to AGENTS.md and created CLAUDE.md"
 			if result.Detail != want {
 				t.Errorf("detail = %q, want %q", result.Detail, want)
 			}
@@ -126,15 +133,15 @@ func TestAgentsStepReplacesTheSectionInPlace(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	want := "updated the Beads section in AGENTS.md, added the Local environment and Testing sections " +
-		"to AGENTS.md and created CLAUDE.md"
+	want := "updated the Beads section in AGENTS.md, added the Codefall, Local environment and Testing " +
+		"sections to AGENTS.md and created CLAUDE.md"
 	if result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
 	want = "# Project\n\nWhat it is.\n\n" + beadsSection +
-		"\n\n## Afterwards\n\nMore of the project's own words.\n\n" + localSection + "\n\n" +
-		testingSection + "\n"
+		"\n\n## Afterwards\n\nMore of the project's own words.\n\n" + codefallSection + "\n\n" +
+		localSection + "\n\n" + testingSection + "\n"
 
 	if got := string(files.files[agentsFull]); got != want {
 		t.Errorf("AGENTS.md =\n%q\nwant\n%q", got, want)
@@ -156,7 +163,58 @@ func TestAgentsStepAddsTheSectionAProjectIsMissing(t *testing.T) {
 		t.Errorf("outcome = %v, want DONE", result.Outcome)
 	}
 
-	if want := "added the Local environment and Testing sections to AGENTS.md"; result.Detail != want {
+	if want := "added the Codefall, Local environment and Testing sections to AGENTS.md"; result.Detail != want {
+		t.Errorf("detail = %q, want %q", result.Detail, want)
+	}
+
+	want := "# Project\n\n" + beadsSection + "\n\n" + codefallSection + "\n\n" + localSection + "\n\n" +
+		testingSection + "\n"
+	if got := string(files.files[agentsFull]); got != want {
+		t.Errorf("AGENTS.md =\n%q\nwant\n%q", got, want)
+	}
+}
+
+// A project set up before the Codefall section existed has the other three. The next run adds the
+// Codefall section at the end, after them: first is where it goes in a file that has none, and the
+// step never moves what somebody else wrote, including sections it wrote itself on an earlier run.
+func TestAgentsStepAddsTheCodefallSectionAfterTheThreeAProjectHas(t *testing.T) {
+	before := "# Project\n\n" + threeSections + "\n"
+
+	files, result := run(t, map[string][]byte{
+		agentsFull:       []byte(before),
+		claudeMemoryFull: []byte("See [AGENTS.md](AGENTS.md).\n"),
+	})
+
+	if result.Outcome != domain.OutcomeDone {
+		t.Errorf("outcome = %v, want DONE", result.Outcome)
+	}
+
+	if want := "added the Codefall section to AGENTS.md"; result.Detail != want {
+		t.Errorf("detail = %q, want %q", result.Detail, want)
+	}
+
+	want := "# Project\n\n" + threeSections + "\n\n" + codefallSection + "\n"
+	if got := string(files.files[agentsFull]); got != want {
+		t.Errorf("AGENTS.md =\n%q\nwant\n%q", got, want)
+	}
+}
+
+// A Codefall section from an earlier version is rewritten between its own markers, and the three
+// sections after it, already current, are not touched.
+func TestAgentsStepReplacesTheCodefallSectionInPlace(t *testing.T) {
+	before := "# Project\n\n" + domain.CodefallSectionBegin + "\n## Codefall\n\nSomething older.\n" +
+		domain.CodefallSectionEnd + "\n\n" + threeSections + "\n"
+
+	files, result := run(t, map[string][]byte{
+		agentsFull:       []byte(before),
+		claudeMemoryFull: []byte("See [AGENTS.md](AGENTS.md).\n"),
+	})
+
+	if result.Outcome != domain.OutcomeDone {
+		t.Errorf("outcome = %v, want DONE", result.Outcome)
+	}
+
+	if want := "updated the Codefall section in AGENTS.md"; result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
@@ -228,7 +286,7 @@ func TestAgentsStepWritesClaudeMdOnlyForClaudeCode(t *testing.T) {
 		t.Fatalf("agents: %v", err)
 	}
 
-	if want := "created AGENTS.md with the Beads, Local environment and Testing sections"; result.Detail != want {
+	if want := "created AGENTS.md with the Codefall, Beads, Local environment and Testing sections"; result.Detail != want {
 		t.Errorf("detail = %q, want %q", result.Detail, want)
 	}
 
@@ -338,4 +396,11 @@ func TestAgentsStepRunsAfterBeads(t *testing.T) {
 	if beads < 0 || agents < 0 || agents < beads {
 		t.Errorf("started = %+v, want %+v after %+v", observer.started, domain.AgentsStep, domain.BeadsStep)
 	}
+}
+
+// firstLine is the opening line of a file, for a message about what it starts with.
+func firstLine(s string) string {
+	line, _, _ := strings.Cut(s, "\n")
+
+	return line
 }

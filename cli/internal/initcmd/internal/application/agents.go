@@ -37,10 +37,15 @@ type section struct {
 // pair of markers is its own, so a project that has one section and not the others gains the ones
 // it is missing beside the one it has.
 //
-// It takes the testing root because the third section names it: the first two are the same words in
-// every project, and the path a project's cases live at is the project's own (ADR-007).
+// The Codefall section goes first because it is the frame the other three sit inside: the chain of
+// verbs, and who is authoritative for what. A file that already has the other three gains it at the
+// end, after them, because the step never moves what somebody else wrote.
+//
+// It takes the testing root because the last section names it: the other three are the same words
+// in every project, and the path a project's cases live at is the project's own (ADR-007).
 func sectionsFor(root string) []section {
 	return []section{
+		{name: "Codefall", begin: domain.CodefallSectionBegin, end: domain.CodefallSectionEnd, body: domain.CodefallSection},
 		{name: "Beads", begin: domain.BeadsSectionBegin, end: domain.BeadsSectionEnd, body: domain.BeadsSection},
 		{name: "Local environment", begin: domain.LocalSectionBegin, end: domain.LocalSectionEnd, body: domain.LocalSection},
 		{name: "Testing", begin: domain.TestingSectionBegin, end: domain.TestingSectionEnd, body: domain.TestingSection(root)},
