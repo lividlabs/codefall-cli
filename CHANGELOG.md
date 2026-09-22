@@ -6,6 +6,13 @@ below were written by hand, before that was wired up.
 Tags are bare version numbers (`0.1.2`), not `v`-prefixed, so they match the `ref` the marketplace
 pins. A `v0.1.1` tag also exists from before that convention was settled.
 
+## [0.15.1](https://github.com/lividlabs/codefall-cli/compare/v0.15.0...v0.15.1) (2026-09-22)
+
+
+### Refactoring
+
+* **init:** read the AGENTS.md sections from extensions/agents/ instead of the domain ([#103](https://github.com/lividlabs/codefall-cli/issues/103)) ([841513d](https://github.com/lividlabs/codefall-cli/commit/841513d10e9947eaf1eed90510779c77173d8d28))
+
 ## [0.15.0](https://github.com/lividlabs/codefall-cli/compare/v0.14.2...v0.15.0) (2026-09-22)
 
 
