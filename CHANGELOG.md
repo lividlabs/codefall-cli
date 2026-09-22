@@ -6,6 +6,13 @@ below were written by hand, before that was wired up.
 Tags are bare version numbers (`0.1.2`), not `v`-prefixed, so they match the `ref` the marketplace
 pins. A `v0.1.1` tag also exists from before that convention was settled.
 
+## [0.14.2](https://github.com/lividlabs/codefall-cli/compare/v0.14.1...v0.14.2) (2026-09-22)
+
+
+### Bug Fixes
+
+* **equip:** correct the update order, the npm ci cost, the env filenames, and the step-2 question ([#96](https://github.com/lividlabs/codefall-cli/issues/96)) ([d2b60f8](https://github.com/lividlabs/codefall-cli/commit/d2b60f8338137754dd5ed36cae0584ce65b77183))
+
 ## [0.14.1](https://github.com/lividlabs/codefall-cli/compare/v0.14.0...v0.14.1) (2026-09-22)
 
 
