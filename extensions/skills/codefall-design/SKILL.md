@@ -138,9 +138,8 @@ difference and ask. Replace only on a yes; on a no, leave it and say nothing fur
 ## Beads
 
 Beads holds the tasks and the graph; the document holds the approach. One epic per design document
-and one task bead per Task Plan row. Tier 0 has no epic: one or two self-sufficient beads. What a
-bead carries — its acceptance criteria, the test case where the task needs one, `--spec-id` — and
-the plan file, the edge direction, and the verification are in `reference/beads.md`.
+and one task bead per Task Plan row. Tier 0 has no epic: one or two self-sufficient beads. The rest
+is in `reference/beads.md`.
 
 ## Project customizations
 
@@ -299,15 +298,16 @@ Then set the status: `Ready`, unless they said they are stopping and coming back
 **At tier 0, this is the confirmation instead**: the beads you would create, their titles, their
 bodies, and their edges. The user approves the graph, not a document.
 
-### 8. Write the document
+### 8. Branch, then write the document
+
+Branch first, per `../../../.codefall/shared/landing.md` — `design/DESIGN-NNN-slug` — unless this
+is a tier 0 run with no ADR, which writes no file.
 
 Write `docs/designs/DESIGN-NNN-slug.md` with the Task Plan in its **staged** form, the ADR if there
 is one, and `docs/designs/AGENTS.md` if it was missing.
 
 Write the document before creating the beads, so a failed creation leaves a resumable run rather
 than a graph nothing explains.
-
-Do not commit.
 
 ### 9. Create the graph
 
@@ -324,13 +324,16 @@ append** — the staging table comes out. Beads is authoritative from here.
 
 At tier 0 there is nothing to collapse.
 
-### 11. Link back and report
+### 11. Link back, commit, and report
 
 Fill in the `plan:` field on the framing concept's `Related` line with this design's identifier.
 Where a spec framed the work, the concept is the one named in the spec's `**Concept:**` row. Add the
 identifier and change nothing else in the file.
 
 There is no back-link to write into the spec: the design's `spec` label carries the connection.
+
+Then land it per `../../../.codefall/shared/landing.md`, with `.beads/interactions.jsonl` when it
+changed.
 
 Report:
 
@@ -339,9 +342,10 @@ Report:
 - every bead created, with its local ID, its title, and any test case its criteria name;
 - any gap the case criteria exposed in the spec, for `codefall-specify`;
 - the ready set — which tasks `codefall-implement` can start on today;
-- anything left unresolved, and any concern the user overruled.
+- anything left unresolved, and any concern the user overruled;
+- the branch and the pull request.
 
-Do not commit. Do not start implementing.
+Do not start implementing.
 
 ## Other modes
 
@@ -368,11 +372,8 @@ your own initiative.
 - **The design says how, never what.** What a consumer observes belongs to `codefall-specify`; a
   design that restates it duplicates a document that will change without it.
 - **Design within the project's ADRs.** Changing the stance is a superseding ADR, said out loud,
-  never a quiet exception.
-- **A ratified ADR is never rewritten.** A revision is a new, superseding ADR; the only in-place
-  edit is the Status line.
-- **Identifiers are append-only** — design numbers, and local task IDs within a design. A retired
-  one is never reused.
+  never a quiet exception; a ratified ADR is never rewritten.
+- **Identifiers are append-only** — design numbers, and local task IDs within a design.
 - **Beads is authoritative once the tasks exist.** The Task Plan collapses to a mapping and never
   grows a duplicate table.
 - **Every task bead carries acceptance criteria** — checkable, citing spec requirement IDs where

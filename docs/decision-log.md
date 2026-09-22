@@ -1179,6 +1179,28 @@ Decided at scaffold, 2026-08-16.
   checks every other for its presence. ADR-004's "every codefall skill sets" line is history and
   stays as written.
 
+- **Every writing verb lands on a branch, 2026-09-22.** A `specify` run left its spec sitting
+  uncommitted on `main`: the skill said "Do not commit" at the write step, created no branch, and
+  offered nothing. `conceptualize`, `mock-up`, and `design` said the same, `equip` and `graft`
+  listed the commit as something the user still owed, and the Beads section every session reads
+  closed with "Do not commit or push git unless told to" — a sentence that had gone in to counter
+  `bd prime`'s Dolt wording (**Beads then went back over its target**, above) and read as a git
+  policy. None of that matched the one rule the guard hook holds, which is that a human performs
+  every merge to the default branch. The procedure now lives once, in
+  `extensions/shared/landing.md`, and every verb that writes to the repository points at it:
+  branch before the first file (`spec/SPEC-003-slug`, `design/DESIGN-002-slug`, and so on; on
+  another branch, ask once which to use; detached, stop), commit by path once the last file is
+  written — after the mirror for `specify`, since the mirror writes the issue number into the
+  document, and after the Task Plan collapses for `design` — and then one offer for the push and
+  the pull request, whose body carries `Relates to #<issue>` where a tracker issue exists. The
+  branch and the commit are not offered: nothing is written without the user confirming the
+  document, and the commit is the record of that confirmation. The push and the pull request are
+  one offer because they leave the machine. `implement` keeps its per-task landing and `review`
+  its fixes-on-the-target's-branch; `test` commits run reports on whatever branch it ran on and was
+  left alone. The Beads section's closing line now says commit on the work's branch and never
+  merge or push the default branch, which is what the hook enforces. The tracker profile's
+  `blob/main` link resolves once the pull request merges, and says so.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,

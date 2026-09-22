@@ -266,6 +266,8 @@ holding only `docs/concepts/` is the expected state, not a non-empty directory.
 
 ### 4. Emit the docs — always
 
+Branch first, per `../../../.codefall/shared/landing.md` — `scaffold/<project-or-surface>`.
+
 - `docs/adrs/` — `ADR-BASE-01` through `ADR-BASE-03` plus every ADR the matched profiles supply, plus
   `_TEMPLATE.md`. One flat directory. Dated and Accepted, amended per the interview. Drop ADRs that
   do not apply: a backend-only project has no use for `ADR-TS-02`, and a surface that could never be
@@ -318,7 +320,7 @@ and every `AGENTS.md` link resolves.
 - The interview answers, as the decisions now recorded.
 - Any ADR amended, and what changed — this is what `.codefall/scaffold.json` records as `amended`,
   so the report and the file must agree.
-- Files created.
+- Files created, landed per `../../../.codefall/shared/landing.md`.
 - What the user still owes the project — always including boundary enforcement if it is not wired,
   and `codefall-equip` after a docs-only run.
 

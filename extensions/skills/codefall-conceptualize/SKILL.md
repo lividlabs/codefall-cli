@@ -44,6 +44,8 @@ Read each when its step says to; none is loaded up front.
   is adopted as the concept. Read at step 2 when they point at anything.
 - `../../../.codefall/shared/import-mockup.md` — the shared procedure for bringing a mockup into the
   repository. Read from `reference/inputs.md` when the material is a mockup.
+- `../../../.codefall/shared/landing.md` — the shared procedure for the branch, the commit, and the
+  offered pull request. Read at step 6, before the first file is written.
 
 ## Scope — why, not what
 
@@ -220,12 +222,19 @@ was at risk of being misread as in scope" — so the user can catch an omission 
 
 Then set the status: `Ready`, unless they said they are stopping and coming back, which is `Draft`.
 
-### 6. Write and report
+### 6. Branch, write, land, and report
+
+Read `../../../.codefall/shared/landing.md` and take its branch step first: standing on the default
+branch, `git switch -c concept/CONCEPT-NNN-slug`; on another branch, ask once which to use.
 
 Write the concept, the source document if there was one, and `docs/concepts/AGENTS.md` if it was
-missing. Report the path, the identifier, the status, and every open question the document carries.
+missing. Then commit those files by path and offer the push and the pull request, per the same
+procedure. The merge is the user's.
 
-Do not commit. Do not create issues. Do not start a specification.
+Report the path, the identifier, the status, every open question the document carries, the branch,
+and the pull request if one was opened.
+
+Do not create issues. Do not start a specification.
 
 ## Other modes
 
@@ -237,6 +246,9 @@ Invoking this skill on an existing concept does one of four things. Ask which if
   concept, and the old one gains a `Revised by` line.
 - **Archive** a concept: set `Status: Archived`, add `Replaced by` if something took its place, and
   move the file to `docs/concepts/archive/`.
+
+Each of these changes files, and lands them as a new concept does: on a branch, per
+`../../../.codefall/shared/landing.md`.
 
 Every one of these is a user's decision. Report the state and offer; never transition a concept on
 your own initiative.

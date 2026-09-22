@@ -96,6 +96,10 @@ dependency, a migration, or generated code changes `start` or `update` in the sa
   check` turns merges into bead state.
 - **A human performs every merge to `main`.** `implement` ends at open PRs and a reported bottom-up
   merge order, and the guard hook denies the alternative in every harness.
+- **Everything short of the merge is the verb's.** A verb that writes to the repository branches
+  before its first file, commits what it wrote by path, and offers the push and the pull request;
+  a document never sits uncommitted on `main`. `implement` does this per task; the document verbs,
+  `scaffold`, `equip`, and `graft` follow the shared `landing.md` beside this file's installed copy.
 - **The context that finds a problem never fixes it.** `review` runs in a subagent or another
   harness; the session triages and applies. A test criterion is never written from the
   implementation it verifies, and never edited to make a run pass.

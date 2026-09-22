@@ -279,7 +279,11 @@ point after the second try, make the sensible choice, and say in the recap that 
 **Do not bikeshed.** Which of two labels reads better is not worth a question — make one and let the
 user move it.
 
-### 6. Make one thing, then stop
+### 6. Branch, make one thing, then stop
+
+Before the first file, read `../../../.codefall/shared/landing.md` and take its branch step:
+standing on the default branch, `git switch -c mockup/<slug>`; on another branch — a spec's, often —
+ask once which to use.
 
 Build the first screen and show it: the path, and what to open it with.
 
@@ -298,7 +302,7 @@ Advance when they have actually looked at it.
 Apply every correction from the first one. Then write `README.md`, and `docs/mockups/AGENTS.md` if it
 was missing. Report each file with what it shows.
 
-Do not commit.
+Nothing is committed yet: the label and the back-link come first.
 
 ### 8. Clear the `requires-mockup` label
 
@@ -313,13 +317,17 @@ When a spec prompted this run, offer to add the directory path to its **Design n
 concept did, offer to add it to the concept's `Related` line. Add the path and change nothing else in
 either document — they belong to `codefall-specify` and `codefall-conceptualize`.
 
-### 10. Wrap up
+### 10. Land and wrap up
+
+Land the run per `../../../.codefall/shared/landing.md`: commit the mockup directory, the `AGENTS.md`
+if it was written, and the spec or concept if one was edited — by path, nothing else — and offer the
+push and the pull request. The merge is the user's.
 
 Report the directories, every file with what it shows, what the mockup was matched against, options
 offered and which was taken, states deliberately not made and why, anything assumed because the user
-did not answer, and any labels cleared.
+did not answer, any labels cleared, the branch, and the pull request if one was opened.
 
-Do not commit. Do not create issues. Do not start a design.
+Do not create issues. Do not start a design.
 
 ## Rules
 
