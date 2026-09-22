@@ -33,6 +33,24 @@ never restates the reasoning.
   the script a command names, and replaces that entry on an upgrade rather than appending beside it.
   A script renamed out of the prefix would leave every project's old registration running for ever.
 
+## AGENTS.md sections
+
+- `agents/sections/` holds the four sections `codefall init` writes into a project's `AGENTS.md` —
+  `codefall.md`, `beads.md`, `local.md`, `testing.md` — and `agents/testing/` the two skeletons it
+  writes at the testing root. Like the hook definitions, they are read from the binary one file at
+  a time and never copied: `init` splices a section between its markers and writes a skeleton only
+  where none exists.
+- **A section is its markers and nothing outside them.** The opening marker is the first line, the
+  closing marker is the last, the file ends with one newline, and neither marker appears twice.
+  `init` refuses a file that breaks this, and the facade test pins the shipped ones. The markers
+  themselves are constants in `cli/internal/initcmd/internal/domain/sections.go`; a section's words
+  change here, its markers never do.
+- `{{TESTING_ROOT}}` is the one placeholder, filled with the project's declared testing root. A
+  section is read from the project root, so it names an installed file as `.codefall/shared/<file>`,
+  not by a skill's `../../../` path.
+- Keep each section short: every harness reads all four at session start. The decision log holds
+  the token counts the last rewrite settled on.
+
 ## Prose
 
 - Banned jargon, everywhere — docs, skills, ADRs, commit messages, PR bodies: *arm*,

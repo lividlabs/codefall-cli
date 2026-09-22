@@ -1134,6 +1134,30 @@ Decided at scaffold, 2026-08-16.
   instructions override it without the section claiming that. Setting `agent.profile
   team-maintainer` at init would fix the wording and also authorize git pushes at session close,
   which the section forbids, so the sentence is the cheaper fix. Clarity over the target, there.
+- **The AGENTS.md sections move to `extensions/agents/`, 2026-09-22.** The four sections and the
+  two testing skeletons lived at `cli/internal/initcmd/internal/domain/*.md`, each embedded by a
+  sibling Go file, because `//go:embed` cannot reach outside its package and the words were held
+  to be a fact about codefall (**Init writes the Beads section**, above). That placement was
+  consistent with the layer rules and impossible to find: `extensions/` is described everywhere
+  as what `init` installs into a project, and the one kind of installed prose was not under it.
+  The files now live at `extensions/agents/sections/{codefall,beads,local,testing}.md` and
+  `extensions/agents/testing/{AGENTS,README}.md`, in the tree `extensions/embed.go` already
+  embeds, and the agents and testing steps read them through `ExtensionSource.Read` the way the
+  hook step reads a harness's definition: content the binary ships and `init` splices or writes
+  rather than copies. The extension step copies nothing from under `agents/`, since it names the
+  subtrees it copies and `agents/` is not one. The markers stay in the domain, as
+  `domain/sections.go`, because the splice depends on them and the words do not; the placeholder
+  the Testing section carries stays beside them, and the step fills it in every section rather
+  than one so a section that comes to name the root later needs no code change. What the domain
+  tests pinned — one pair of markers, first line and last, newline at the end — is now checked
+  where the section is read, as an error naming the file, and pinned against the real tree by the
+  facade test beside the hook pins. Seen and not taken: a pure shared module holding the embeds
+  (still under `cli/internal/`, and a shared module with one consumer); a `templates/`
+  subdirectory of the domain package (solves nothing); a third top-level directory (the repo has
+  two components and no reason for a third). Not a breaking change: the words, the markers, and
+  what lands in a project are byte for byte what they were. ADR-006 is not touched; it already
+  records that the hook definitions are read from the binary and never copied, and this is one
+  more file of that kind.
 
 ## Open
 
