@@ -1,16 +1,16 @@
 # SPEC-NNN: {Title}
 
 **Status:** Ready — {date}
-**Concept:** CONCEPT-002-trip-sharing
+**Vision:** VISION-002-trip-sharing
 **Issue:** #142
 
-[The Concept row is omitted when no concept framed this work. The Issue row is filled in once
+[The Vision row is omitted when no vision framed this work. The Issue row is filled in once
 the tracker mirror exists.]
 
 ## Context
 
 [Two or three paragraphs in plain language: why this matters, what the consumer is doing when
-they need it, how it fits what already exists. No technology. When a concept framed this work,
+they need it, how it fits what already exists. No technology. When a vision framed this work,
 the header already points at it — do not restate what it says.]
 
 ## Key Entities

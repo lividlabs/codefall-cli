@@ -1223,6 +1223,15 @@ Decided at scaffold, 2026-08-16.
   one. The mapping line stays and lists the IDs in full, so `revising.md` and `/implement
   DESIGN-NNN` work as before. Existing hash IDs keep working: nothing must be renamed, and the
   Beads section of `AGENTS.md` grows by one bullet (chars/4 on 2026-09-23: 413 → 525 tokens).
+- **Conceptualize became envision, 2026-09-23.** The skill is `codefall-envision`, the document is
+  `docs/visions/VISION-NNN-slug.md`, and the header row and `Related` key are `Vision`. "Concept" sat
+  too close to "spec": both name a thing to be built, so readers heard two grades of one document
+  and the why-only scope got overlooked when explained. "Vision" names the act of seeing a problem
+  and why it matters, which is the skill's whole scope. The worry that vision sounds too large was
+  already answered in the skill: size is not a category. Seen and not taken: renaming the skill
+  alone, which would reintroduce the mismatch; keeping `conceptualize` as an alias, unneeded because
+  no project has run the verb. Material the user brings is now called a "pitch document" so the
+  word vision names only the output.
 
 ## Open
 

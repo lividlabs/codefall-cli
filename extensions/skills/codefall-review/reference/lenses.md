@@ -28,17 +28,17 @@ What each lens asks. Read at the confirmation, which names the lenses that will 
 
 Every document target gets `structure` and `status`, plus the lenses for its kind. Each verb owns
 the rules its documents are held to — required sections, status vocabularies, identifier forms,
-EARS, the Task Plan's two forms. Read them in `codefall-conceptualize`, `codefall-specify`,
+EARS, the Task Plan's two forms. Read them in `codefall-envision`, `codefall-specify`,
 `codefall-design` and `codefall-scaffold` when a lens needs the detail; they are not restated here.
 
 | Target | Lens | The question |
 | --- | --- | --- |
 | all | `structure` | Required sections present; no empty headings; no template guidance left in; identifiers written in full |
 | all | `status` | Status line is one of the document's own values with a real date; `Archived` is under `archive/`; a superseded ADR names one that exists |
-| concept | `floor` | A problem stated, who feels it, and why now — not a solution wearing a requirement's clothes |
-| concept | `scope` | What this is not, stated. No `## Non-goals` means it has not said where it stops |
-| concept | `testable` | Could what it asks for be tested at all, in principle? Not how — whether |
-| spec | `trace` | Does not run without a concept. Reports a spec requirement with no concept parent as **unframed**, and a concept requirement no spec requirement reaches as **unaddressed** |
+| vision | `floor` | A problem stated, who feels it, and why now — not a solution wearing a requirement's clothes |
+| vision | `scope` | What this is not, stated. No `## Non-goals` means it has not said where it stops |
+| vision | `testable` | Could what it asks for be tested at all, in principle? Not how — whether |
+| spec | `trace` | Does not run without a vision. Reports a spec requirement with no vision parent as **unframed**, and a vision requirement no spec requirement reaches as **unaddressed** |
 | spec | `criteria` | Do the acceptance criteria hold to EARS, as `codefall-specify` defines it — its patterns, its rule about failure behaviour, and its ban on implementation vocabulary |
 | spec | `precision` | Ambiguity a reader could resolve two ways; undefined terms; missing non-functional requirements |
 | spec | `stories` | Every requirement has a user story with the `so that` clause `codefall-specify` makes mandatory |
@@ -72,10 +72,10 @@ a generated spec sitting beside no case, since a case is written before its spec
 simplify pass over each bead's diff, so a simplification finding on that code is either something
 that pass missed or code implement never saw. Say which.
 
-**Neither half of `trace` is a defect.** A spec requirement with no concept parent is often
-legitimate — a precondition the concept never anticipated. An unaddressed concept requirement may
-mean the concept should catch up. The finding asks the question; it does not assert the spec is
-wrong. It carries `minor`, rising to `important` when the unaddressed requirement is one the concept
+**Neither half of `trace` is a defect.** A spec requirement with no vision parent is often
+legitimate — a precondition the vision never anticipated. An unaddressed vision requirement may
+mean the vision should catch up. The finding asks the question; it does not assert the spec is
+wrong. It carries `minor`, rising to `important` when the unaddressed requirement is one the vision
 called out as the reason for the work.
 
 **An ADR edited after ratification is itself a serious finding.** Detect it rather than assume it:

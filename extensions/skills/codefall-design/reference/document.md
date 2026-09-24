@@ -16,7 +16,7 @@ drafting (step 7).
 
 ## The header
 
-A title heading and two rows, the same shape `CONCEPT` and `SPEC` documents use. The body starts at
+A title heading and two rows, the same shape `VISION` and `SPEC` documents use. The body starts at
 `## Overview`.
 
 ```markdown
@@ -32,11 +32,11 @@ labeled list, not a set of rows.
 | Label | Holds |
 | --- | --- |
 | `spec` | The specification this design implements |
-| `concept` | The concept that framed it — **only when there is no spec** |
+| `vision` | The vision that framed it — **only when there is no spec** |
 | `adr` | The ADR or ADRs this design produced |
 
-**Never record a hop you can derive.** A spec names its concept in its own `**Concept:**` row, so a
-design records the spec alone. A design written from a concept with no spec records the concept. A
+**Never record a hop you can derive.** A spec names its vision in its own `**Vision:**` row, so a
+design records the spec alone. A design written from a vision with no spec records the vision. A
 design with neither has no `Related` row until it produces an ADR.
 
 ## Required sections
@@ -107,8 +107,8 @@ second. It is never appended to.
 |----|------|-----------|------------|
 | T1 | Add `StageContext` type + serde | — | Components |
 | T2 | Wire context load into `/scaffold` | T1 | Architecture |
-| T3 | Emit context on `/conceptualize` exit | T1 | Data Models |
-| T4 | Integration test: concept → scaffold | T2, T3 | Testing Strategy |
+| T3 | Emit context on `/envision` exit | T1 | Data Models |
+| T4 | Integration test: vision → scaffold | T2, T3 | Testing Strategy |
 ```
 
 The local IDs make the dependency edges reviewable before Beads IDs exist. The **Design ref** column

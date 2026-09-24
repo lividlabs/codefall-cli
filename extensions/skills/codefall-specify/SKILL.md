@@ -110,7 +110,7 @@ difference and ask. Replace it only on a yes; on a no, leave it and say nothing 
 ## Mockups are keyed by surface, not by spec
 
 Mockups live at `docs/mockups/<slug>/`, where the slug names the surface — `booking-history`,
-`trip-share`. They are **never** filed under a spec or a concept. Specs reference them by path under
+`trip-share`. They are **never** filed under a spec or a vision. Specs reference them by path under
 **Design notes**. Do not move existing mockups into a spec directory, and do not create one.
 
 ## Cohesion and splitting
@@ -123,7 +123,7 @@ that share nothing but the session they were written in are two specs.
   sharing permissions; those look like two specs to me."
 - **Then defer.** If the user disagrees, write what they asked for.
 - **Split results are siblings, not a parent and children.** `SPEC-003`, `SPEC-004`, and `SPEC-005`
-  sit alongside each other; the concept above them is what groups them. Do not invent a parent spec.
+  sit alongside each other; the vision above them is what groups them. Do not invent a parent spec.
 - When a sibling deserves its own interview, say so and suggest a separate `codefall-specify`
   session rather than writing a thin document now.
 - Record the concern in the spec **only** when the user did not engage with it, phrased as an
@@ -186,17 +186,17 @@ One open question:
 
 > "What would you like to build? A sentence or two is enough to start."
 
-**Then look for a concept.** If `docs/concepts/` exists, read the live concepts there — not
+**Then look for a vision.** If `docs/visions/` exists, read the live visions there — not
 `archive/` — and offer the relevant one as context:
 
-> CONCEPT-002 covers the auditing rework and looks like the frame for this. Want me to work from it?
+> VISION-002 covers the auditing rework and looks like the frame for this. Want me to work from it?
 
-A concept is **never required**. It carries the *why* and improves the Context section. It does not
+A vision is **never required**. It carries the *why* and improves the Context section. It does not
 carry acceptance criteria: its **Proposed shape** is a rough direction, and step 5 still interviews
-for everything. Do not lift criteria out of a concept and do not treat its **Open questions** as
+for everything. Do not lift criteria out of a vision and do not treat its **Open questions** as
 settled.
 
-Do not change the concept's `Status`. Work starting is `codefall-implement`'s transition to record.
+Do not change the vision's `Status`. Work starting is `codefall-implement`'s transition to record.
 
 ### 3. Check whether it already exists
 
@@ -342,8 +342,8 @@ Pick the identifier: read `docs/specs/`, take the highest existing number plus o
 three digits. Read `archive/` for this and this only — a retired identifier is never reused.
 
 Compose the full document from `templates/specs/SPEC.md` and **show it to the user before anything
-is written**. Omit empty sections, header rows included: a spec with no concept has no
-`**Concept:**` line. Say which optional sections you left out and why — "no Key Entities section,
+is written**. Omit empty sections, header rows included: a spec with no vision has no
+`**Vision:**` line. Say which optional sections you left out and why — "no Key Entities section,
 because the nouns here are ordinary English" — so the user can catch an omission that was a gap.
 
 Then set the status: `Ready`, unless they said they are stopping and coming back, which is `Draft`.
@@ -362,11 +362,11 @@ issues are generated from it, so this step never asks the user to re-approve con
 
 ### 13. Link back, commit, and wrap up
 
-If a concept framed this work, add the spec identifier to its `Related` line. Add the identifier and
+If a vision framed this work, add the spec identifier to its `Related` line. Add the identifier and
 change nothing else in the file.
 
 Then land it per `../../../.codefall/shared/landing.md`: commit by path — the spec, the `AGENTS.md`,
-the concept — and offer the push and pull request, its body carrying `Relates to #<spec-issue>`.
+the vision — and offer the push and pull request, its body carrying `Relates to #<spec-issue>`.
 The merge is the user's.
 
 Report the spec path, its identifier, its status, every open question it carries, the issues that

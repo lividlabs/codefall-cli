@@ -24,11 +24,11 @@ agent may run it when the environment is stale. In order:
 
 | Verb | Reads | Writes | Hands to |
 | --- | --- | --- | --- |
-| `conceptualize` | whatever the user arrived with: a sentence, a vision doc, a folder of mockups | `docs/concepts/CONCEPT-NNN-slug.md`, the *why*; sources kept verbatim under `docs/concepts/sources/` | `scaffold` requires one; `specify` may draw on one |
-| `scaffold` | a concept; an interview for what a template cannot decide | ratified ADRs, scoped `AGENTS.md` files, optionally project files, boundary lint, and the `start` and `update` scripts | a project ready for `specify` |
-| `specify` | the idea or concept, and an audit of what already exists | `docs/specs/SPEC-NNN-slug.md`, the *what*: requirements with EARS acceptance criteria, mirrored to the tracker as a parent issue and one child per requirement | `design` |
+| `envision` | whatever the user arrived with: a sentence, a pitch document, a folder of mockups | `docs/visions/VISION-NNN-slug.md`, the *why*; sources kept verbatim under `docs/visions/sources/` | `scaffold` requires one; `specify` may draw on one |
+| `scaffold` | a vision; an interview for what a template cannot decide | ratified ADRs, scoped `AGENTS.md` files, optionally project files, boundary lint, and the `start` and `update` scripts | a project ready for `specify` |
+| `specify` | the idea or vision, and an audit of what already exists | `docs/specs/SPEC-NNN-slug.md`, the *what*: requirements with EARS acceptance criteria, mirrored to the tracker as a parent issue and one child per requirement | `design` |
 | `mock-up` | a design-tool export, or nothing | `docs/mockups/<slug>/`, matching the app's own design system | `design`; an issue labelled `requires-mockup` blocks design until it exists |
-| `design` | the spec, the concept, the code | `docs/designs/DESIGN-NNN-slug.md`, the *how*, scaled to the change; ADRs for hard-to-reverse choices; beads with dependency edges, each carrying its acceptance criteria and, where the task is verified through the wired product, the test case and its criteria | `implement` |
+| `design` | the spec, the vision, the code | `docs/designs/DESIGN-NNN-slug.md`, the *how*, scaled to the change; ADRs for hard-to-reverse choices; beads with dependency edges, each carrying its acceptance criteria and, where the task is verified through the wired product, the test case and its criteria | `implement` |
 | `implement` | ready beads, an epic, or a design | a worktree per task, the test case before the code, verification against the bead's criteria and the project's checks, a pull request per task, walked in parallel waves until the frontier is empty | the human, who merges |
 | `review` | anything live: uncommitted work, a branch, a PR, a path, a document | `.codefall/reviews/`, a JSON and Markdown pair per review; fixes on the target's branch for the findings the user takes | the human |
 | `test` | what the project declares: suites, the changed subset, or one case in its `spec` or `agentic` modality | `.codefall/tests/`, a report per run; findings triaged, never an edit that makes a run pass | tracker issues on the user's word |
@@ -63,7 +63,7 @@ dependency, a migration, or generated code changes `start` or `update` in the sa
 
 ## Who is authoritative for what
 
-- **Documents in the repository** are canonical for the why (concept), the what (spec), and the how
+- **Documents in the repository** are canonical for the why (vision), the what (spec), and the how
   (design). Each carries a `Status` that describes the document only.
 - **The tracker** (GitHub Issues in this version) mirrors specs so people can see what is ready, in
   progress, and done; the spec document stays canonical.

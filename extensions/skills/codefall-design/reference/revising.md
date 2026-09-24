@@ -41,7 +41,7 @@ Worked, so two sessions apply it the same way:
 | Wire context load into `/scaffold` | same, with a Design ref added | any | **edit** — nothing about the work changed |
 | Add `StageContext` type | Add `StageContext` type + serde | open, unclaimed | **edit** — nobody started; the bead becomes the bigger task |
 | Add `StageContext` type | Add `StageContext` type + serde | closed | **replace** — the type exists, the serde does not, and editing a closed bead leaves it unbuilt |
-| Emit context on `/conceptualize` exit | Emit context on every verb's exit | claimed | **replace** — they are building one thing and would silently owe five |
+| Emit context on `/envision` exit | Emit context on every verb's exit | claimed | **replace** — they are building one thing and would silently owe five |
 
 `bd supersede <old> --with <new>` closes the old bead with a reference to its replacement, so the
 record of what the task used to be survives. **The local ID does not change** — `T2` still means

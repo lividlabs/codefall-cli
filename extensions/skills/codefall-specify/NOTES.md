@@ -15,8 +15,8 @@ often finds missing.
 
 ## Status describes the document
 
-`codefall-specify` deliberately diverges from `codefall-conceptualize`, which carries an `Active`
-state because a concept has no tracker representation to carry work state. A spec has one — its
+`codefall-specify` deliberately diverges from `codefall-envision`, which carries an `Active`
+state because a vision has no tracker representation to carry work state. A spec has one — its
 mirrored issues — so the tracker says whether work is queued, underway, or done, and a status line
 would only approximate it. `codefall-design` takes the same rule for the same reason, with Beads in
 the tracker's place.
@@ -24,7 +24,7 @@ the tracker's place.
 ## Mockups are keyed by surface
 
 A mockup is a view of a surface, not of a specification. One screen is touched by several specs over
-its life, sometimes across several concepts, and it outlives any one of them. Filing it under the
+its life, sometimes across several visions, and it outlives any one of them. Filing it under the
 spec that arrived first makes the second spec either duplicate it or reach into another spec's
 directory.
 

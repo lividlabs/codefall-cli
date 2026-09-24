@@ -54,7 +54,7 @@ The decision log entry for 2026-09-16 has the reasoning.
 - Test all of the skills against an actual project.
   - [x] `scaffold`
   - [x] `graft`
-  - [ ] `conceptualize`
+  - [ ] `envision`
   - [ ] `mock-up`
   - [ ] `specify`
   - [ ] `design`
@@ -68,7 +68,7 @@ The decision log entry for 2026-09-16 has the reasoning.
 ## Completed
 
 ### Skills
-- [x] `conceptualize` — capture an idea as concept documents
+- [x] `envision` — capture an idea as vision documents
 - [x] `mock-up` — create or import mockups
 - [x] `specify` — write a spec with acceptance criteria
 - [x] `design` — write a design doc and create the task graph

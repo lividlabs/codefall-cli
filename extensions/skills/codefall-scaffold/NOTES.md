@@ -3,10 +3,10 @@
 Why `SKILL.md` looks the way it does. None of this is instruction — the skill is the instruction.
 This exists so nobody re-adds something that was removed on purpose.
 
-## A concept comes first
+## A vision comes first
 
 Guessing a default in the absence of information is this skill's worst failure mode, and it is why
-step 1 will not run without offering the concept step. With a concept, most of the questions are
+step 1 will not run without offering the vision step. With a vision, most of the questions are
 answered before the session starts, so there are fewer of them and the answers are better. The user
 can still decline; the override is recorded in the decision log because it is a decision made
 without enough information, which is exactly what `Open` is for.

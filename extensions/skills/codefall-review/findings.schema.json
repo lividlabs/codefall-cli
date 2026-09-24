@@ -16,7 +16,7 @@
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["uncommitted", "branch", "pr", "path", "prose", "concept", "spec", "design", "adr"]
+          "enum": ["uncommitted", "branch", "pr", "path", "prose", "vision", "spec", "design", "adr"]
         },
         "key": {
           "type": "string",
@@ -45,7 +45,7 @@
         },
         "upstream": {
           "type": "string",
-          "description": "Path of the document this target was checked against. Absent for code targets and for a concept."
+          "description": "Path of the document this target was checked against. Absent for code targets and for a vision."
         }
       }
     },
@@ -73,7 +73,7 @@
 
     "notChecked": {
       "type": "array",
-      "description": "What could not be reviewed, and why: no design behind the branch, no concept above the spec, a lens dropped at the confirmation.",
+      "description": "What could not be reviewed, and why: no design behind the branch, no vision above the spec, a lens dropped at the confirmation.",
       "items": { "type": "string" }
     },
 

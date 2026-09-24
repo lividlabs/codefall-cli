@@ -52,7 +52,7 @@ Read each when its step says to; none is loaded up front.
 | Writing the case file the criteria name | Deciding which tasks need a case; installing a runner | `codefall-design`, `codefall-equip` |
 | Harness checks on its own diffs | Independent review and verdicts | `review` |
 | Bead lifecycle: claim, close, discovered work | Creating or re-cutting the task graph | `codefall-design` |
-| The concept's `Active` transition | Any other document transition | the owning verb |
+| The vision's `Active` transition | Any other document transition | the owning verb |
 | Mirroring work state to the spec's tracker issue | The mirror's lifecycle and labels | `codefall-specify` |
 
 **A task that turns out to be wrong is reported, not redesigned.** When the design's cut does not
@@ -92,7 +92,7 @@ Per bead, in order, before any plan is formed:
 2. **The design document** — Overview and Architecture always; the specific section the Design ref
    names; Hard Constraints; Technical Context and Testing Strategy when present.
 3. **The spec**, one hop up the design's `Related` line — its acceptance criteria are the
-   externally observable contract. The concept only when there is no spec.
+   externally observable contract. The vision only when there is no spec.
 4. **ADRs** — the ones on the design's `Related` line plus the project's `docs/adrs/` baseline.
    Never rewritten; a conflict between a task and an ADR goes back to `codefall-design` as a
    superseding-ADR conversation, never a quiet exception.
@@ -126,7 +126,7 @@ One approval, before any work starts. Everything the run will do, in one block:
 - the model proposed per bead, and one session-level effort recommendation as the exact command —
   "recommend `/effort high` before go." When one bead wants far more than the rest, propose it as
   its own batch;
-- what will be claimed in beads, and — when a concept sits behind the work — that go flips it to
+- what will be claimed in beads, and — when a vision sits behind the work — that go flips it to
   `Active`;
 - the permissions condition: background workers cannot answer permission prompts, so the session
   must allow edits and Bash without prompting, or the run offers single-task mode instead.
@@ -192,14 +192,14 @@ its base merges — and stops. `bd gate check` turns the merges into bead state 
 The spec's tracker issue walks the work's state per `reference/mirror.md`. Every PR body carries
 `Relates to #<spec-issue>`.
 
-## The concept transition
+## The vision transition
 
-`codefall-conceptualize` reserves one transition for this skill: `Status: Active — <date>`. At the
-run's first claim, resolve the concept — the design's `Related` line to the spec, the spec's
-`**Concept:**` row to the concept, or the design's `concept` label when there is no spec — and flip
-its Status line. Automatically, and report it — "CONCEPT-012 → Active."
+`codefall-envision` reserves one transition for this skill: `Status: Active — <date>`. At the
+run's first claim, resolve the vision — the design's `Related` line to the spec, the spec's
+`**Vision:**` row to the vision, or the design's `vision` label when there is no spec — and flip
+its Status line. Automatically, and report it — "VISION-012 → Active."
 
-Once, idempotently. Already `Active`, or no concept in the lineage: nothing to do. Only the Status
+Once, idempotently. Already `Active`, or no vision in the lineage: nothing to do. Only the Status
 line is touched, ever.
 
 ## Picking up an interrupted run
@@ -288,7 +288,7 @@ Design refs, apply the hotspot rule. Pick, constrained by `AGENTS.md` and `CUSTO
 ### 5. The go gate
 
 Present the block per [The go gate](#the-go-gate) and wait. On go, per `reference/beads.md`: flip
-the concept to `Active` if one is behind the work. Epic scope: create the epic branch if the
+the vision to `Active` if one is behind the work. Epic scope: create the epic branch if the
 strategy calls for one (`epic/<id>-<slug>` off `main`, pushed), create the landed bead, claim the
 epic and the first wave, `bd dolt push`. Single-bead scope: claim the bead, `bd dolt push`, nothing
 else.
@@ -320,7 +320,7 @@ close.
 - Every bead built, with PR, branch, and what its close reason verified.
 - The merge order, bottom-up per stack, and what is blocked on the user.
 - Discovered work filed.
-- The tracker mirror's state, the concept transition if one fired.
+- The tracker mirror's state, the vision transition if one fired.
 - The worktree list, with the cleanup offer.
 - Final `bd dolt push`.
 
@@ -370,7 +370,7 @@ Do not merge. Do not wait for merges. The next session's `bd gate check` finishe
   recommendation; a wrong task goes back to `codefall-design`.
 - **The mirror never guesses.** The spec's parent issue carries the ladder; requirement children
   close with it, not by inference.
-- **`Active` is a fact, recorded once.** Only the concept's Status line, only at first claim, only
-  when a concept exists.
+- **`Active` is a fact, recorded once.** Only the vision's Status line, only at first claim, only
+  when a vision exists.
 - **Worktrees are cleaned up by offer, never by default**, and never under an open PR.
 - **Never overwrite a file that has drifted.** Show the difference and ask.

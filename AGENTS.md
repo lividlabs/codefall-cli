@@ -15,7 +15,7 @@ Decisions for the whole repository live in [`docs/adrs/`](docs/adrs/); the in-fl
 
 `codefall init` installs the verbs into each harness a project uses, and `.codefall/` beside them
 with the settings, shared scripts, and hooks the verbs read. The verbs chain from an idea to open
-pull requests, and each leaves something the next one reads: `conceptualize` → `docs/concepts/`,
+pull requests, and each leaves something the next one reads: `envision` → `docs/visions/`,
 `specify` → `docs/specs/` mirrored to the tracker, `mock-up` → `docs/mockups/`, `design` →
 `docs/designs/` and beads with dependency edges, `implement` → a worktree, a test case, and a pull
 request per task, `review` → `.codefall/reviews/`, `test` → `.codefall/tests/`. Beside the chain,

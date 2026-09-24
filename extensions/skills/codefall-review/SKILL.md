@@ -73,7 +73,7 @@ Five things are refused rather than attempted, and the refusal says which:
 - **A merged or closed pull request.** `state` is not `OPEN`.
 - **A merged branch.** `git branch --merged <default>` lists it.
 - **A superseded ADR.** Its Status line says `Superseded by`.
-- **An archived concept or spec.** Its Status line says `Archived`, or it sits under `archive/` —
+- **An archived vision or spec.** Its Status line says `Archived`, or it sits under `archive/` —
   either is enough, and a document where the two disagree is a `status` finding for whoever reviews
   the live one.
 - **A specific commit.** Out of scope for this verb.
@@ -101,7 +101,7 @@ run, and offer to drop some:
 
 ```
 Resolved SPEC-004 to docs/specs/SPEC-004-trip-sharing.md,
-checked against CONCEPT-002-trip-sharing.md.
+checked against VISION-002-trip-sharing.md.
 
 Lenses: structure, status, trace, criteria, precision, stories.
 
@@ -125,7 +125,7 @@ says where fixes will land when that would create a worktree or branch.
 5. The design behind the work when there is one. A branch named `feat/booking-DESIGN-007-T1-…` carries a bead ID;
    `bd show <id> --json` gives `spec_id`, the design document's path. From the design,
    `codefall-design` defines the row that reaches the spec, and `codefall-specify` the row that
-   reaches the concept.
+   reaches the vision.
 
 **Every hop in item 5 is optional, and a missing one is never an error.** Review against
 conventions alone, and record which hop was missing in `notChecked`.
@@ -137,13 +137,13 @@ target faithfully refines what came before it, and what it added that nobody ask
 
 | Target | Upstream | Found by |
 | --- | --- | --- |
-| concept | none | — |
-| spec | its concept, when it has one | the `**Concept:**` header row |
-| design | its spec, or its concept when there is no spec | the `**Related:**` row |
+| vision | none | — |
+| spec | its vision, when it has one | the `**Vision:**` header row |
+| design | its spec, or its vision when there is no spec | the `**Related:**` row |
 | ADR | the design that cites it, and every other accepted ADR | `grep -rl 'ADR-007' docs/designs/`, substituting the identifier, plus `docs/adrs/` |
 
 Links point one way: reaching a design from a spec or an ADR is a grep for the identifier. A
-concept has no upstream and is reviewed for internal consistency alone.
+vision has no upstream and is reviewed for internal consistency alone.
 
 ## The lenses
 

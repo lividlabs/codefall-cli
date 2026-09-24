@@ -1,13 +1,13 @@
-# CONCEPT-NNN: {Title}
+# VISION-NNN: {Title}
 
 **Status:** Ready — {date}
 **Related:** specs: _(identifiers once `/specify` creates them)_ · plan: _(link once `/design` creates it)_
 
 <!--
-Problem and Proposed shape are the minimum — every concept needs
+Problem and Proposed shape are the minimum — every vision needs
 both what's wrong and some sense of what you're pointing at. Every
 other section is optional: include it if it's true and useful for
-this piece of work, cut it if it isn't. A concept for one broken
+this piece of work, cut it if it isn't. A vision for one broken
 capability might be just those two short paragraphs. Something that
 reshapes a whole product might use all of them.
 -->
@@ -36,8 +36,8 @@ this sits untouched.
 
 *(Optional — include only when the scope could plausibly be
 misread or is tempting to creep.)*
-What this concept deliberately does not cover. This is what keeps
-`/specify` from scope-creeping into adjacent problems this concept
+What this vision deliberately does not cover. This is what keeps
+`/specify` from scope-creeping into adjacent problems this vision
 wasn't trying to solve.
 
 ## Environment & constraints

@@ -1,7 +1,7 @@
 ---
 name: codefall-design
 description: Decide how a feature gets built and put the work into the graph — read the docs and the code, judge whether the change warrants a design document at all, write one scaled to the work at docs/designs/, record hard-to-reverse choices as ADRs, decide which tasks are verified through the wired product and draft their test case and its criteria into the bead, and create the task graph in Beads from the document's staged task plan.
-argument-hint: "[the spec, the concept, or what you want built]"
+argument-hint: "[the spec, the vision, or what you want built]"
 disable-model-invocation: true
 allowed-tools:
   - Read
@@ -46,7 +46,7 @@ Read each when its step says to; none is loaded up front.
 
 | In scope | Out of scope | Whose |
 | --- | --- | --- |
-| The approach, and the decisions inside it | Whether this is worth building | `codefall-conceptualize` |
+| The approach, and the decisions inside it | Whether this is worth building | `codefall-envision` |
 | Components, their relationships, and data flow | What a consumer observes when it works | `codefall-specify` |
 | Contracts, types, schemas, storage, failure modes | What the screen looks like | `codefall-mock-up` |
 | Which existing code changes and which is new | The project's architecture stance | `codefall-scaffold` |
@@ -177,7 +177,7 @@ Beads is a hard gate: the graph is this skill's output.
 
 One open question, unless the invocation already answered it:
 
-> "What are we designing? A spec identifier, a concept, or just tell me what needs building."
+> "What are we designing? A spec identifier, a vision, or just tell me what needs building."
 
 **Then look for a spec.** Read `docs/specs/` — not `archive/` — and offer the relevant one:
 
@@ -196,8 +196,8 @@ has no written target and offer `/specify`. On no, continue.
 Name the gate, say what clears it, and stop. Do not design half of a spec around a blocked
 requirement.
 
-**Then read what frames it.** The spec's concept, if it names one. `docs/concepts/` if no spec
-framed the work. A concept's **Environment & constraints** section is written for this moment.
+**Then read what frames it.** The spec's vision, if it names one. `docs/visions/` if no spec
+framed the work. A vision's **Environment & constraints** section is written for this moment.
 
 ### 3. Read the docs and the code
 
@@ -325,8 +325,8 @@ At tier 0 there is nothing to collapse.
 
 ### 11. Link back, commit, and report
 
-Fill in the `plan:` field on the framing concept's `Related` line with this design's identifier.
-Where a spec framed the work, the concept is the one named in the spec's `**Concept:**` row. Add the
+Fill in the `plan:` field on the framing vision's `Related` line with this design's identifier.
+Where a spec framed the work, the vision is the one named in the spec's `**Vision:**` row. Add the
 identifier and change nothing else in the file.
 
 There is no back-link to write into the spec: the design's `spec` label carries the connection.
@@ -389,7 +389,7 @@ your own initiative.
 - **A ticket must not change under someone holding it.** An untouched bead is edited whatever
   changed; a bead someone is holding is replaced when the work already done would no longer count.
 - **Status describes the document, never the work.** Work state belongs to Beads.
-- **Never record a hop you can derive.** A design carries its spec, or its concept when there is no
+- **Never record a hop you can derive.** A design carries its spec, or its vision when there is no
   spec — not both.
 - **Research goes inline**, attached to the decision it informed. No sibling research files.
 - **Push back once, then defer** — on the tier, on the approach, on the cut. The user knows the

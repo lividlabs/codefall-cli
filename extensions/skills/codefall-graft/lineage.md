@@ -12,13 +12,19 @@ same PR. Without the row, graft sees a deletion plus an addition and reports non
 
 | Former identity (0.x-0.9.0) | Current |
 | --- | --- |
-| `skills/conceptualize/` | `skills/codefall-conceptualize/` |
+| `skills/conceptualize/` (– 0.9.0), `skills/codefall-conceptualize/` (0.9.0 – 0.16.x) | `skills/codefall-envision/` |
 | `skills/design/` | `skills/codefall-design/` |
 | `skills/graft/` | `skills/codefall-graft/` |
 | `skills/implement/` | `skills/codefall-implement/` |
 | `skills/mock-up/` | `skills/codefall-mock-up/` |
 | `skills/scaffold/` | `skills/codefall-scaffold/` |
 | `skills/specify/` | `skills/codefall-specify/` |
+
+The envision rename changed the documents as well as the skill: `docs/concepts/CONCEPT-NNN-slug.md`
+became `docs/visions/VISION-NNN-slug.md`, the `**Concept:**` header row in a spec became `**Vision:**`,
+and the `concept:` key in a design's `Related` row became `vision:`. A project that ran
+`codefall-conceptualize` holds the old paths and identifiers, and graft reports them the same way it
+reports a renamed ADR.
 
 ## Repo layout epochs
 

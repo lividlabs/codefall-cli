@@ -7,7 +7,7 @@ This directory is the extension. Everything above it is packaging.
 
 | Skill | Does |
 | --- | --- |
-| [`codefall-conceptualize`](skills/codefall-conceptualize/SKILL.md) | Get an idea onto paper before anyone specifies or scaffolds it: a numbered concept document under `docs/concepts/` carrying the problem, the rough shape of an answer, and what nobody has decided yet. |
+| [`codefall-envision`](skills/codefall-envision/SKILL.md) | Get an idea onto paper before anyone specifies or scaffolds it: a numbered vision document under `docs/visions/` carrying the problem, the rough shape of an answer, and what nobody has decided yet. |
 | [`codefall-scaffold`](skills/codefall-scaffold/SKILL.md) | Start a new project on the Clean + package-by-component stance: ratified ADRs, scoped `AGENTS.md`, optionally project files and boundary lint. |
 | [`codefall-graft`](skills/codefall-graft/SKILL.md) | Bring a scaffolded project's docs up to date with the current templates: report what changed since its version, with per-file provenance, and apply only what the user takes. Also handles first-time adoption of the stance. |
 | [`codefall-specify`](skills/codefall-specify/SKILL.md) | Turn a feature idea into a specification another session can implement: a spec document under `docs/specs/` holding requirements with EARS acceptance criteria, mirrored to the issue tracker. |

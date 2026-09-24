@@ -9,7 +9,7 @@ The repo holds two components:
 - [`cli/`](cli/) — the commaand line tool to help create and manage repos with Codefall.
 - [`extensions/`](extensions/) — the installable plugin: skills, hooks, and shared scripts. 
 
-Every skill is a **verb**. The verbs chain: `conceptualize` frames the idea, `scaffold` makes the
+Every skill is a **verb**. The verbs chain: `envision` frames the idea, `scaffold` makes the
 project, `specify` states the problem, `mock-up` shows what it looks like, `design` decides the
 shape, `implement` writes it, `review` checks it.
 
@@ -127,7 +127,7 @@ TODO: rename the skill names to the actual
 
 | Skill | Does | Status |
 | --- | --- | --- |
-| [`conceptualize`](extensions/skills/codefall-conceptualize/SKILL.md) | Get an idea onto paper before anyone specifies or scaffolds it: a numbered concept document under `docs/concepts/` that carries the problem, the rough shape of an answer, and what nobody has decided yet. | in progress |
+| [`envision`](extensions/skills/codefall-envision/SKILL.md) | Get an idea onto paper before anyone specifies or scaffolds it: a numbered vision document under `docs/visions/` that carries the problem, the rough shape of an answer, and what nobody has decided yet. | in progress |
 | [`scaffold`](extensions/skills/codefall-scaffold/SKILL.md) | Start a new project on the Clean + package-by-component stance: ratified ADRs, scoped `AGENTS.md`, optionally project files and boundary lint. | in progress |
 | [`graft`](extensions/skills/codefall-graft/SKILL.md) | Bring a scaffolded project's docs up to date with the current templates: report what changed since its version, with per-file provenance, and apply only what the user takes. Also handles first-time adoption of the stance. | in progress |
 | [`specify`](extensions/skills/codefall-specify/SKILL.md) | Turn a feature idea into a specification another session can implement: a spec document under `docs/specs/` holding requirements with EARS acceptance criteria, mirrored to the issue tracker. | in progress |
@@ -139,38 +139,38 @@ TODO: rename the skill names to the actual
 | [`equip`](extensions/skills/codefall-equip/SKILL.md) | Equip a project with what the other verbs need it to have: the local-environment scripts `refresh` runs — `start`, which brings its services up, and `update`, which makes the local environment match the checkout — and the test harness `test` runs cases through, a spec runner per surface pointed at the testing root. Finds what the project already has or drafts it from what the repository shows, then declares it in `.codefall/settings.json`. | in progress |
 | [`refresh`](extensions/skills/codefall-refresh/SKILL.md) | Bring the checkout, the beads, and the local environment current: fetch, fast-forward `main` when that is safe, sync the Beads database with its Dolt remote, run the declared `start` and `update`, record the commit the environment now matches, and turn a failure into a sentence that says what to do. The routine before starting new work. | in progress |
 
-### Concepts
+### Visions
 
-`conceptualize` writes the *why* down first — the problem, who feels it, the rough shape of an answer,
-and the open questions — as `docs/concepts/CONCEPT-001-slug.md`. It is deliberately informal, and its
-length is proportional to what you put in: two paragraphs is a valid concept, and so is a page.
+`envision` writes the *why* down first — the problem, who feels it, the rough shape of an answer,
+and the open questions — as `docs/visions/VISION-001-slug.md`. It is deliberately informal, and its
+length is proportional to what you put in: two paragraphs is a valid vision, and so is a page.
 Unknowns stay in the document as unknowns rather than being invented away.
 
-**It takes whatever you arrive with.** A sentence, ten minutes of thinking out loud, a vision
+**It takes whatever you arrive with.** A sentence, ten minutes of thinking out loud, a pitch
 document, a whiteboard photo, or a folder of design-tool exports. Mockups are routed to
 `docs/mockups/` where `design` and `implement` look for them; everything else is saved verbatim under
-`docs/concepts/sources/`, and the concept cites both. Arriving with finished screens is not a reason
+`docs/visions/sources/`, and the vision cites both. Arriving with finished screens is not a reason
 to be sent elsewhere — you can have every screen drawn and still have written nothing down about the
 problem they solve, which is the case this skill is most useful for.
 
-**A big pile usually holds more than one problem.** A vision document can cover three, and a mockup
-set spanning six surfaces usually does. Each problem that stands on its own becomes its own concept,
+**A big pile usually holds more than one problem.** A pitch document can cover three, and a mockup
+set spanning six surfaces usually does. Each problem that stands on its own becomes its own vision,
 written as siblings rather than a parent and children, connected by the source they all came from. The
 breakdown is proposed and you decide the cut.
 
-**`scaffold` requires a concept**, and offers to run this skill when there isn't one. That requirement
+**`scaffold` requires a vision**, and offers to run this skill when there isn't one. That requirement
 exists because scaffolding without any idea of what is being built is where scaffolds go wrong — the
-architecture questions get answered by defaults picked from a one-sentence description. With a concept
+architecture questions get answered by defaults picked from a one-sentence description. With a vision
 in hand most of those questions are already answered, so the scaffold session is shorter *and* the
 answers are better. You can decline, and the scaffold records that it ran without one.
 
-`specify` may draw on a concept and never requires one, because a concept carries the *why* and a
+`specify` may draw on a vision and never requires one, because a vision carries the *why* and a
 specification carries the *what* — they are different documents, and plenty of features need only the
 second.
 
-A concept is `Draft` while you are still adding to it, `Ready` once it is written and agreed, and
+A vision is `Draft` while you are still adding to it, `Ready` once it is written and agreed, and
 `Active` once work starts against it. Replacing part of one adds a `Revised by` line; replacing it
-whole archives it to `docs/concepts/archive/`, where the identifier stays valid and the citations still
+whole archives it to `docs/visions/archive/`, where the identifier stays valid and the citations still
 resolve.
 
 ### Specifications
@@ -216,7 +216,7 @@ once the mirror has written the issue number back, and the pull request that car
 offered, never merged: that holds for every verb that writes a document, and only the merge is yours.
 
 A feature too large for one cohesive spec becomes sibling specs rather than a parent and children.
-The concept above them is what groups them, which is why a concept's `Related` line holds a list.
+The vision above them is what groups them, which is why a vision's `Related` line holds a list.
 
 Skills are **explicitly invoked** — `/scaffold`, `/specify`, and so on. Each carries
 `disable-model-invocation: true`, so none of them fire on their own; scaffolding a project or filing
@@ -256,8 +256,8 @@ The states are where the value is — populated, empty, and the primary failure 
 empty and error screens are the ones nobody describes in an interview and where features come back
 from review.
 
-It opens by asking whether this is for a spec, for a concept, or a fresh start, and lists what is
-there so you can pick one. A concept is a wider frame that usually spans several surfaces, so it says
+It opens by asking whether this is for a spec, for a vision, or a fresh start, and lists what is
+there so you can pick one. A vision is a wider frame that usually spans several surfaces, so it says
 how big the run would be before starting rather than refusing it.
 
 The slug names the **surface**, not the spec. One screen gets touched by several specs over its life
@@ -335,7 +335,7 @@ unblocks the next tasks, waves of background workers build them in isolated work
 continues until the frontier is empty.
 
 **One approval starts it.** The go gate shows the landing strategy with its reason, a branch diagram,
-the waves and the models proposed per task, what will be claimed in Beads, and — when a concept sits
+the waves and the models proposed per task, what will be claimed in Beads, and — when a vision sits
 behind the work — that go flips it to `Active`. After go, only a failure stops the run, and a failed
 worker gets one automatic retry at higher effort before anything reaches you. That absence of
 mid-run gates is what makes an overnight run possible.
@@ -430,7 +430,7 @@ spots that made the first one worth doing.
 type design, conventions, comment accuracy, documentation that has fallen behind, simplification,
 the local-environment scripts left stale by a change, and security — run as four parallel passes
 rather than one reviewer looking for everything at once.
-Documents get their own set: a spec is checked against its concept, a design against its spec, an ADR
+Documents get their own set: a spec is checked against its vision, a design against its spec, an ADR
 against every other accepted ADR. Before anything runs, the skill names what it resolved and which
 questions it will ask, and you can drop any of them.
 
@@ -528,7 +528,7 @@ share one profile. What differs is toolchain — and the profile records the tra
 with Babel, not `tsc`, so ADR-TS-01's `emitDecoratorMetadata` is inert and Inversify fails at runtime
 unless `babel-plugin-transform-typescript-metadata` is added.
 
-`scaffold` reads your concept, or asks you to describe the project when you declined one, decomposes
+`scaffold` reads your vision, or asks you to describe the project when you declined one, decomposes
 it into surfaces, and matches each against this table. **If any surface has no profile, it stops** — it won't improvise ADRs for an unsupported
 language or scaffold only the half that fits. A profile counts as supported once
 `templates/surfaces/<name>/PROFILE.md` is complete.
