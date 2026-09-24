@@ -16,9 +16,10 @@ via=codex            via=codex:gpt-5-codex
 via=claude           via=claude:claude-opus-5
 via=opencode         via=opencode:anthropic/claude-sonnet-5
 via=gemini           via=gemini:gemini-3-pro
+via=muse             via=muse:muse-spark-1.3-contributor
 ```
 
-The four harness names are the supported set. The model strings after the colon are examples of the
+The five harness names are the supported set. The model strings after the colon are examples of the
 form and will age — whatever the named harness accepts is what goes there, and a model this file
 has never heard of is passed through untouched.
 
@@ -64,7 +65,9 @@ Runs the harness's headless read-only mode in the repository, so the reviewer re
 itself. Leaving `--model` out takes the harness's own default — which is what `via=codex` with no
 model means. The prompt file is `../reviewer-prompt.md` rendered with every lens in scope. Codex and
 Claude Code also take the schema as a flag — `--output-schema` and `--json-schema` — which makes
-their output conform by construction.
+their output conform by construction. Muse has such a flag and the script does not pass it: its
+validator rejects the schema's `if`/`then` clause, so Muse reads the schema from the prompt like
+OpenCode and Gemini.
 
 - The external reviewer runs read-only. It proposes; it never edits.
 - A failure — missing CLI, auth error, timeout, non-zero exit — is reported with the harness name
