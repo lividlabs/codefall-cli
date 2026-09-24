@@ -1210,9 +1210,10 @@ Decided at scaffold, 2026-08-16.
   plan file has no ID field; `bd config get issue_prefix` prints the bare prefix. So every bead is
   now created with `--id`. A design's beads take the document's own numbering, which was already
   unique and append-only: `<prefix>-DESIGN-NNN` for the epic and `<prefix>-DESIGN-NNN-Tn` for a
-  task, set by a rename pass right after `bd create --graph`, beside the pass that sets `spec_id`. A
-  replacement bead under Revise is `<old>-2`, so the mapping line still says which is current, and
-  the landed bead is `<epic>-LAND`. Other work — tier 0, discovered — is `<prefix>-<tracker ref>`
+  task, set by a rename pass right after `bd create --graph`, beside the pass that sets `spec_id`.
+  Under Revise the old bead is renamed `<id>-superseded` and the replacement takes the plain ID, so
+  the current bead always holds the name the mapping line records; the bead the merge gates block is
+  `<epic>-MERGED`, named for the condition that closes it. Other work — tier 0, discovered — is `<prefix>-<tracker ref>`
   with `--external-ref` set to the same value where an issue exists, else `<prefix>-<slug>`, and a
   refused duplicate gets `-2`. Seen and not taken: a slug on the design form
   (`<prefix>-DESIGN-007-T2-stage-context`), which the title already carries; a hash suffix on the

@@ -129,8 +129,9 @@ stays so a later run on a changed document can update the graph rather than dupl
 
 Bead identifiers are the document's own numbering behind the project's prefix —
 `<prefix>-DESIGN-NNN` for the epic, `<prefix>-DESIGN-NNN-Tn` for each task — set by `bd rename`
-after creation, per `beads.md`. The line lists them anyway: a replaced task's bead is
-`<prefix>-DESIGN-NNN-Tn-2`, and the line is what says which bead is current.
+after creation, per `beads.md`. The line lists them anyway, so a reader sees the prefix without
+running `bd`. A replaced task's old bead is renamed `<prefix>-DESIGN-NNN-Tn-superseded`, and the
+current bead always holds the plain ID.
 
 ## Local IDs are append-only
 

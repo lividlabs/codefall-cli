@@ -47,14 +47,14 @@ gates below.
 ## The landed bead and its gates
 
 An epic cannot be gated directly and refuses to close while children are open. So an epic run's
-first claim also creates one extra child task — `Land: all PRs merged to main`, named `<epic>-LAND`
-— with gates blocking it. `--id` and `--parent` do not combine on one `bd create`, so the parent is
-set in a second call:
+first claim also creates one extra child task — `Land: all PRs merged to main`, named
+`<epic>-MERGED` — with gates blocking it. `--id` and `--parent` do not combine on one `bd create`,
+so the parent is set in a second call:
 
 ```bash
-bd create "Land: all PRs merged to main" --id <epic>-LAND
-bd update <epic>-LAND --parent <epic>
-bd gate create --type=gh:pr --blocks <epic>-LAND --await-id=<pr-number> -r "PR #<n>"
+bd create "Land: all PRs merged to main" --id <epic>-MERGED
+bd update <epic>-MERGED --parent <epic>
+bd gate create --type=gh:pr --blocks <epic>-MERGED --await-id=<pr-number> -r "PR #<n>"
 ```
 
 `bd close` refuses an issue with unsatisfied gates, so the landed bead cannot close — and therefore
