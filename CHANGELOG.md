@@ -6,6 +6,23 @@ below were written by hand, before that was wired up.
 Tags are bare version numbers (`0.1.2`), not `v`-prefixed, so they match the `ref` the marketplace
 pins. A `v0.1.1` tag also exists from before that convention was settled.
 
+## [0.18.0](https://github.com/lividlabs/codefall-cli/compare/v0.17.0...v0.18.0) (2026-09-24)
+
+
+### Features
+
+* **skills:** end every report with what the user does next ([#113](https://github.com/lividlabs/codefall-cli/issues/113)) ([be0b748](https://github.com/lividlabs/codefall-cli/commit/be0b748f992b7f7abb3d6cf40dbb418e5f4f7881))
+* **skills:** implement and review hand a design found wrong back to design ([#116](https://github.com/lividlabs/codefall-cli/issues/116)) ([ee48cae](https://github.com/lividlabs/codefall-cli/commit/ee48cae6f705f3f352d4fd8df66469641d6cad72))
+* **skills:** keep the Task Plan table after its beads are created ([#111](https://github.com/lividlabs/codefall-cli/issues/111)) ([5b77115](https://github.com/lividlabs/codefall-cli/commit/5b77115dd10f9e8a1171648413f1226cef68076c))
+* **skills:** review runs through muse with via=muse ([#117](https://github.com/lividlabs/codefall-cli/issues/117)) ([eb28dd8](https://github.com/lividlabs/codefall-cli/commit/eb28dd8d3b5fe5c666b8f5fc235783fabba1a5cb))
+* **skills:** review takes a commit range and says how several PRs are reviewed ([#115](https://github.com/lividlabs/codefall-cli/issues/115)) ([d61516a](https://github.com/lividlabs/codefall-cli/commit/d61516ae3d9e0782e4d5355d2df8459f368d7d89))
+
+
+### Documentation
+
+* **readme:** add the Codefall logo ([#118](https://github.com/lividlabs/codefall-cli/issues/118)) ([bb86a37](https://github.com/lividlabs/codefall-cli/commit/bb86a3776a8fee8076c8204caae1524683eac84f))
+* **skills:** restore the WHEN THEN example in specify's EARS rule ([#114](https://github.com/lividlabs/codefall-cli/issues/114)) ([069c90f](https://github.com/lividlabs/codefall-cli/commit/069c90f5bb4c3bdf468f788468c5d844e087fe2f))
+
 ## [0.17.0](https://github.com/lividlabs/codefall-cli/compare/v0.16.0...v0.17.0) (2026-09-24)
 
 
