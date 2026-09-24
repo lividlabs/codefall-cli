@@ -54,6 +54,7 @@ The argument's shape decides what is being reviewed.
 | *(none)* | uncommitted work | `git diff`, `git diff --cached`, `git status --short` for untracked files |
 | a branch name | that branch | `git diff <base>...<branch>` against the default branch |
 | a PR number or github.com pull URL | that pull request | `gh pr view <ref> --json number,state,headRefName,headRefOid,baseRefName,baseRefOid`, `gh pr diff <ref>` |
+| `<from>..<to>`, two commits | the work between them | `git diff <from> <to>`; both must be reachable from a live branch |
 | a path to a file or directory | that path as it stands | the files under it |
 | a codefall document identifier, or a path under `docs/` | that document | the file, plus the document upstream of it |
 | anything else — prose describing what to look at | that code | a search, confirmed with the user |
@@ -61,6 +62,11 @@ The argument's shape decides what is being reviewed.
 **The default branch** is `git symbolic-ref --short refs/remotes/origin/HEAD` with the `origin/`
 prefix stripped, falling back to `git remote show origin` when that ref was never set locally, and
 to the current checkout's initial branch when there is no remote. Resolve it once per run.
+
+**Several pull requests** — `codefall-implement` leaves one per task. A stack, where each pull
+request is based on the one below it, is one target: the top branch, or the range from the merge-base
+of its tip with the default branch to its tip, holds every pull request's diff. Pull requests against the default branch share
+nothing and are one invocation each, in the order the implement report listed them.
 
 **Document identifiers** are the ones the other verbs define. Resolve one by globbing its directory
 and stop if it matches nothing or more than one. Never guess at a near miss, and never invent a form
@@ -114,7 +120,7 @@ says where fixes will land when that would create a worktree or branch.
 
 ## What gets read
 
-**A target with a diff** — uncommitted work, a branch, a pull request:
+**A target with a diff** — uncommitted work, a branch, a pull request, a range:
 
 1. The diff, by the command in the table above.
 2. Every modified file in full.
@@ -187,12 +193,13 @@ reported, never worked around.
 | Uncommitted work | The working tree, in place |
 | A branch | That branch |
 | An open pull request | That PR's branch |
+| A commit range | The branch whose tip is `<to>`; if no branch has it, stop and ask |
 | A document or path, when something is already checked out for it | There |
 | A document or path on the default branch | A new worktree, branched from the default branch |
 
-**Getting there.** A branch or PR target that is not already checked out is fetched and checked out
-before any fix is applied — `git fetch origin` then `git checkout <branch>`, taking the branch name
-from `headRefName` for a pull request. A new worktree is `git worktree add` off the default branch.
+**Getting there.** A branch, PR, or range target that is not already checked out is fetched and
+checked out before any fix is applied — `git fetch origin` then `git checkout <branch>`, taking the
+branch name from `headRefName` for a pull request and the branch whose tip is `<to>` for a range. A new worktree is `git worktree add` off the default branch.
 
 **A dirty working tree stops the move.** When the tree is dirty and the fixes belong somewhere else,
 report the findings, say the fixes were not applied and why, and leave the tree exactly as it is.

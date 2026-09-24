@@ -30,7 +30,7 @@ agent may run it when the environment is stale. In order:
 | `mock-up` | a design-tool export, or nothing | `docs/mockups/<slug>/`, matching the app's own design system | `design`; an issue labelled `requires-mockup` blocks design until it exists |
 | `design` | the spec, the vision, the code | `docs/designs/DESIGN-NNN-slug.md`, the *how*, scaled to the change; ADRs for hard-to-reverse choices; beads with dependency edges, each carrying its acceptance criteria and, where the task is verified through the wired product, the test case and its criteria | `implement` |
 | `implement` | ready beads, an epic, or a design | a worktree per task, the test case before the code, verification against the bead's criteria and the project's checks, a pull request per task, walked in parallel waves until the frontier is empty | the human, who merges |
-| `review` | anything live: uncommitted work, a branch, a PR, a path, a document | `.codefall/reviews/`, a JSON and Markdown pair per review; fixes on the target's branch for the findings the user takes | the human |
+| `review` | anything live: uncommitted work, a branch, a PR, a commit range, a path, a document | `.codefall/reviews/`, a JSON and Markdown pair per review; fixes on the target's branch for the findings the user takes | the human |
 | `test` | what the project declares: suites, the changed subset, or one case in its `spec` or `agentic` modality | `.codefall/tests/`, a report per run; findings triaged, never an edit that makes a run pass | tracker issues on the user's word |
 
 A contained fix skips the documents: `design` writes beads only when a change stays inside one

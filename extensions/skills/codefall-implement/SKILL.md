@@ -325,7 +325,8 @@ Do not merge, and do not wait for merges; the next session's `bd gate check` fin
 - The tracker mirror's state, the vision transition if one fired.
 - The worktree list, with the cleanup offer.
 - Final `bd dolt push`.
-- **Last, what the user does next**: review the pull requests, merge them in the order above, then
+- **Last, what the user does next**: review the pull requests — a stack as one target, its top
+  branch; pull requests against the default branch one each — merge them in the order above, then
   `/codefall-test <area>/<slug>` for each case a bead named.
 
 ## Other modes
@@ -340,8 +341,7 @@ Do not merge, and do not wait for merges; the next session's `bd gate check` fin
 
 ## Rules
 
-- **A human performs every merge to `main`; this skill performs none, in any mode.** The hook
-  denying one is the system working.
+- **A human performs every merge to `main`; this skill performs none, in any mode.**
 - **Every `bd` write is the root's, in the primary checkout.** Workers never run `bd`; their prompt
   carries what they need and their result JSON carries what they found.
 - **Closed means done — criteria verified, checks green, PR open.** Merged is the gates' to say,
@@ -353,7 +353,7 @@ Do not merge, and do not wait for merges; the next session's `bd gate check` fin
   fixed in passing.
 - **Bead IDs ride every commit message.**
 - **Depth never forces the epic branch; fan-in and don't-touch-main do**, and only when parallelism
-  matters — the single topological stack is always correct.
+  matters.
 - **Hotspot files are overlap until shown otherwise.** When parallel stacks cannot be shown safe,
   serialize.
 - **Verify workers, never trust them.** Branch on the remote and PR open, or it did not happen.
@@ -371,7 +371,7 @@ Do not merge, and do not wait for merges; the next session's `bd gate check` fin
 - **Implement never writes bead metadata and never redesigns the graph.** Metadata is read as a
   recommendation; a wrong task goes back to `codefall-design`.
 - **The mirror never guesses.** The spec's parent issue carries the ladder; requirement children
-  close with it, not by inference.
+  close with it.
 - **`Active` is a fact, recorded once.** Only the vision's Status line, only at first claim, only
   when a vision exists.
 - **Worktrees are cleaned up by offer, never by default**, and never under an open PR.
