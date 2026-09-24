@@ -1232,6 +1232,25 @@ Decided at scaffold, 2026-08-16.
   alone, which would reintroduce the mismatch; keeping `conceptualize` as an alias, unneeded because
   no project has run the verb. Material the user brings is now called a "pitch document" so the
   word vision names only the output.
+- **The Task Plan stays after creation, 2026-09-23.** A design's task table used to collapse to a
+  line mapping each local ID to its bead once the graph existed, on the reasoning that a task list
+  in a git-tracked document diverges from the graph and nobody updates it. Since beads took the
+  design's own numbering the line carried nothing a reader could not derive, and it discarded the
+  one human-readable account of the breakdown: the titles, the edges, and the design refs. What can
+  diverge is work state, which the table never held; titles, edges, and refs change only through
+  Revise, which edits the document first and the graph after. So the table stays. The callout above
+  it flips from `Staged. Not yet in Beads.` to the creation date, the epic's full ID, the per-row
+  form `<prefix>-DESIGN-NNN-Tn`, and the sentence that Beads is authoritative and a difference is
+  reconciled by revising the design; a revision adds its date; a removed row's ID goes on a
+  `Retired:` line under the table so numbering stays append-only. The designs `AGENTS.md` now says
+  a design bead's title, edges, and ref change only through Revise, never with `bd` directly, which
+  is what keeps the snapshot level with the graph. Seen and not taken: a bead ID column, which
+  repeats the per-row rule; a "may be out of date" disclaimer, which teaches readers to distrust the
+  table and says nothing about how a difference is resolved; a task block rendered from `bd list`
+  into the document, which puts work state into git. A design carrying the old mapping line still
+  resolves, its epic being `<prefix>-DESIGN-NNN` regardless: `/implement DESIGN-NNN` checks the epic
+  with `bd show` rather than the line, and the design's first revision rebuilds the table from the
+  beads.
 
 ## Open
 
