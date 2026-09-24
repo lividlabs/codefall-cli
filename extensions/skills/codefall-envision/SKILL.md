@@ -17,15 +17,16 @@ allowed-tools:
 
 # Envision
 
-Write down what someone wants to build, and why, before anyone decides what it does or how it is
-built.
+Write down what someone wants to build, and why, before anyone pins down exactly what it does or
+how it is built.
 
 The output is a **vision document** at `docs/visions/VISION-NNN-slug.md`. It is deliberately
 informal. A vision carries the *why* — the problem, the reason it matters now, the rough shape of an
 answer — and it stops well short of the detail a specification needs.
 
-Envisioning is not specifying. The moment the document starts saying what a user will observe
-when the thing works, it has become `codefall-specify`'s job.
+Envisioning is not specifying, and the difference is precision, not subject. A vision may say how
+the thing works, as loosely as the user described it. The moment the document is precise enough to
+build from, it has become `codefall-specify`'s job.
 
 Paths that start with `reference/`, `templates/`, or `../` are relative to this skill's directory,
 not the user's project. A path through `../../../.codefall/` is the one that leaves the skills
@@ -47,13 +48,13 @@ Read each when its step says to; none is loaded up front.
 - `../../../.codefall/shared/landing.md` — the shared procedure for the branch, the commit, and the
   offered pull request. Read at step 6, before the first file is written.
 
-## Scope — why, not what
+## Scope — why, and a loose what
 
 | In scope | Out of scope |
 | --- | --- |
-| The problem, and who feels it | What a user will observe when it works |
+| The problem, and who feels it | Exact behavior: every case, rule, and error |
 | Why it matters now rather than later | Acceptance criteria of any kind |
-| The rough shape of an answer | Screens, fields, endpoints, entities, schemas |
+| The rough shape of an answer, including how it works in broad strokes | Field lists, endpoints, entities, schemas |
 | What is deliberately not covered | Work breakdown, sequencing, estimates |
 | Constraints and systems this touches | Which layer or component the work lands in |
 | What nobody has decided yet | Anything a reader could build from |
@@ -197,8 +198,8 @@ given you everything a vision needs — write it.
 Ask about, in this order, and skip anything already answered:
 
 1. What is broken, missing, or costing something — and who feels it.
-2. The rough shape of an answer, if they have one. "I don't know yet" is a complete answer and goes
-   under Open questions.
+2. The rough shape of an answer, if they have one, including how it would work as far as they have
+   thought it through. "I don't know yet" is a complete answer and goes under Open questions.
 3. Why now rather than later.
 4. What this deliberately does not cover.
 5. What it touches that already exists, and what it must not break.
@@ -258,8 +259,9 @@ your own initiative.
 ## Rules
 
 - **Nothing is written without the user confirming the full document first.**
-- **The vision document says why, never what will be observed.** That is about the document. Mockups
-  and other material can arrive with it and be cited from it; they are inputs, not the vision.
+- **The vision document says why, and how it works only loosely.** Nothing in it is precise enough to
+  build from. That is about the document. Mockups and other material can arrive with it and be cited
+  from it; they are inputs, not the vision.
 - **Length is proportional to input.** Never fill a heading. An optional section with nothing behind it
   is deleted, heading and all.
 - **Unknowns are recorded, not resolved.** Open questions are correct output.

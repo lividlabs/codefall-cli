@@ -21,8 +21,9 @@ an audience that needs convincing — just what you know to be true.
 ## Proposed shape
 
 The rough shape of a solution — enough to reason about, not enough
-to build from. This is not the spec. If you catch yourself writing
-API signatures or data models here, stop — that's `/specify`'s job.
+to build from. Saying how it works is fine, in broad strokes. This is
+not the spec. If you catch yourself writing exact rules, edge cases,
+API signatures, or data models here, stop — that's `/specify`'s job.
 Even a single sentence is fine if that's genuinely all there is yet.
 
 ## Why now
