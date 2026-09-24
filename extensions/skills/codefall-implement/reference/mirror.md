@@ -10,6 +10,10 @@ the granularity GitHub can express. Read at step 6, at the first claim, and at s
 | Every PR merged, epic closed | Status → **Done**, issue closed, children closed with it | Issue closed, children with it |
 
 - Requirement sub-issues close **with the parent, never individually**.
+- **A spec a worker amended** has one requirement whose criteria grew. At the wave boundary, the
+  root regenerates that requirement's issue body per the *Refreshing* sequence in
+  `../../codefall-specify/trackers/<name>/PROFILE.md`, the existing-requirement case alone, and
+  nothing else in the mirror moves for it.
 - Every PR body carries one line — `Relates to #<spec-issue>` — so the mirror cross-links the work
   as it happens.
 - Board IDs are per-installation and never stored in this skill: discover them at run time

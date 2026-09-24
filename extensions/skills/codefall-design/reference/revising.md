@@ -75,13 +75,15 @@ Say per row which you did and why, in the report.
 
 `bd list -l design-revision --spec <this design's path>` is the input from outside the document:
 a bead `codefall-implement` or `codefall-review` filed because the design's text and the code, or
-the design and the spec, disagree. Its body says what the design says and what was found instead,
-and a `discovered-from` edge names the bead or the review that found it. Read them before the
-row-by-row pass, show them to the user, and settle every one in one of three ways:
+the design and the spec, disagree in a way the finder could not amend itself — the fix moves a task
+row or a criterion a bead cites, the document was frozen, or the user declined the amendment there.
+Its body says what the design says, what was found instead, and which document it names, and a
+`discovered-from` edge names the bead or the review that found it. Read them before the row-by-row
+pass, show them to the user, and settle every one in one of three ways:
 
 | The user decides | What happens |
 | --- | --- |
-| The document is wrong | The text is amended, and the bead closes with the amendment as its reason — `bd close <id> -r "amended: § Architecture now names StageContext"` |
+| The document is wrong | The text is amended — the design's, or the spec's by appending, with the requirement's tracker issue regenerated per `../../codefall-specify/trackers/<name>/PROFILE.md` and the bead's criteria updated in the same pass — and the bead closes with the amendment as its reason — `bd close <id> -r "amended: § Architecture now names StageContext"` |
 | The work is real | A new row on the table, per the row-is-new case above, and the bead closes with the new task's ID as its reason — the task carries the work, the request does not |
 | The request is wrong | The bead closes with why, in the user's words |
 

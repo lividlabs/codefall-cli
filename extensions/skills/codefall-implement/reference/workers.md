@@ -48,13 +48,16 @@ The worker's final message is exactly one JSON object:
  "discovered": [{"kind": "code", "title": "Parser drops trailing comma", "context": "…",
                  "from": "booking-DESIGN-007-T2"},
                 {"kind": "design", "title": "§ Architecture names a StageStore the code replaced",
-                 "context": "…", "from": "booking-DESIGN-007-T2"}]}
+                 "context": "…", "from": "booking-DESIGN-007-T2"}],
+ "amended": [{"document": "docs/designs/DESIGN-007-stage-context.md", "section": "Architecture",
+              "summary": "StageStore renamed to StageContext, matching the code"}]}
 ```
 
 or `{"bead": "…", "status": "failure", "reason": "…"}`. The `discovered` list is how tangent work
 reaches the root, which files it — the worker's diff stays scoped to its bead. `kind` is `code` or
 `design` and picks the form under *Discovered work* in `beads.md`, so the root files each item
-without re-reading the worker's prose.
+without re-reading the worker's prose. The `amended` list names each upstream document the worker
+amended in its branch; the root reads it at the wave boundary per *Amendments* in `beads.md`.
 
 ## Failure handling
 

@@ -84,10 +84,15 @@ a `design` discovery in step 3 and carry on.
   idempotent, never destructive. Name the change in the PR body.
 - Scope is exactly this bead. Anything adjacent you find — a bug, a missing test, a refactor —
   goes in your result's `discovered` list with `kind` `code`, not in your diff.
-- Where the design's text and the code disagree, or the design and the spec disagree, and you can
-  still finish the task, the same list gets an item with `kind` `design`: what the design says, what
-  you found instead with file and line, and what you did about it. The root files it against the
-  design, and `codefall-design` reads it.
+- Where the design's text and the code disagree, or the spec's, and you can still finish the task,
+  amend the document in this branch when its Status is `Draft` or `Ready` and the fix is text that
+  moves no work — no Task Plan row, no criterion your acceptance cites retired or reworded. A spec
+  is amended by appending the next `AC` number under its requirement; every document between the
+  change and your task that restates the point is amended together, or none is. Each amendment goes
+  in your result's `amended` list and in the PR body. A disagreement whose fix would move work, or
+  whose document is frozen — an `Active` vision, any ADR — goes in `discovered` with `kind`
+  `design` instead: what the document says, what you found with file and line, and what you did
+  about it. The root files that against the design, and `codefall-design` reads it.
 
 ## 4. Verify
 
@@ -124,7 +129,8 @@ gh pr create --base {{PR_TARGET}} --title "…" --body-file <tempfile>
 ```
 
 The body: a Summary, the acceptance criteria as a checklist with what you verified, a Test Plan,
-and the line `{{RELATES_LINE}}` when it is non-empty. Do not write `Closes` for the bead — beads is
+an Amendments section naming each document you amended and why when there are any, and the line
+`{{RELATES_LINE}}` when it is non-empty. Do not write `Closes` for the bead — beads is
 not GitHub.
 
 ## 6. Report
@@ -134,11 +140,14 @@ Your final message is exactly one JSON object, no prose around it:
 ```json
 {"bead": "{{BEAD_ID}}", "status": "success", "pr": <number>, "branch": "{{BRANCH}}",
  "discovered": [{"kind": "code", "title": "…", "context": "…", "from": "{{BEAD_ID}}"},
-                {"kind": "design", "title": "…", "context": "…", "from": "{{BEAD_ID}}"}]}
+                {"kind": "design", "title": "…", "context": "…", "from": "{{BEAD_ID}}"}],
+ "amended": [{"document": "docs/specs/SPEC-003-trip-export.md", "section": "REQ-01",
+              "summary": "appended AC-05: the declined-card path"}]}
 ```
 
-`kind` is `code` for work in the code and `design` for a place the design is wrong; an empty list
-when there is nothing.
+`kind` is `code` for work in the code and `design` for a place a document is wrong that you could
+not amend; `amended` lists each document you did amend, by path, section, and one line. Either is
+an empty list when there is nothing.
 
 On failure: `{"bead": "{{BEAD_ID}}", "status": "failure", "reason": "…"}` — with a reason concrete
 enough that a fresh worker could start from it.
@@ -152,3 +161,4 @@ enough that a fresh worker could start from it.
 - Never touch the primary checkout or a sibling worktree.
 - Never invoke another codefall verb.
 - Never expand scope past this bead, and never guess on architecture.
+- Never edit an ADR or an `Active` vision, and never change a Task Plan row or a cited criterion.

@@ -63,10 +63,16 @@ Case: checkout/place-order · modalities: spec, agentic
 what it does, not a pull request's own text. Reading code for mechanics — a control's role, its
 accessible name — is allowed; reading it to decide what should happen is not.
 
-**A gap the criteria expose goes back to the spec.** Where the spec is silent or ambiguous the
-criterion is still written, marked `derived`, and the gap goes in this run's report for
-`codefall-specify` to add a criterion. Spec numbering is append-only, so the addition takes the next
-number and nothing already cited moves. Nothing is patched into the case.
+**A gap the criteria expose is appended to the spec, in this run.** Where the spec is silent or
+ambiguous, draft the criterion in the spec's own EARS form under the requirement it belongs to,
+taking the next `AC` number — numbering is append-only, so nothing already cited moves — and show
+it at step 7 beside the task plan as a spec amendment. On yes, the bead's criterion cites the new
+identifier in full; the spec is edited on this run's branch at step 8, and the requirement's tracker
+issue is regenerated per the *Refreshing* sequence in
+`../../codefall-specify/trackers/<name>/PROFILE.md`, the existing-requirement case alone. On no, the
+criterion is written marked `derived`, which from here on means the spec was offered it and
+declined. A spec that is `Draft` is amended the same way; one that is `Archived` is not a target
+for design at all. Nothing is patched into the case.
 
 **The user's approval of the task plan is the sign-off** the derived criteria need, so every such
 criterion is shown at step 7 and nothing later asks again.

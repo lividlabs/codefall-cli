@@ -57,9 +57,12 @@ Read each when its step says to; none is loaded up front.
 
 **A task that turns out to be wrong is reported, not redesigned.** When the design's cut does not
 survive contact with the code, say what you found and hand the graph back to `codefall-design`. A
-smaller disagreement the task can finish under — the design's text against the code, or against
-the spec — is filed as a `design-revision` bead per `reference/beads.md`. `codefall-design` lists
-those on its next run.
+smaller disagreement the task can finish under — the design's text against the code, or the
+spec's — is amended by the worker in its own branch when the document is `Draft` or `Ready` and
+the fix is text that moves no task row and no cited criterion; the PR body names it, and the root
+re-mirrors a spec change per `reference/mirror.md`. A fix that would move work is filed as a
+`design-revision` bead per `reference/beads.md`, for `codefall-design`'s next run; the project's
+`.codefall/shared/workflow.md` holds the rule.
 
 - **Implement writes every test the current work needs** — planned by the design's Testing Strategy
   or discovered mid-task, unit through end-to-end. A missing test is written, not sent back to
@@ -81,9 +84,6 @@ A design whose Task Plan still says `Staged. Not yet in Beads` has no graph to w
 point at `/design`.
 
 **Tier 0 is not a separate mode.** A bare bug bead is single-bead scope with a shorter reading list.
-
-**Scope and execution style are different decisions.** The argument fixes *what*; the go gate
-fixes how it runs, from the graph's shape.
 
 ## What gets read
 
@@ -130,6 +130,8 @@ One approval, before any work starts. Everything the run will do, in one block:
   its own batch;
 - what will be claimed in beads, and — when a vision sits behind the work — that go flips it to
   `Active`;
+- that workers amend a design's or spec's text where the code disagrees, in their own PR, per
+  `reference/beads.md`;
 - the permissions condition: background workers cannot answer permission prompts, so the session
   must allow edits and Bash without prompting, or the run offers single-task mode instead.
 
@@ -243,12 +245,11 @@ command that fixes it, say to rerun this verb after it, and stop:
 | `not_initialized` | this repository has no beads database | `bd init` |
 | `unreadable` | bd found a database and could not read it | quote `beads_detail` |
 
-**Never run the remedy.** `bd init` writes and commits real files; that is the user's decision.
+**Never run the remedy.** That is the user's decision.
 
 Then read the checkout lines. `behind` above `0` or `refresh=stale` means the environment may not
 match what the work will build on: say so and run `/codefall-refresh` before continuing.
-`refresh=undeclared` names `/codefall-equip` instead. Never pull the checkout or run the local
-commands from here; `refresh` owns both.
+`refresh=undeclared` names `/codefall-equip` instead.
 
 **Then read the `test=` line**, and hold it against the beads in scope once step 3 has read them. A
 bead whose acceptance criteria name a test case needs an equipped harness:
@@ -260,9 +261,8 @@ bead whose acceptance criteria name a test case needs an equipped harness:
 | `undeclared` | say so, name `codefall init`, and do not start them |
 | `unknown` | read the `test` block from `.codefall/settings.json` and judge it the same way; no runner there is `unequipped` |
 
-Beads whose work is verified by unit tests alone proceed either way. When no bead in scope names a
-case, this is one line of notice at most. **Never set the harness up** — that is its own pull
-request, `/codefall-equip`'s, and never rides along inside a task's.
+Beads verified by unit tests alone proceed either way. **Never set the harness up** — that is
+`/codefall-equip`'s own pull request.
 
 Then read the project's `AGENTS.md` (root and scoped) and
 `.codefall/skills/codefall-implement/CUSTOMIZE.md` — workflow constraints, verify commands, pinned
@@ -303,8 +303,8 @@ When the user overrules the classifier the same way twice, offer to record the p
 Per `reference/workers.md`. Per wave: render worker prompts, launch the batch, wait for results.
 Verify each success — branch on the remote, PR exists, or it did not happen. One automatic retry
 per failed bead at higher effort; a second failure escalates. File discovered work, in the form
-its `kind` names. Comment the PR link, close the bead with what was verified, gate the landed bead
-with the new PR (stacked runs), `bd dolt push`. `--suggest-next` names the next wave; claim it and
+its `kind` names, and read each `amended` list per `reference/beads.md`. Comment the PR link, close
+the bead with what was verified, gate the landed bead with the new PR (stacked runs), `bd dolt push`. `--suggest-next` names the next wave; claim it and
 go again. Epic branch: merge each worker PR into the epic branch, serialized, at the wave boundary.
 Update the mirror per `reference/mirror.md`.
 
@@ -323,8 +323,9 @@ Do not merge, and do not wait for merges; the next session's `bd gate check` fin
 
 - Every bead built, with PR, branch, and what its close reason verified.
 - The merge order, bottom-up per stack, and what is blocked on the user.
-- Discovered work filed, in two buckets: code follow-ups, and what was handed back to design —
-  "DESIGN-NNN has N revision beads" — with the `bd comment` on the epic that names them.
+- Upstream amendments, by document and PR; then discovered work filed, in two buckets: code
+  follow-ups, and what was handed back to design — "DESIGN-NNN has N revision beads" — with the
+  `bd comment` on the epic that names them.
 - The tracker mirror's state, the vision transition if one fired.
 - The worktree list, with the cleanup offer.
 - Final `bd dolt push`.
@@ -352,9 +353,9 @@ Do not merge, and do not wait for merges; the next session's `bd gate check` fin
 - **Publish the claim before the work.** `bd dolt push` follows every claim and every close.
 - **The graph is the sequencer.** `bd ready` decides what runs next; never start a blocked bead.
 - **Scope is exactly the bead.** Tangents become `discovered-from` beads, filed by the root, never
-  fixed in passing; a design found wrong becomes a `design-revision` bead, never a quiet workaround.
+  fixed in passing; a design or spec found wrong is amended in the PR or becomes a
+  `design-revision` bead, never a quiet workaround.
 - **Bead IDs ride every commit message.**
-- **Hotspot files are overlap until shown otherwise.**
 - **Verify workers, never trust them.** Branch on the remote and PR open, or it did not happen.
 - **One automatic retry, then a human.**
 - **No permission prompts mid-run.** Workers cannot answer them; the go gate holds the condition.
@@ -367,8 +368,6 @@ Do not merge, and do not wait for merges; the next session's `bd gate check` fin
 - **The local scripts are part of done.** A change that would leave a teammate's refresh stale
   changes `start` and `update` in the same PR, per `codefall-equip`'s local track.
 - **Implement never writes bead metadata and never redesigns the graph.**
-- **The mirror never guesses.** The spec's parent issue carries the ladder; requirement children
-  close with it.
 - **`Active` is a fact, recorded once.**
 - **Worktrees are cleaned up by offer, never by default.**
 - **Never overwrite a file that has drifted.** Show the difference and ask.

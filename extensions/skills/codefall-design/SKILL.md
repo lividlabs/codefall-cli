@@ -61,6 +61,14 @@ cite it and move on.
 enforced — in `docs/adrs/` and the scoped `AGENTS.md` files. Design within it. A design that needs
 the stance changed says so once, then either follows the ADR or writes a superseding one.
 
+## Upstream documents
+
+A spec or vision this run finds wrong or incomplete is amended here, on this run's branch, when it
+is `Draft` or `Ready`, the amendment is text that moves no work, and the user takes it at step 7. A
+spec is amended by appending, and its requirement issue is regenerated per
+`../codefall-specify/trackers/<name>/PROFILE.md`. An `Active` vision is frozen: say so and name
+`codefall-envision`. The rule is in `../../../.codefall/shared/workflow.md`.
+
 ## Scale the artifact to the work
 
 A small required core, everything else conditional, and **no empty or placeholder sections — omit
@@ -147,7 +155,7 @@ Follow `../../../.codefall/shared/customizations.md` for this verb.
 
 ### 1. Check preconditions
 
-Run the shared check against the user's project. It reports what is set up and repairs nothing.
+Run the shared check against the user's project.
 
 ```bash
 "../../../.codefall/shared/preflight.sh" .
@@ -164,11 +172,9 @@ over the command that fixes it, say to rerun this verb after it, and **stop**:
 
 Then read the checkout lines. `behind` above `0` or `refresh=stale` means the environment may not
 match `main`: say so and run `/codefall-refresh` before continuing. `refresh=undeclared` names
-`/codefall-equip` instead. Never pull the checkout or run the local commands from here.
+`/codefall-equip` instead.
 
-**Never run the remedy.** `bd init` writes and commits real files; that is the user's decision.
-
-Beads is a hard gate: the graph is this skill's output.
+**Never run the remedy.** That is the user's decision.
 
 ### 2. Take the input
 
@@ -206,7 +212,7 @@ framed the work. A vision's **Environment & constraints** section is written for
 - **The graph** — `bd dolt pull`, then `bd list` and `bd search` for existing work. A task
   this design would create that is already a bead is a dependency edge, not a new task.
 - **Revision requests**, on an existing design — `bd list -l design-revision --spec <its path>`,
-  each a place `codefall-implement` or `codefall-review` found the document wrong.
+  filed by `codefall-implement` or `codefall-review`.
 
 Report what you found before designing — open revision requests first; use them to decide between
 Revise and Add tasks. If the work already exists, say so and stop.
@@ -235,12 +241,10 @@ Read `reference/document.md`. Settle, in this order, and only what applies:
 5. **What fails** — the new failure modes, and what the system does about each.
 6. **What is left out** — the approaches considered and set aside.
 
-**Research inline as you go**, and attach every finding to the decision it bears on, in Overview or
-Architecture.
+**Research inline as you go**, attached to the decision it bears on.
 
-**"Like $LIBRARY does it."** When the user references another project or library, offer once to look
-it up. On yes, research it and summarize only what changes a decision here; confirm the summary
-before it reaches the document.
+**"Like $LIBRARY does it."** Offer once to look it up; on yes, summarize only what changes a decision
+here, and confirm the summary before it reaches the document.
 
 **Raise a concern once, then defer.** Name it, say why, and let them decide. Cap at two rounds;
 unresolved, it goes into the document as a stated risk.
@@ -273,9 +277,10 @@ case (`<area>/<slug>`), its modalities, and every criterion the case will hold �
 (`SPEC-003-REQ-01-AC-01`) or marked `derived` with the requirement it elaborates
 (`SPEC-003-REQ-01`) and one line saying what it adds. `agentic` only where verifying an outcome
 needs judgement; `spec` otherwise; neither where unit tests verify the task, and a driver being
-available is no reason to add one. A gap the criteria expose in the spec goes in this run's report
-for `codefall-specify`, never patched into the case. The form is in `reference/beads.md` and the
-case-file format `codefall-implement` writes to is `../codefall-test/reference/case-file.md`.
+available is no reason to add one. A gap the criteria expose in the spec is an appended criterion,
+offered at step 7 per [Upstream documents](#upstream-documents); `derived` is what the criterion
+stays when the user declines. The form is in `reference/beads.md` and the case-file format
+`codefall-implement` writes to is `../codefall-test/reference/case-file.md`.
 
 Write the staging table.
 
@@ -286,8 +291,9 @@ Compose the full document and **show it before anything is written**. Nothing la
 Say which conditional sections you left out and why — "no Data Models section, because nothing here
 persists" — so the user can catch an omission that was a gap.
 
-**Show the acceptance criteria of every task that carries a test case**, derived criteria included.
-Approving the plan is the sign-off those criteria need; nothing later asks for it.
+**Show the acceptance criteria of every task that carries a test case**, derived criteria included,
+and every spec or vision amendment. Approving the plan is the sign-off those need; nothing later
+asks for it.
 
 Show the ADR too, if there is one, and say plainly that it ships `Accepted`.
 
@@ -302,7 +308,7 @@ Branch first, per `../../../.codefall/shared/landing.md` — `design/DESIGN-NNN-
 is a tier 0 run with no ADR, which writes no file.
 
 Write `docs/designs/DESIGN-NNN-slug.md` with the Task Plan **staged**, the ADR if there is one,
-and `docs/designs/AGENTS.md` if it was missing.
+`docs/designs/AGENTS.md` if it was missing, and the amendments the user took, each mirrored.
 
 Write the document before creating the beads, so a failed creation leaves a resumable run.
 
@@ -337,7 +343,7 @@ Report:
 - the design's path, identifier, and status, or that this was tier 0 and why;
 - any ADR written, and what it decided;
 - every bead created, with its local ID, its title, and any test case its criteria name;
-- any gap the case criteria exposed in the spec, for `codefall-specify`;
+- every upstream amendment written, and any the user declined;
 - the ready set — which tasks `codefall-implement` can start on today;
 - anything left unresolved, and any concern the user overruled;
 - the branch and the pull request;
@@ -365,10 +371,9 @@ your own initiative.
 - **Nothing is written without the user confirming it first** — the document, the ADR, and at tier 0
   the beads.
 - **Scale the artifact to the work.** Tier 0 is a real outcome, not a failure to write a document.
-- **Never fill a heading.** A conditional section with nothing behind it is deleted, heading and all.
-- **The design says how, never what.** What a consumer observes belongs to `codefall-specify`.
-- **Design within the project's ADRs.** Changing the stance is a superseding ADR, said out loud,
-  never a quiet exception; a ratified ADR is never rewritten.
+- **Never fill a heading.** An empty conditional section is deleted, heading and all.
+- **Design within the project's ADRs.** Changing the stance is a superseding ADR, said out loud; a
+  ratified ADR is never rewritten.
 - **Identifiers are append-only** — design numbers, and local task IDs within a design.
 - **Beads is authoritative for work state once the tasks exist.** The Task Plan keeps the tasks,
   edges, and refs it decided, and never grows a status column.
@@ -380,13 +385,11 @@ your own initiative.
 - **Verify the graph before marking the table created.** `bd ready` and `bd dep cycles`, against
   its roots.
 - **Every bead write is pushed**: step 9, and every revision.
-- **A removed task's bead is reported, never closed silently.** Work may already have happened
-  against it.
-- **A revision bead ends closed** — amended into the document, turned into a task row, or rejected
-  with why. An open one after a revision means the loop is not finished.
-- **A ticket must not change under someone holding it.** An untouched bead is edited whatever
-  changed; a bead someone is holding is replaced when the work already done would no longer count.
-- **Status describes the document, never the work.** Work state belongs to Beads.
+- **A removed task's bead is reported, never closed silently.**
+- **A revision bead ends closed** — amended, made a task row, or rejected with why.
+- **An upstream document found wrong is amended here**, within [Upstream documents](#upstream-documents).
+- **A ticket must not change under someone holding it.** An untouched bead is edited; a held one is
+  replaced when the work done would no longer count.
 - **Never record a hop you can derive.** A design carries its spec, or its vision when there is no
   spec — not both.
 - **Research goes inline**, attached to the decision it informed. No sibling research files.

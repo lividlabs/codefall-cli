@@ -11,6 +11,7 @@ database, one writer at a time, whose sync channel is the repo's own git remote 
 - Claim, work, close
 - The landed bead and its gates
 - Discovered work
+- Amendments
 - Session end
 
 ## Session start
@@ -92,9 +93,12 @@ bd dolt push
 ```
 
 **`design`** — the design's text and the code the task needed disagree, or the design and the spec
-disagree, and the task could still be finished. A revision request against the document: the same
-edge, plus the design's path as `--spec-id` and the label `design-revision`. `codefall-design` lists
-exactly those two markers at its start, and its Revise mode closes every one.
+disagree, the task could still be finished, and the worker could not amend the document itself:
+the fix would move a Task Plan row or a criterion a bead cites, or the document is frozen. Text the
+worker could amend was amended in its branch instead, under *Amendments* below. A revision request
+against the document: the same edge, plus the design's path as `--spec-id` and the label
+`design-revision`. `codefall-design` lists exactly those two markers at its start, and its Revise
+mode closes every one.
 
 ```bash
 bd create "DESIGN-007 § Architecture names a StageStore the code replaced with StageContext" \
@@ -104,9 +108,10 @@ bd create "DESIGN-007 § Architecture names a StageStore the code replaced with 
 bd dolt push
 ```
 
-The body says what the design says, what was found instead with file and line, and what the task
-did about it. A disagreement the task could not finish under is a worker failure and an escalation,
-never a revision bead: the human decides, and the run stops there.
+The body says what the document says, which document, what was found instead with file and line,
+why it was not amended, and what the task did about it. A disagreement the task could not finish
+under is a worker failure and an escalation, never a revision bead: the human decides, and the run
+stops there.
 
 **At session end, the epic carries the hand-off.** When any `design` bead was filed, one
 `bd comment` on the epic — on the bead itself at single-bead scope — names every revision bead, so
@@ -115,6 +120,26 @@ the epic's own record shows the drift:
 ```bash
 bd comment <epic> "design-revision: booking-design-007-stagestore, booking-design-007-retry — run /codefall-design DESIGN-007"
 ```
+
+## Amendments
+
+A worker's `amended` list names each upstream document it edited in its branch — a `Draft` or
+`Ready` design or spec, text only, nothing that moves work. The root reads every list at the wave
+boundary, before the next wave is claimed:
+
+- **Two workers amended the same section of one document.** Keep the one whose branch is lower in
+  the stack, or the first to open its PR when the branches are independent; revert the other on its
+  branch with a commit that names the kept amendment; say so in the report. An overlap the root
+  did not catch surfaces as a conflict at step 7's restack, which is reported and never resolved
+  silently.
+- **A spec was amended.** Regenerate the requirement's tracker issue, the existing-requirement case
+  of the *Refreshing* sequence in the spec's tracker profile, as the mirror reference beside this
+  file says.
+- **The close reason** names the amendment beside what was verified, so the bead's record says the
+  document moved with the work.
+
+Amendments are reported at close-out by document and PR, in their own bucket beside the discovered
+work. Under single-bead scope the same reading happens once, at the worker's return.
 
 ## Session end
 
