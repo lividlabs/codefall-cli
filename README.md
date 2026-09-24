@@ -312,10 +312,11 @@ level; a removed row's identifier is listed under the table and never reused.
 edited, whatever changed. A bead someone has claimed, commented on, or closed is replaced only when
 the work already done against the old wording would no longer count — a ticket should not change
 under the person holding it. A task that leaves the design is reported to you, never closed on its
-own, because someone may still be working it. The request to revise can also arrive from
-downstream: `implement` and `review` file a `design-revision` bead when the design's text disagrees
-with the code or with the spec, and `design` reads those at its start, so the run that finds a
-design wrong is not the only place that knows it.
+own, because someone may still be working it. A request to revise can also arrive from downstream,
+as a `design-revision` bead, when the verb that found it could not amend it: `implement` and
+`review` amend the design's text themselves when the code disagrees with it, in their own pull
+request, and file the bead when the fix would change a task row or a criterion a bead cites, when
+the document is frozen, or when you declined the amendment.
 
 **`design` also decides which tasks need a test case.** A task verified through the wired product —
 the real interface, against the real services — has the case named in its bead's acceptance
@@ -323,8 +324,9 @@ criteria, with its modalities and every criterion the case will hold: a spec cri
 full, or marked `derived` with the requirement it elaborates and one line saying what it adds.
 `agentic` is chosen only where verifying an outcome needs judgement, `spec` otherwise, and neither
 where unit tests already verify the task. Approving the task plan is where you sign the derived
-criteria off, which is why they are shown with it; a gap they expose in the spec comes back to you
-as a report for `specify` rather than being patched into the case.
+criteria off, which is why they are shown with it. A gap they expose in the spec is offered as an
+appended criterion, written into the spec on the design's own branch and re-mirrored to its tracker
+issue, so the bead cites a real identifier; `derived` is what a criterion stays when you decline.
 
 Choices that are hard to reverse — a new dependency, a schema other components will build on, a
 rejected alternative that cost real analysis — become an ADR in the project's own `ADR-NNN` sequence.
@@ -365,11 +367,15 @@ order, and the plugin ships a hook that mechanically denies the alternative. Tes
 — the ones the design planned and the ones the work turned out to need — while regression and
 fresh-context retesting stay with the `test` verb.
 
-**A design the work proves wrong goes back to `design`, not around it.** A worker that can finish
-its task despite the design's text disagreeing with the code or with the spec reports the
-disagreement, and the run files it as a `design-revision` bead against the document. The close-out names those beads
-separately from code follow-ups and tells you to run `design` on that document; a disagreement the
-task cannot finish under stops the run instead.
+**A design the work proves wrong is amended by the work, not worked around.** A worker that can
+finish its task despite the design's text, or the spec's, disagreeing with the code amends that text
+in its own branch, names the amendment in its pull request, and the root re-mirrors a spec change to
+its tracker issue. A disagreement the worker could not amend — one that would move work, a task row
+or a criterion a bead cites; one in a frozen document; one you declined — is filed as a
+`design-revision` bead, and the close-out names those beads separately from code follow-ups and
+tells you to run `design` on that document. A disagreement the task cannot finish
+under stops the run instead. [ADR-008](docs/adrs/ADR-008-upstream-amendments.md) holds the rule,
+and it applies at any distance up the chain.
 
 **A test case named in a bead's criteria is written before the code.** The worker writes it from
 those criteria and from nothing else — not the sibling spec, not the code it is about to write, not

@@ -24,8 +24,7 @@ The output is a **spec document in the repository** at `docs/specs/SPEC-NNN-slug
 more requirements, each with a user story and numbered acceptance criteria. The issue tracker gets a
 generated mirror. **The document is canonical**; the issues are regenerated from it.
 
-Specifying is not designing. Once the criteria are written and confirmed, stop. How the thing gets
-built is `codefall-design`'s work.
+Specifying is not designing. Once the criteria are written and confirmed, stop.
 
 Paths that start with `../` or `trackers/` are relative to this skill's directory, not the user's
 project. A path through `../../../.codefall/` is the one that leaves the skills directory: it names
@@ -158,7 +157,7 @@ Follow `../../../.codefall/shared/customizations.md` for this verb.
 
 ### 1. Check preconditions
 
-Run the shared check against the user's project. It reports what is set up and repairs nothing.
+Run the shared check against the user's project.
 
 ```bash
 "../../../.codefall/shared/preflight.sh" .
@@ -175,10 +174,9 @@ over the command that fixes it, say to rerun this verb after it, and **stop**:
 
 Then read the checkout lines. `behind` above `0` or `refresh=stale` means the environment may not
 match `main`: say so and run `/codefall-refresh` before continuing. `refresh=undeclared` names
-`/codefall-equip` instead. Never pull the checkout or run the local commands from here.
+`/codefall-equip` instead.
 
-**Never run the remedy.** `bd init` writes `.beads/`, git hooks, `.claude/settings.json`, and a
-block in `AGENTS.md` and `CLAUDE.md`, then commits; that is the user's decision.
+**Never run the remedy.** That is the user's decision.
 
 ### 2. Ask what they want to build
 
@@ -197,6 +195,9 @@ for everything. Do not lift criteria out of a vision and do not treat its **Open
 settled.
 
 Do not change the vision's `Status`. Work starting is `codefall-implement`'s transition to record.
+A `Draft` or `Ready` vision the interview shows wrong or incomplete is amended on this run's branch:
+the amendment is shown with the spec at step 10 and committed at step 13. An `Active` vision is
+frozen; say so and name `codefall-envision`. `../../../.codefall/shared/workflow.md` has the rule.
 
 ### 3. Check whether it already exists
 
@@ -273,9 +274,9 @@ A specification describes what the user wants **added**. **Silent omission from 
 not a deletion.** For each surface the feature touches — a screen, a route, a component, an entity,
 a table:
 
-1. **Read the current artifact.** Not its name, its contents. If it does not exist yet, skip.
+1. **Read the current artifact.** Its contents, not its name. If it does not exist yet, skip.
 2. **Enumerate what is there.** Tabs, fields, states, columns, branches.
-3. **Intersect with what the user described.** What did they account for? What did they leave out?
+3. **Intersect with what the user described.**
 4. **If there is a real gap, ask.**
 
    > "The profile screen has three tabs today: Account Info, Travel Preferences, and Saved Passengers.
@@ -284,8 +285,7 @@ a table:
 
    - **Preserved** — record it under **Existing behavior preserved**.
    - **Merged** — record how it composes, and cover it with a criterion.
-   - **Removed** — this becomes its own acceptance criterion. **A removal is never an implicit
-     consequence of the specification.**
+   - **Removed** — this becomes its own acceptance criterion.
 
 Audit the surface the feature touches, not the whole application.
 
@@ -309,8 +309,7 @@ When the feature has a visual surface, ask whether a mockup exists.
 - **They have one** — import it per `../../../.codefall/shared/import-mockup.md`. It lands under
   `docs/mockups/<slug>/`, and the spec references that path under **Design notes**.
 - **They want one but do not have it** — the specification proceeds without it and the tracker
-  issue is marked `requires-mockup`. `codefall-design` refuses to act on an issue carrying that
-  label.
+  issue is marked `requires-mockup`.
 - **Do not draw a mockup inside this skill.**
 
 ### 9. Recap before writing
@@ -339,12 +338,14 @@ without guessing.
 ### 10. Write, then confirm
 
 Pick the identifier: read `docs/specs/`, take the highest existing number plus one, zero-padded to
-three digits. Read `archive/` for this and this only — a retired identifier is never reused.
+three digits. Read `archive/` for this alone; a retired identifier is never reused.
 
 Compose the full document from `templates/specs/SPEC.md` and **show it to the user before anything
 is written**. Omit empty sections, header rows included: a spec with no vision has no
 `**Vision:**` line. Say which optional sections you left out and why — "no Key Entities section,
 because the nouns here are ordinary English" — so the user can catch an omission that was a gap.
+
+Show any vision amendment beside it.
 
 Then set the status: `Ready`, unless they said they are stopping and coming back, which is `Draft`.
 
@@ -362,15 +363,15 @@ issues are generated from it, so this step never asks the user to re-approve con
 
 ### 13. Link back, commit, and wrap up
 
-If a vision framed this work, add the spec identifier to its `Related` line. Add the identifier and
-change nothing else in the file.
+If a vision framed this work, add the spec identifier to its `Related` line, and write the
+amendment the user took at step 10; change nothing else in the file.
 
 Then land it per `../../../.codefall/shared/landing.md`: commit by path — the spec, the `AGENTS.md`,
 the vision — and offer the push and pull request, its body carrying `Relates to #<spec-issue>`.
 The merge is the user's.
 
 Report the spec path, its identifier, its status, every open question it carries, the issues that
-were created with links, the branch, and the pull request if one was opened. **End with what the
+were created with links, any vision amendment, the branch, and the pull request if one was opened. **End with what the
 user does next**: merge the pull request; then `/codefall-mock-up` where a requirement carries
 `requires-mockup`, otherwise `/codefall-design SPEC-NNN`.
 
@@ -408,4 +409,5 @@ own initiative. Each lands per `../../../.codefall/shared/landing.md`.
 - **Mockups are keyed by surface**, never filed under a spec.
 - **Push back once, then defer** — on vagueness, on design concerns, on cohesion.
 - **Unresolved is recorded, not dropped**, as open questions in the document.
+- **A vision found wrong is amended here** when it is `Draft` or `Ready`; an `Active` one is not.
 - **Never overwrite a file that has drifted.** Show the difference and ask.

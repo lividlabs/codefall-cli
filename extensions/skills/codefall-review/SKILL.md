@@ -220,14 +220,20 @@ Apply the accepted fixes with this session's tools, code and documents alike. A 
 `patch` is a starting point, not a script — apply the intent, matching the surrounding code. Fixes
 are not re-reviewed here.
 
-**A deferred finding the design caused is offered as a bead.** When the finding is that the design
-behind the work says one thing and the code needed another, or that the design and its spec
-disagree, deferring it into the findings file alone leaves `codefall-design` never hearing of it.
-Offer, at triage, to file it in the `design` form under *Discovered work* in
-`../codefall-implement/reference/beads.md`: `--spec-id` the design's path, the label
-`design-revision`, and a `discovered-from` edge to the bead the branch names when there is one.
-On yes, create it, `bd dolt push`, and record its ID as the finding's `bead`. Never file one
-unasked, and never for a finding whose cause is the code.
+**A finding that an upstream document is wrong is fixed like any other document finding.** When the
+design behind the work says one thing and the code needed another, or the design and its spec
+disagree, and the document is `Draft` or `Ready`, the fix is text on the target's branch: the
+design's section amended, or a criterion appended to the spec with the requirement's tracker issue
+regenerated per `../codefall-specify/trackers/<name>/PROFILE.md`. Every document between the change
+and the code that restates the point is fixed together, or none is.
+
+**What that fix cannot do is offered as a bead.** A fix that would move work — a Task Plan row, a
+criterion a bead cites — or touch a frozen document, or one the user defers, leaves
+`codefall-design` never hearing of it if it stays in the findings file alone. Offer, at triage, to
+file it in the `design` form under *Discovered work* in `../codefall-implement/reference/beads.md`:
+`--spec-id` the design's path, the label `design-revision`, and a `discovered-from` edge to the
+bead the branch names when there is one. On yes, create it, `bd dolt push`, and record its ID as
+the finding's `bead`. Never file one unasked, and never for a finding whose cause is the code.
 
 ## The findings file
 
@@ -310,6 +316,6 @@ Follow `../../../.codefall/shared/customizations.md` for this verb.
   ADR, an archived document, a specific commit — and say which.
 - **An identifier that resolves to nothing is a stop**, not a guess.
 - **Only `fixed` and `deferred` findings reach a pull request.** A dismissed one was judged wrong.
-- **A revision bead is offered, never filed unasked**, and only for a deferred finding the design
-  caused. The graph stays `codefall-design`'s; the bead is a request to it.
+- **A revision bead is offered, never filed unasked**, and only for a finding the design caused
+  that a fix here cannot settle: it moves work, the document is frozen, or the user deferred it.
 - **The `.ignore` entry is offered, never added unasked**, and appended rather than written over.

@@ -108,10 +108,11 @@ built by agents, those were written by the same author as the code. Reading code
 allowed and often necessary: a control's role, its accessible name, the shape of a response, so that
 a spec can drive it. Reading code to decide what should happen is not.
 
-**A gap the expansion exposes goes back to the spec.** Where the spec is silent or ambiguous, the
-case still states the expectation as `derived`, and the gap is reported for `codefall-specify` to
-add a criterion. Spec numbering is append-only, so the addition takes the next number and nothing
-already cited moves.
+**A gap the expansion exposes is appended to the spec.** Where the spec is silent or ambiguous, the
+verb that found the gap offers the criterion to the spec in its own run — `codefall-design` when
+the case's criteria are drafted — and the case cites the appended identifier. Spec numbering is
+append-only, so the addition takes the next number and nothing already cited moves. `derived` is
+what a criterion stays when the spec was offered it and declined.
 
 Derived criteria are shown to the user before the case file is written, at the point where the task
 plan is approved.

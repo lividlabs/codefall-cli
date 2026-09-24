@@ -47,18 +47,24 @@ agent may run it when the environment is stale. In order:
 | `specify` | the idea or vision, and an audit of what already exists | `docs/specs/SPEC-NNN-slug.md`, the *what*: requirements with EARS acceptance criteria, mirrored to the tracker as a parent issue and one child per requirement | `design` |
 | `mock-up` | a design-tool export, or nothing | `docs/mockups/<slug>/`, matching the app's own design system | `design`; an issue labelled `requires-mockup` blocks design until it exists |
 | `design` | the spec, the vision, the code | `docs/designs/DESIGN-NNN-slug.md`, the *how*, scaled to the change; ADRs for hard-to-reverse choices; beads with dependency edges, each carrying its acceptance criteria and, where the task is verified through the wired product, the test case and its criteria | `implement` |
-| `implement` | ready beads, an epic, or a design | a worktree per task, the test case before the code, verification against the bead's criteria and the project's checks, a pull request per task, walked in parallel waves until the frontier is empty | the human, who merges; `design`, for the revision beads a task files against its document |
-| `review` | anything live: uncommitted work, a branch, a PR, a commit range, a path, a document | `.codefall/reviews/`, a JSON and Markdown pair per review; fixes on the target's branch for the findings the user takes | the human; `design`, for a deferred finding the design caused |
+| `implement` | ready beads, an epic, or a design | a worktree per task, the test case before the code, verification against the bead's criteria and the project's checks, a pull request per task, walked in parallel waves until the frontier is empty | the human, who merges; `design`, for a disagreement that moves work, filed as a revision bead |
+| `review` | anything live: uncommitted work, a branch, a PR, a commit range, a path, a document | `.codefall/reviews/`, a JSON and Markdown pair per review; fixes on the target's branch for the findings the user takes | the human; `design`, for a deferred finding that moves work |
 | `test` | what the project declares: suites, the changed subset, or one case in its `spec` or `agentic` modality | `.codefall/tests/`, a report per run; findings triaged, never an edit that makes a run pass | tracker issues on the user's word |
 
 A contained fix skips the documents: `design` writes beads only when a change stays inside one
 component and comes to a task or two, and `specify` is for features, not every change.
 
-The chain runs backward in one place. A task that finds the design's text disagreeing with the code
-or with the spec, and a review that defers a finding the design caused, file a bead labelled
-`design-revision` with the design's path as its `spec_id`. `design` lists those at its start, and
-its Revise mode closes each one: amended into the document, turned into a task row, or rejected
-with why.
+The chain runs backward at the moment a step finds an earlier document wrong. A verb amends any
+upstream document, at any distance, in its own run and its own pull request, when the document's
+lifecycle allows the edit (a `Draft` or `Ready` spec, design, or vision; never an `Active` vision
+or a ratified ADR), the amendment is text that moves no work (no task row changed, no criterion a
+bead cites retired or reworded; a spec is amended by appending), and the user takes it at the
+confirmation the verb already holds. Every document between the change and the step is amended
+together, or none is. What fails those tests is filed as a bead labelled `design-revision` with the
+design's path as its `spec_id`; `design` lists those at its start, and its Revise mode closes each
+one: amended into the document, turned into a task row, or rejected with why.
+[ADR-008](https://github.com/lividlabs/codefall-cli/blob/main/docs/adrs/ADR-008-upstream-amendments.md)
+records the rule.
 
 ## Keeping the project current
 
