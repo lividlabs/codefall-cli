@@ -16,12 +16,12 @@ away from the full artifact, which is tier 0.
 the shape of the Alternatives table; and numbered-identifier traceability, which here is the local
 task IDs and the Design ref column.
 
-**From `codefall-conceptualize`**: the `Related` row as a labeled list rather than a set of rows. A
+**From `codefall-envision`**: the `Related` row as a labeled list rather than a set of rows. A
 new kind of upstream artifact costs a label rather than an edit to the template and the skill; when
 a bug-report verb lands, its designs carry `bug: BUG-012` and nothing else moves.
 
 **From `codefall-specify`**: status describes the document, never the work. It diverges from
-`codefall-conceptualize`, which carries an `Active` state because a concept has no tracker
+`codefall-envision`, which carries an `Active` state because a vision has no tracker
 representation to carry it. A design has one — the beads it created — so there is no `Active` here.
 
 ## Dropped
@@ -36,8 +36,8 @@ machine-parseable.
 run compares the document against the graph itself rather than against a record of what the
 document used to say.
 
-**Recording both the spec and its concept on `Related`.** A spec already names its concept in its
-own `**Concept:**` row; a design that carries both keeps a second copy of a link nothing keeps in
+**Recording both the spec and its vision on `Related`.** A spec already names its vision in its
+own `**Vision:**` row; a design that carries both keeps a second copy of a link nothing keeps in
 sync.
 
 ## Why the Task Plan collapses

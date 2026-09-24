@@ -90,22 +90,22 @@ it, and say what you changed in the report. Project ADRs are a separate sequence
 
 Read `reference/catalog.md` first.
 
-#### A concept comes first
+#### A vision comes first
 
-Read `docs/concepts/` in the working directory before asking anything.
+Read `docs/visions/` in the working directory before asking anything.
 
-**When there is a concept**, take two things from it: the **surfaces**, and the **shape** judgement
-below. Confirm both rather than asking for them — "CONCEPT-001 describes a React web app and a Go
+**When there is a vision**, take two things from it: the **surfaces**, and the **shape** judgement
+below. Confirm both rather than asking for them — "VISION-001 describes a React web app and a Go
 API, and reads as several separable capabilities; correct?" — and skip the describe question when it
 does. Its **Environment & constraints** section is written for this moment. Read it for those two
 things and nothing else: product detail read here goes in the decision log's **Parking lot**, exactly
 as if the user had said it out loud.
 
-**When there is no concept**, say so and offer the concept step:
+**When there is no vision**, say so and offer the vision step:
 
-> Before scaffolding I'd like a concept — a short document saying what this is and why. It takes a few
+> Before scaffolding I'd like a vision — a short document saying what this is and why. It takes a few
 > minutes, and without one I end up picking architecture defaults from a one-sentence description,
-> which is where scaffolds go wrong. Want to run `/conceptualize` first?
+> which is where scaffolds go wrong. Want to run `/envision` first?
 
 On yes, **stop scaffolding** and hand off. On no, continue, and record the override in
 `docs/decision-log.md` under `Open` at step 4.
@@ -262,7 +262,7 @@ opinion, and let the user choose. Never label an option "Recommended" without an
 **Ask where it goes**, in the same batch. The current working directory is not a default — the user
 may be standing in an unrelated repo. Only then check the chosen target: never scaffold into a
 non-empty directory without saying so first, and never overwrite an existing path. A directory
-holding only `docs/concepts/` is the expected state, not a non-empty directory.
+holding only `docs/visions/` is the expected state, not a non-empty directory.
 
 ### 4. Emit the docs — always
 
@@ -279,7 +279,7 @@ Branch first, per `../../../.codefall/shared/landing.md` — `scaffold/<project-
   invent one.
 - `docs/decision-log.md` — `Locked` / `Open` / `Parking lot`. Open `Locked` with the scaffold line.
   Seed `Open` with anything the interview surfaced but did not settle — a provisionally chosen
-  ports-and-adapters; a scaffold run without a concept: "scaffolded without a concept on `<date>`;
+  ports-and-adapters; a scaffold run without a vision: "scaffolded without a vision on `<date>`;
   shape judged from a one-sentence description." Seed `Parking lot` with the product detail step 1
   heard but did not act on.
 - A scoped `AGENTS.md` per app/package, from the profile's skeleton: fill the name and the one-line

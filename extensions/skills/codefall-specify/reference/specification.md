@@ -112,7 +112,7 @@ rewrite of the implementation? If not, it is describing the solution.
 
 ## Numbering
 
-Three identifiers, nested, all hyphenated to match `CONCEPT-002` and `ADR-BASE-01`:
+Three identifiers, nested, all hyphenated to match `VISION-002` and `ADR-BASE-01`:
 
 ```
 SPEC-003                        the spec

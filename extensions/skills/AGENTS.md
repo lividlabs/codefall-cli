@@ -14,7 +14,7 @@ writing and changing a skill; the extension-wide rules, ADR immutability, prose,
   reports the environment stale. No other skill invokes another through the harness.
 - A skill reports and offers; it applies only what the user takes. Nothing lands unrequested.
   Recording an observable fact is the exception: a skill that owns a status transition sets it when
-  the fact occurs and reports that it did — `codefall-implement` flipping a concept to `Active` at first
+  the fact occurs and reports that it did — `codefall-implement` flipping a vision to `Active` at first
   claim is this shape. Judgment transitions — promote, archive, revise — stay offer-only.
 - A skill that writes to the repository lands its files per `../shared/landing.md`: the branch and
   the commit are part of the write the user already confirmed, the push and the pull request are
@@ -22,7 +22,7 @@ writing and changing a skill; the extension-wide rules, ADR immutability, prose,
   is the default branch, and the guard hook holds it.
 - **Refuse only what you cannot do.** A missing surface profile, a missing tool, an unsupported
   tracker — those are exits. Disagreeing about size, altitude, or fit is not: say what you think and
-  why, then do what the user asks. `codefall-conceptualize`'s floor and `codefall-specify`'s cohesion check are both
+  why, then do what the user asks. `codefall-envision`'s floor and `codefall-specify`'s cohesion check are both
   this shape.
 - Never present an option that would be refused — unsupported stacks and planned profiles are
   exits, not menu choices. See the stack question in `codefall-scaffold`'s SKILL.md.
@@ -77,7 +77,7 @@ reasons and the sources.
 ## Templates and ownership
 
 - **Whose document is it** decides who repairs it. A file the extension ships that nobody amends — the
-  operative rules a verb installs alongside a directory it owns, like `docs/concepts/AGENTS.md` — is
+  operative rules a verb installs alongside a directory it owns, like `docs/visions/AGENTS.md` — is
   repaired by the verb that owns it, on run. A template that becomes the project's own document, one
   that gets stamped, amended, and cited, belongs to `codefall-graft`, and ships a row in its scope table and in
   `lineage.md`. Do not route a fixture through `codefall-graft`: it buys consent machinery for a decision with

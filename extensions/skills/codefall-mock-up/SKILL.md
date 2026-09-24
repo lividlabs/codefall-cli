@@ -70,7 +70,7 @@ rules about never editing or interpreting what the user brought. Then go to
 docs/mockups/<slug>/
 ```
 
-`<slug>` names the **surface** — `booking-history`, `trip-share` — never the spec or the concept that
+`<slug>` names the **surface** — `booking-history`, `trip-share` — never the spec or the vision that
 prompted it. One screen gets touched by several specs over its life and outlives all of them, so
 filing it under whichever spec arrived first makes the second one either duplicate it or reach into
 another spec's directory. `codefall-specify`'s SKILL.md carries the same rule for the same reason.
@@ -94,7 +94,7 @@ otherwise, and a repair that silently discards someone's rule is worse than a st
 - A mockup is a drawing of a surface. Never copy its markup, styles, or class names into the
   application — it is a picture of the outcome, not a draft of the implementation.
 - A working mockup is still a drawing. It proves an interaction and gets rebuilt properly.
-- Mockups are keyed by surface, never by spec or concept. One mockup serves several specs.
+- Mockups are keyed by surface, never by spec or vision. One mockup serves several specs.
 - Imported assets are the record of what someone decided. Never edit one; add alongside it.
 - The `README.md` says what each file shows. Keep it current when files are added or replaced.
 ```
@@ -216,7 +216,7 @@ Follow `../../../.codefall/shared/customizations.md` for this verb.
 
 Ask one question, and offer the three answers:
 
-> Is this mockup for a spec, for a concept, or are we starting fresh?
+> Is this mockup for a spec, for a vision, or are we starting fresh?
 
 **For a spec.** If they named one, take it. Otherwise read `docs/specs/` and list what is there —
 identifier, title, and status — and let them pick:
@@ -229,13 +229,13 @@ Then read it. A spec answers most of what an interview would: the surface, who t
 what they observe when it works. Requirements marked `requires-mockup` are the ones waiting on this
 run.
 
-**For a concept.** Same shape — take the one they named, or list the live concepts in
-`docs/concepts/`, not `archive/`. Then read it.
+**For a vision.** Same shape — take the one they named, or list the live visions in
+`docs/visions/`, not `archive/`. Then read it.
 
-A concept is a wider frame than a spec and usually names several surfaces, so a run from one can be
+A vision is a wider frame than a spec and usually names several surfaces, so a run from one can be
 large. **Say the size out loud, then do what they ask:**
 
-> That concept touches four surfaces. Making all of them is a dozen files or so. All four, or start
+> That vision touches four surfaces. Making all of them is a dozen files or so. All four, or start
 > with the one you most want to see?
 
 **Starting fresh.** Plenty of surfaces get drawn before anyone writes anything down, and that is one
@@ -265,7 +265,7 @@ mockup stops being generic, and it costs one pass over the codebase.
 
 ### 5. Fill the gaps
 
-Only what a spec, a concept, the survey, or the user's own description did not already answer:
+Only what a spec, a vision, the survey, or the user's own description did not already answer:
 
 1. Which screen, and who is looking at it.
 2. What is on it, and the one thing someone comes here to do.
@@ -314,13 +314,13 @@ landed.
 ### 9. Link it back
 
 When a spec prompted this run, offer to add the directory path to its **Design notes**. When a
-concept did, offer to add it to the concept's `Related` line. Add the path and change nothing else in
-either document — they belong to `codefall-specify` and `codefall-conceptualize`.
+vision did, offer to add it to the vision's `Related` line. Add the path and change nothing else in
+either document — they belong to `codefall-specify` and `codefall-envision`.
 
 ### 10. Land and wrap up
 
 Land the run per `../../../.codefall/shared/landing.md`: commit the mockup directory, the `AGENTS.md`
-if it was written, and the spec or concept if one was edited — by path, nothing else — and offer the
+if it was written, and the spec or vision if one was edited — by path, nothing else — and offer the
 push and the pull request. The merge is the user's.
 
 Report the directories, every file with what it shows, what the mockup was matched against, options
@@ -337,7 +337,7 @@ Do not create issues. Do not start a design.
 - **Offer options where the answer is genuinely open**, and say which you would pick.
 - **Never edit an imported asset.** It is the record of what someone decided. Add alongside it.
 - **A mockup is a reference, never source.** Working ones included.
-- **Mockups are keyed by surface**, never filed under a spec or a concept.
+- **Mockups are keyed by surface**, never filed under a spec or a vision.
 - **Say what it looks like, not how it is built.** Naming a component, a route, or a data source is
   `codefall-design`'s work happening in the wrong document.
 - **Clear `requires-mockup` only when files landed**, and only on the issues this mockup covers.
