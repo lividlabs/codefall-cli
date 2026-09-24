@@ -68,7 +68,8 @@ dependency, a migration, or generated code changes `start` or `update` in the sa
 - **The tracker** (GitHub Issues in this version) mirrors specs so people can see what is ready, in
   progress, and done; the spec document stays canonical.
 - **Beads** is authoritative for task state from the moment a design's staged task plan is approved
-  and becomes beads. A design keeps only the mapping of what became what, never a duplicate list.
+  and becomes beads. A design keeps its task table — the tasks, edges, and design refs it decided,
+  under the epic's ID — and never a copy of work state.
   The database on a machine is a local Dolt copy; the team's is `refs/dolt/data` on the git remote,
   and only `bd dolt pull` and `bd dolt push` move it. Every verb that writes a bead pushes after the
   write, and `refresh` syncs before work starts, so `bd ready` answers for the team and not for one

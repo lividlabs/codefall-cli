@@ -10,7 +10,7 @@ drafting (step 7).
 - Conditional sections
 - Technical Context
 - Hard Constraints
-- Task Plan, staged
+- Task Plan
 - Task Plan, after creation
 - Local IDs are append-only
 
@@ -45,7 +45,7 @@ design with neither has no `Related` row until it produces an ADR.
 | --- | --- |
 | **Overview** | The approach in a paragraph, plus the key decisions and why each was made |
 | **Architecture** | Components, their relationships, and data flow. Mermaid where a diagram earns its place. May be a paragraph for small work |
-| **Task Plan** | The staging table, which collapses to an ID mapping once the beads exist |
+| **Task Plan** | The task table, under a callout that says whether the beads exist yet |
 
 **Research findings go inline**, in Overview or Architecture, next to the decision they bear on.
 There is **no sibling `research.md`**, and no `data-model.md`, `quickstart.md`, or `contracts/`.
@@ -94,10 +94,10 @@ criterion is what a consumer observes; a hard constraint is an invariant of the 
 - THE SYSTEM SHALL reject a context payload whose signature does not verify, before parsing it.
 ```
 
-## Task Plan, staged
+## Task Plan
 
-The Task Plan has two forms and is **rewritten in place** when it moves from the first to the
-second. It is never appended to.
+One table under a callout. The table keeps its shape for the life of the design; the callout is
+**rewritten in place** when the beads are created.
 
 ```markdown
 ## Task Plan
@@ -111,30 +111,59 @@ second. It is never appended to.
 | T4 | Integration test: vision → scaffold | T2, T3 | Testing Strategy |
 ```
 
-The local IDs make the dependency edges reviewable before Beads IDs exist. The **Design ref** column
-names the section of this design that motivated the task, so `codefall-implement` opens the relevant
-fifteen lines rather than the whole document.
+The local IDs make the dependency edges reviewable before the beads exist, and they name the beads
+once they do. The **Design ref** column names the section of this design that motivated the task,
+so `codefall-implement` opens the relevant fifteen lines rather than the whole document.
+
+The table holds what the design decided: the tasks, their edges, and the section each came from.
+Work state — status, assignee, comments — is Beads' alone, and **the table never grows a column for
+it.**
 
 ## Task Plan, after creation
 
+The callout is rewritten; the table stays.
+
 ```markdown
 ## Task Plan
-> Created in Beads 2026-08-29. Beads is authoritative.
+> Created in Beads 2026-08-29 as `booking-DESIGN-007`, one bead per row as `booking-DESIGN-007-Tn`.
+> This is the plan as last approved. Beads is authoritative, and a difference between the two is
+> reconciled by revising the design.
 
-Epic: booking-DESIGN-007 · T1→booking-DESIGN-007-T1 · T2→booking-DESIGN-007-T2 · T3→booking-DESIGN-007-T3 · T4→booking-DESIGN-007-T4
+| ID | Task | Depends on | Design ref |
+|----|------|-----------|------------|
+| T1 | Add `StageContext` type + serde | — | Components |
+| T2 | Wire context load into `/scaffold` | T1 | Architecture |
+| T3 | Emit context on `/envision` exit | T1 | Data Models |
+| T4 | Integration test: vision → scaffold | T2, T3 | Testing Strategy |
 ```
-
-Beads is the source of truth once the issues exist; the staging table comes out. The mapping line
-stays so a later run on a changed document can update the graph rather than duplicate it.
 
 Bead identifiers are the document's own numbering behind the project's prefix —
 `<prefix>-DESIGN-NNN` for the epic, `<prefix>-DESIGN-NNN-Tn` for each task — set by `bd rename`
-after creation, per `beads.md`. The line lists them anyway, so a reader sees the prefix without
-running `bd`. A replaced task's old bead is renamed `<prefix>-DESIGN-NNN-Tn-superseded`, and the
-current bead always holds the plain ID.
+after creation, per `beads.md`. The callout names the epic in full, so a reader sees the prefix
+without running `bd`, and the per-row form says what every task is called; there is no column of
+bead IDs because every one is derived. A replaced task's old bead is renamed
+`<prefix>-DESIGN-NNN-Tn-superseded`, and the current bead always holds the plain ID.
+
+A row's title, edges, and design ref change only through Revise, which edits the row and the bead
+together (`revising.md`), and a revision adds its date to the callout: `Created in Beads
+2026-08-29, revised 2026-09-10, as …`. A bead edited directly with `bd` is the one way the table
+falls behind the graph, and the rules installed at `docs/designs/AGENTS.md` forbid it. Anything
+filed under the epic since creation — discovered work, the landed bead — is Beads' alone and never
+a row.
+
+A design created before the table stayed carries a mapping line in place of the table. Its epic
+still resolves by number, and its first revision rebuilds the table from the beads before going row
+by row.
 
 ## Local IDs are append-only
 
-`T1`, `T2`, `T3` are permanent within a design. **A retired local ID is never reused.** Removing T2
-from the table does not free `T2` for the next task added — that would silently repoint the mapping
-line at a different bead.
+`T1`, `T2`, `T3` are permanent within a design. **A retired local ID is never reused.** A removed
+row comes out of the table and its ID goes on a `Retired:` line under it, so the next task added
+takes the number after the highest ever used, never the first gap — that would silently make `T2`
+name a different bead.
+
+```markdown
+| T5 | Load context in every verb's preamble | T1 | Architecture |
+
+Retired: T2
+```

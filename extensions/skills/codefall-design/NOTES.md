@@ -32,17 +32,28 @@ sprawl. Codefall's stance is that what gets proposed gets built, so the gating a
 have nothing to gate — what is kept is the structure that keeps documents scannable and
 machine-parseable.
 
-**A per-row hash in the collapsed Task Plan.** Beads holds the content that was created, so a later
-run compares the document against the graph itself rather than against a record of what the
-document used to say.
+**A per-row hash in the Task Plan.** Beads holds the content that was created, so a later run
+compares the document against the graph itself rather than against a record of what the document
+used to say.
+
+**A bead ID column in the Task Plan.** Every row's bead is `<prefix>-DESIGN-NNN-Tn`; a column would
+repeat that rule once per row.
+
+**A "may be out of date" disclaimer over the table.** It teaches readers to distrust the table and
+says nothing about how a difference is resolved. The callout instead dates the plan, says Beads is
+authoritative, and names Revise as the reconciliation.
 
 **Recording both the spec and its vision on `Related`.** A spec already names its vision in its
 own `**Vision:**` row; a design that carries both keeps a second copy of a link nothing keeps in
 sync.
 
-## Why the Task Plan collapses
+## Why the Task Plan stays
 
-Beads is the source of truth the moment the issues exist. A duplicate task list left behind in a
-git-tracked document diverges from the graph, and nobody updates it. The mapping line survives
-because a later run on a changed document needs to know which beads this design already produced,
-so it can update them rather than duplicate the graph.
+The table used to collapse to a line mapping each local ID to the hash `bd` had picked, on the
+reasoning that a task list left in a git-tracked document diverges from the graph and nobody updates
+it. Two things changed. Beads took the design's own numbering, so the line carried nothing a reader
+could not derive; and Revise works row by row, editing the document first and the graph after, so
+the table is the input to the one path that changes a design's tasks. What can diverge is work
+state, which the table never held. So the table stays, dated, with Beads authoritative for state and
+for anything filed under the epic since, and the designs `AGENTS.md` forbids editing a design bead's
+title, edges, or ref with `bd` directly, which is what keeps the two level.

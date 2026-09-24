@@ -28,7 +28,7 @@ What each lens asks. Read at the confirmation, which names the lenses that will 
 
 Every document target gets `structure` and `status`, plus the lenses for its kind. Each verb owns
 the rules its documents are held to — required sections, status vocabularies, identifier forms,
-EARS, the Task Plan's two forms. Read them in `codefall-envision`, `codefall-specify`,
+EARS, the Task Plan's callout. Read them in `codefall-envision`, `codefall-specify`,
 `codefall-design` and `codefall-scaffold` when a lens needs the detail; they are not restated here.
 
 | Target | Lens | The question |
@@ -44,7 +44,7 @@ EARS, the Task Plan's two forms. Read them in `codefall-envision`, `codefall-spe
 | spec | `stories` | Every requirement has a user story with the `so that` clause `codefall-specify` makes mandatory |
 | design | `coverage` | Every spec requirement has a home in the design, or the design says why not |
 | design | `decisions` | Hard-to-reverse choices with no ADR; assumptions the spec does not guarantee; a conditional section present with nothing behind it |
-| design | `plan` | The Task Plan is in exactly one of the two forms `codefall-design` defines, never both |
+| design | `plan` | The Task Plan's callout is staged or created, as `codefall-design` defines them, over a table of the four columns and no status column; no ID on the `Retired:` line reappears as a row |
 | adr | `alternatives` | Alternatives genuinely weighed, not asserted and dismissed in a clause |
 | adr | `consequences` | Consequences stated, including the ones that cost something |
 | adr | `coherence` | No contradiction with another accepted ADR; project decisions numbered bare `ADR-NNN` rather than continuing an inherited sequence |

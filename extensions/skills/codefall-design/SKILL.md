@@ -35,7 +35,7 @@ init` installed in the project's own `.codefall/`.
 Read each when its step says to; none is loaded up front.
 
 - `reference/document.md` — the design document's shape: header, sections and their triggers, the
-  Technical Context and Hard Constraints blocks, both forms of the Task Plan. Read before step 5.
+  Technical Context and Hard Constraints blocks, the Task Plan and its callout. Read before step 5.
 - `reference/beads.md` — what gets created in Beads, the test case a bead's criteria name, the plan
   file, the edge direction, and how to verify the graph. Read before step 9.
 - `reference/revising.md` — reconciling the graph when a design changes after its beads exist. Read
@@ -90,7 +90,7 @@ after it is archived — the file moves, the identifier does not.
 
 Three required sections — **Overview**, **Architecture**, **Task Plan** — and seven conditional ones,
 each with a trigger. The header, the section tables, the Technical Context and Hard Constraints
-blocks, and both forms of the Task Plan are in `reference/document.md`.
+blocks, and the Task Plan's callout are in `reference/document.md`.
 
 ## ADRs
 
@@ -303,8 +303,8 @@ bodies, and their edges. The user approves the graph, not a document.
 Branch first, per `../../../.codefall/shared/landing.md` — `design/DESIGN-NNN-slug` — unless this
 is a tier 0 run with no ADR, which writes no file.
 
-Write `docs/designs/DESIGN-NNN-slug.md` with the Task Plan in its **staged** form, the ADR if there
-is one, and `docs/designs/AGENTS.md` if it was missing.
+Write `docs/designs/DESIGN-NNN-slug.md` with the Task Plan **staged**, the ADR if there is one,
+and `docs/designs/AGENTS.md` if it was missing.
 
 Write the document before creating the beads, so a failed creation leaves a resumable run rather
 than a graph nothing explains.
@@ -314,14 +314,15 @@ than a graph nothing explains.
 Read `reference/beads.md`. Build the plan file from the table, dry-run it, create it, rename to the
 IDs, set `--spec-id` and `--acceptance`, verify with `bd ready` and `bd dep cycles`, and push.
 
-If the ready set does not match the table's roots, fix the edges now, before the table collapses.
+If the ready set does not match the table's roots, fix the edges now, before the callout is
+rewritten.
 
-### 10. Collapse the Task Plan
+### 10. Mark the Task Plan created
 
-Rewrite the Task Plan section in place with the mapping line and today's date. **Rewrite, not
-append** — the staging table comes out. Beads is authoritative from here.
+Rewrite the callout above the table per `reference/document.md`: the date, the epic's full ID, the
+per-row form, and that Beads is authoritative. **The table stays.**
 
-At tier 0 there is nothing to collapse.
+At tier 0 there is no document to mark.
 
 ### 11. Link back, commit, and report
 
@@ -356,8 +357,8 @@ Invoking this skill on an existing design does one of four things. Ask which if 
 - **Archive** a design: set `Status: Archived`, add `**Replaced by:**` if something took its place,
   move the file to `docs/designs/archive/`, and report its open beads to the user rather than
   closing them.
-- **Add tasks** to an existing design — new local IDs appended to the table, new beads appended to
-  the mapping. Retired local IDs stay retired.
+- **Add tasks** to an existing design — new rows appended to the table, each with its bead, and
+  the callout dated. Retired local IDs stay retired.
 
 Every one of these is the user's decision. Report the state and offer; never transition a design on
 your own initiative.
@@ -373,16 +374,16 @@ your own initiative.
 - **Design within the project's ADRs.** Changing the stance is a superseding ADR, said out loud,
   never a quiet exception; a ratified ADR is never rewritten.
 - **Identifiers are append-only** — design numbers, and local task IDs within a design.
-- **Beads is authoritative once the tasks exist.** The Task Plan collapses to a mapping and never
-  grows a duplicate table.
+- **Beads is authoritative for work state once the tasks exist.** The Task Plan keeps the tasks,
+  edges, and refs it decided, and never grows a status column.
 - **Every task bead carries acceptance criteria** — checkable, citing spec requirement IDs where
   they trace, and naming the test case where the task is verified through the wired product. They
   are what `codefall-implement` verifies before closing the bead.
 - **A task that introduces infrastructure, a dependency, a migration, or generated code names the
   local-script change in its criteria.** The scripts stay current at the point of introduction,
   never as a follow-up.
-- **Verify the graph before collapsing the table.** `bd ready` and `bd dep cycles`, against the
-  staging table's roots.
+- **Verify the graph before marking the table created.** `bd ready` and `bd dep cycles`, against
+  its roots.
 - **Every bead write is pushed**: step 9, and every revision.
 - **A removed task's bead is reported, never closed silently.** Work may already have happened
   against it.

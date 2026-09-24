@@ -74,8 +74,8 @@ criterion is shown at step 7 and nothing later asks again.
 The case-file format `codefall-implement` writes to is
 `../../codefall-test/reference/case-file.md`.
 
-Every bead gets `--spec-id` set to the design document's path. The mapping line in the document is
-the primary record; `spec_id` finds the beads again if that line is lost.
+Every bead gets `--spec-id` set to the design document's path, so `bd list --spec <path>` finds a
+design's beads from the graph side, as `bd list --parent <prefix>-DESIGN-NNN` does from the epic.
 
 ## The plan file
 
@@ -150,9 +150,8 @@ bd rename booking-unz booking-DESIGN-007-T1
 bd rename booking-s58 booking-DESIGN-007-T2
 ```
 
-A rename refused because the ID exists means this design's beads were created before and the
-mapping line was lost. Find them by `spec_id` and reconcile per `revising.md`; never create a
-second graph beside the first.
+A rename refused because the ID exists means this design's beads were created before, whatever
+the callout says. Reconcile per `revising.md`; never create a second graph beside the first.
 
 ## Verify the graph
 
@@ -165,7 +164,7 @@ bd dep cycles     # must find none
 
 **The ready set must be exactly the rows whose Depends on column is `—`**, plus the epic. If a task
 with prerequisites is ready, or a root task is not, the edges went in backwards — fix them before
-collapsing the table, while the local IDs still line up with what you sent.
+the callout is rewritten, while the table still says it is staged.
 
 ## Publish the graph
 
@@ -174,6 +173,6 @@ bd dolt push
 ```
 
 A bead write is this machine's until it is pushed: the database is Dolt, and the team's copy is
-`refs/dolt/data` on the git remote. Push once the graph verifies and before the table collapses,
-so a teammate's `bd ready` shows the same roots the mapping line records. A project with no Dolt
+`refs/dolt/data` on the git remote. Push once the graph verifies and before the callout is
+rewritten, so a teammate's `bd ready` shows the same roots the table records. A project with no Dolt
 remote says it skipped and exits 0: say once that the graph is this machine's, and carry on.
