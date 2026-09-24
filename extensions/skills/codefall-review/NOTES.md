@@ -60,7 +60,11 @@ triage.
 
 **Filing findings as beads.** A finding that outlives the review would have become a
 `discovered-from` bead. The graph is `codefall-design`'s, and a review that quietly adds work to it
-is making a decision that is not its own. Deferred findings stay in the file.
+is making a decision that is not its own. Deferred findings stay in the file, with one exception
+added later: a deferred finding the design caused is offered — never filed unasked — as a
+`design-revision` bead against the design, because that bead is the one path by which
+`codefall-design` learns its document is wrong. It is a request to the graph's owner, not work
+added to the graph.
 
 **Specific commits, merged pull requests, merged branches, superseded ADRs.** All were targets in the
 first draft. Reviewing history produces findings about code that has moved on, and there is nowhere

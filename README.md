@@ -308,7 +308,10 @@ level; a removed row's identifier is listed under the table and never reused.
 edited, whatever changed. A bead someone has claimed, commented on, or closed is replaced only when
 the work already done against the old wording would no longer count — a ticket should not change
 under the person holding it. A task that leaves the design is reported to you, never closed on its
-own, because someone may still be working it.
+own, because someone may still be working it. The request to revise can also arrive from
+downstream: `implement` and `review` file a `design-revision` bead when the design's text disagrees
+with the code or with the spec, and `design` reads those at its start, so the run that finds a
+design wrong is not the only place that knows it.
 
 **`design` also decides which tasks need a test case.** A task verified through the wired product —
 the real interface, against the real services — has the case named in its bead's acceptance
@@ -357,6 +360,12 @@ epic, so the epic cannot close until you have merged everything, and the next se
 order, and the plugin ships a hook that mechanically denies the alternative. Tests are part of done
 — the ones the design planned and the ones the work turned out to need — while regression and
 fresh-context retesting stay with the `test` verb.
+
+**A design the work proves wrong goes back to `design`, not around it.** A worker that can finish
+its task despite the design's text disagreeing with the code or with the spec reports the
+disagreement, and the run files it as a `design-revision` bead against the document. The close-out names those beads
+separately from code follow-ups and tells you to run `design` on that document; a disagreement the
+task cannot finish under stops the run instead.
 
 **A test case named in a bead's criteria is written before the code.** The worker writes it from
 those criteria and from nothing else — not the sibling spec, not the code it is about to write, not

@@ -56,7 +56,10 @@ Read each when its step says to; none is loaded up front.
 | Mirroring work state to the spec's tracker issue | The mirror's lifecycle and labels | `codefall-specify` |
 
 **A task that turns out to be wrong is reported, not redesigned.** When the design's cut does not
-survive contact with the code, say what you found and hand the graph back to `codefall-design`.
+survive contact with the code, say what you found and hand the graph back to `codefall-design`. A
+smaller disagreement the task can finish under — the design's text against the code, or against
+the spec — is filed as a `design-revision` bead per `reference/beads.md`. `codefall-design` lists
+those on its next run.
 
 - **Implement writes every test the current work needs** — planned by the design's Testing Strategy
   or discovered mid-task, unit through end-to-end. A missing test is written, not sent back to
@@ -79,9 +82,8 @@ point at `/design`.
 
 **Tier 0 is not a separate mode.** A bare bug bead is single-bead scope with a shorter reading list.
 
-**Scope and execution style are different decisions.** Picking an epic decides *what*; whether it
-runs as one serialized stack or parallel workers is decided afterward from the graph's shape, at
-the go gate.
+**Scope and execution style are different decisions.** The argument fixes *what*; the go gate
+fixes how it runs, from the graph's shape.
 
 ## What gets read
 
@@ -300,11 +302,11 @@ When the user overrules the classifier the same way twice, offer to record the p
 
 Per `reference/workers.md`. Per wave: render worker prompts, launch the batch, wait for results.
 Verify each success — branch on the remote, PR exists, or it did not happen. One automatic retry
-per failed bead at higher effort; a second failure escalates. File discovered work. Comment the PR
-link, close the bead with what was verified, gate the landed bead with the new PR (stacked runs),
-`bd dolt push`. `--suggest-next` names the next wave; claim it and go again. Epic branch: merge each
-worker PR into the epic branch, serialized, at the wave boundary. Update the mirror per
-`reference/mirror.md`.
+per failed bead at higher effort; a second failure escalates. File discovered work, in the form
+its `kind` names. Comment the PR link, close the bead with what was verified, gate the landed bead
+with the new PR (stacked runs), `bd dolt push`. `--suggest-next` names the next wave; claim it and
+go again. Epic branch: merge each worker PR into the epic branch, serialized, at the wave boundary.
+Update the mirror per `reference/mirror.md`.
 
 Single-bead scope is the same loop with one iteration, run in one worktree.
 
@@ -321,13 +323,15 @@ Do not merge, and do not wait for merges; the next session's `bd gate check` fin
 
 - Every bead built, with PR, branch, and what its close reason verified.
 - The merge order, bottom-up per stack, and what is blocked on the user.
-- Discovered work filed.
+- Discovered work filed, in two buckets: code follow-ups, and what was handed back to design —
+  "DESIGN-NNN has N revision beads" — with the `bd comment` on the epic that names them.
 - The tracker mirror's state, the vision transition if one fired.
 - The worktree list, with the cleanup offer.
 - Final `bd dolt push`.
 - **Last, what the user does next**: review the pull requests — a stack as one target, its top
   branch; pull requests against the default branch one each — merge them in the order above, then
-  `/codefall-test <area>/<slug>` for each case a bead named.
+  `/codefall-test <area>/<slug>` for each case a bead named, and `/codefall-design DESIGN-NNN`
+  where revision beads were filed.
 
 ## Other modes
 
@@ -344,22 +348,16 @@ Do not merge, and do not wait for merges; the next session's `bd gate check` fin
 - **A human performs every merge to `main`; this skill performs none, in any mode.**
 - **Every `bd` write is the root's, in the primary checkout.** Workers never run `bd`; their prompt
   carries what they need and their result JSON carries what they found.
-- **Closed means done — criteria verified, checks green, PR open.** Merged is the gates' to say,
-  and the epic closes only when they drain.
+- **Closed means done — criteria verified, checks green, PR open.** Merged is the gates' to say.
 - **Publish the claim before the work.** `bd dolt push` follows every claim and every close.
-- **The graph is the sequencer.** `bd ready` decides what runs next; this skill keeps no schedule
-  of its own and never starts a blocked bead.
+- **The graph is the sequencer.** `bd ready` decides what runs next; never start a blocked bead.
 - **Scope is exactly the bead.** Tangents become `discovered-from` beads, filed by the root, never
-  fixed in passing.
+  fixed in passing; a design found wrong becomes a `design-revision` bead, never a quiet workaround.
 - **Bead IDs ride every commit message.**
-- **Depth never forces the epic branch; fan-in and don't-touch-main do**, and only when parallelism
-  matters.
-- **Hotspot files are overlap until shown otherwise.** When parallel stacks cannot be shown safe,
-  serialize.
+- **Hotspot files are overlap until shown otherwise.**
 - **Verify workers, never trust them.** Branch on the remote and PR open, or it did not happen.
-- **One automatic retry, then a human.** Higher effort, fresh worker, failure reason in the prompt.
-- **No permission prompts mid-run.** Workers cannot answer them; the go gate states the condition
-  and offers single-task mode when it fails.
+- **One automatic retry, then a human.**
+- **No permission prompts mid-run.** Workers cannot answer them; the go gate holds the condition.
 - **Tests are part of done.** Planned or discovered, written now, never deferred to `test`.
 - **A test case the criteria name is written first, from those criteria**, before the code and
   before its spec. Never from the sibling spec, the code, or a pull request's text. The case counts
@@ -368,11 +366,9 @@ Do not merge, and do not wait for merges; the next session's `bd gate check` fin
   the project unequipped is not started, and `/codefall-equip` is named.
 - **The local scripts are part of done.** A change that would leave a teammate's refresh stale
   changes `start` and `update` in the same PR, per `codefall-equip`'s local track.
-- **Implement never writes bead metadata and never redesigns the graph.** Metadata is read as a
-  recommendation; a wrong task goes back to `codefall-design`.
+- **Implement never writes bead metadata and never redesigns the graph.**
 - **The mirror never guesses.** The spec's parent issue carries the ladder; requirement children
   close with it.
-- **`Active` is a fact, recorded once.** Only the vision's Status line, only at first claim, only
-  when a vision exists.
-- **Worktrees are cleaned up by offer, never by default**, and never under an open PR.
+- **`Active` is a fact, recorded once.**
+- **Worktrees are cleaned up by offer, never by default.**
 - **Never overwrite a file that has drifted.** Show the difference and ask.

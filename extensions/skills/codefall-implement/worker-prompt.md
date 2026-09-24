@@ -61,7 +61,8 @@ base — the design was written earlier, and the code may have moved.
 
 **Never guess on architecture.** A genuine ambiguity — the design contradicts an ADR, the task no
 longer matches the code — is a failure result with a clear reason, not a judgment call. Stop and
-report; the root escalates.
+report; the root escalates. A disagreement you can finish the task under is different: report it as
+a `design` discovery in step 3 and carry on.
 
 ## 3. Implement
 
@@ -82,7 +83,11 @@ report; the root escalates.
   `codefall-equip` skill's section *When another verb follows this skill*: the smallest revision,
   idempotent, never destructive. Name the change in the PR body.
 - Scope is exactly this bead. Anything adjacent you find — a bug, a missing test, a refactor —
-  goes in your result's `discovered` list, not in your diff.
+  goes in your result's `discovered` list with `kind` `code`, not in your diff.
+- Where the design's text and the code disagree, or the design and the spec disagree, and you can
+  still finish the task, the same list gets an item with `kind` `design`: what the design says, what
+  you found instead with file and line, and what you did about it. The root files it against the
+  design, and `codefall-design` reads it.
 
 ## 4. Verify
 
@@ -128,8 +133,12 @@ Your final message is exactly one JSON object, no prose around it:
 
 ```json
 {"bead": "{{BEAD_ID}}", "status": "success", "pr": <number>, "branch": "{{BRANCH}}",
- "discovered": [{"title": "…", "context": "…", "from": "{{BEAD_ID}}"}]}
+ "discovered": [{"kind": "code", "title": "…", "context": "…", "from": "{{BEAD_ID}}"},
+                {"kind": "design", "title": "…", "context": "…", "from": "{{BEAD_ID}}"}]}
 ```
+
+`kind` is `code` for work in the code and `design` for a place the design is wrong; an empty list
+when there is nothing.
 
 On failure: `{"bead": "{{BEAD_ID}}", "status": "failure", "reason": "…"}` — with a reason concrete
 enough that a fresh worker could start from it.

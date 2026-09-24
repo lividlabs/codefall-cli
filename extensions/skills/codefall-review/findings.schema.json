@@ -117,6 +117,10 @@
           "reason": {
             "type": "string",
             "description": "Why the user dismissed or deferred it. Required for dismissed."
+          },
+          "bead": {
+            "type": "string",
+            "description": "The design-revision bead filed for a deferred finding the design caused, when the user took the offer."
           }
         },
         "if": {

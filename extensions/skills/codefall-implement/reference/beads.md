@@ -5,6 +5,14 @@ Every `bd` command in a run is the root session's, executed against the primary 
 database, one writer at a time, whose sync channel is the repo's own git remote under
 `refs/dolt/data`. Read at step 5, before the first claim.
 
+## Contents
+
+- Session start
+- Claim, work, close
+- The landed bead and its gates
+- Discovered work
+- Session end
+
 ## Session start
 
 ```bash
@@ -68,16 +76,45 @@ bead gets no gate.
 
 ## Discovered work
 
+Two forms, told apart by the `kind` on a worker's discovered item. Every discovered bead is named:
+`<prefix>-<tracker ref>` (`gh-123`, `jira-ABC-42`), with `--external-ref` set to the same value,
+where a tracker issue exists; `<prefix>-<slug>` otherwise. A taken ID is refused; append `-2` and
+retry. Never `--force`. Workers report discoveries in their result JSON; the root files them — and
+files its own, from the reconciliation at step 3 — and pushes as after every other write.
+
+**`code`** — a tangent in the code: a bug, a missing test, a refactor. A task beside the graph,
+linked to the bead that found it.
+
 ```bash
 bd create "Parser drops trailing comma" --id "$(bd config get issue_prefix)-parser-trailing-comma" \
   --deps discovered-from:<bead> -p 2
 bd dolt push
 ```
 
-Every discovered bead is named: `<prefix>-<tracker ref>` (`gh-123`, `jira-ABC-42`), with
-`--external-ref` set to the same value, where a tracker issue exists; `<prefix>-<slug>` otherwise.
-A taken ID is refused; append `-2` and retry. Never `--force`. Workers report discoveries in their
-result JSON; the root files them, and pushes as after every other write.
+**`design`** — the design's text and the code the task needed disagree, or the design and the spec
+disagree, and the task could still be finished. A revision request against the document: the same
+edge, plus the design's path as `--spec-id` and the label `design-revision`. `codefall-design` lists
+exactly those two markers at its start, and its Revise mode closes every one.
+
+```bash
+bd create "DESIGN-007 § Architecture names a StageStore the code replaced with StageContext" \
+  --id "$(bd config get issue_prefix)-design-007-stagestore" \
+  --deps discovered-from:<bead> --spec-id docs/designs/DESIGN-007-stage-context.md \
+  -l design-revision -p 2
+bd dolt push
+```
+
+The body says what the design says, what was found instead with file and line, and what the task
+did about it. A disagreement the task could not finish under is a worker failure and an escalation,
+never a revision bead: the human decides, and the run stops there.
+
+**At session end, the epic carries the hand-off.** When any `design` bead was filed, one
+`bd comment` on the epic — on the bead itself at single-bead scope — names every revision bead, so
+the epic's own record shows the drift:
+
+```bash
+bd comment <epic> "design-revision: booking-design-007-stagestore, booking-design-007-retry — run /codefall-design DESIGN-007"
+```
 
 ## Session end
 

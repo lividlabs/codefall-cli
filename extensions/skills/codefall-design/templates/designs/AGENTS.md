@@ -8,6 +8,8 @@
   the tasks, edges, and design refs; it never grows a status column.
 - A design bead's title, edges, and design ref change only through `/design` (Revise), which edits
   the row and the bead together — never with `bd` directly.
+- A bead labelled `design-revision` whose `spec_id` is a design's path is a request to revise that
+  design. `/design` lists them at its start and closes each one it settles.
 - ADRs live in `docs/adrs/` and are never rewritten. A revision is a new, superseding ADR.
 - Status describes the document, never the work. Beads holds work state.
 - Status transitions are `/design`'s to make, never a hand edit.

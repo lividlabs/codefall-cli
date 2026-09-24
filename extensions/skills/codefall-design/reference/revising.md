@@ -2,7 +2,16 @@
 
 Read for the Revise mode. A row and its bead share a number — `Tn` is `<prefix>-DESIGN-NNN-Tn` —
 so a later run edits the graph the table already describes rather than duplicating it. The user
-edits the table; this mode brings the beads level with it.
+edits the table; this mode brings the beads level with it. A revision can also be asked for from
+downstream, as a bead — the last section.
+
+## Contents
+
+- Row by row
+- When a task row changes
+- Revision beads
+
+## Row by row
 
 **Read the current beads first.** `bd show <prefix>-DESIGN-NNN-Tn --json` for every row, and
 `bd list --parent <prefix>-DESIGN-NNN` for anything the table no longer names. The comparison is
@@ -61,3 +70,21 @@ the removal goes through the report-don't-close rule above.
 graph a teammate reads is the one the table now describes.
 
 Say per row which you did and why, in the report.
+
+## Revision beads
+
+`bd list -l design-revision --spec <this design's path>` is the input from outside the document:
+a bead `codefall-implement` or `codefall-review` filed because the design's text and the code, or
+the design and the spec, disagree. Its body says what the design says and what was found instead,
+and a `discovered-from` edge names the bead or the review that found it. Read them before the
+row-by-row pass, show them to the user, and settle every one in one of three ways:
+
+| The user decides | What happens |
+| --- | --- |
+| The document is wrong | The text is amended, and the bead closes with the amendment as its reason — `bd close <id> -r "amended: § Architecture now names StageContext"` |
+| The work is real | A new row on the table, per the row-is-new case above, and the bead closes with the new task's ID as its reason — the task carries the work, the request does not |
+| The request is wrong | The bead closes with why, in the user's words |
+
+**Every revision bead ends closed.** An open one after a revision means the loop is not finished,
+and the next run reads it again. Push after the closes, with the rest, and say per bead which way
+it went in the report.
