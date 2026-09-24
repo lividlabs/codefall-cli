@@ -1278,6 +1278,23 @@ Decided at scaffold, 2026-08-16.
   fans out to one review per pull request, which would change one invocation being one review for a
   case the user can run as several.
 
+- **Upstream documents are amended in the run that finds them wrong, 2026-09-24.** Every step
+  reads the documents before it, and every finding that one was wrong went to a later run of the
+  document's own verb: a spec gap in `design`'s report for `specify`, a design disagreement in a
+  `design-revision` bead for `design`'s Revise mode, a vision with no path at all. Between the
+  finding and that run the document stayed wrong with nothing on the page saying so. Now a verb
+  amends any upstream document, at any distance, in its own run and pull request, when the
+  document is `Draft` or `Ready`, the amendment is text that moves no task row or cited criterion,
+  and the user takes it at the confirmation the verb already holds; every document between the
+  change and the step is amended together, or none is. `design` appends the criterion a case
+  exposes and re-mirrors it, so the bead cites a real identifier and `derived` narrows to what the
+  spec declined; a worker amends the design's or spec's text in its branch and reports it in an
+  `amended` list the root reads at the wave boundary; `review` fixes a design finding like any
+  document finding; `specify` amends a `Draft` or `Ready` vision. ADR-008 records it and names
+  the one consequence of ADR-007 it revises. Seen and not taken: superseding ADR-007 whole for one
+  consequence, which would retire a record that is otherwise current; and letting a worker edit a
+  Task Plan row or a bead's criteria, which is the graph and stays `design`'s.
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
