@@ -231,11 +231,12 @@ Write the vision, the source document if there was one, and `docs/visions/AGENTS
 missing. Then commit those files by path and offer the push and the pull request, per the same
 procedure. The merge is the user's.
 
+Do not create issues. Do not start a specification.
+
 Report the path, the identifier, the status, every open question the document carries, the branch,
 and the pull request if one was opened. **End with what the user does next**: merge the pull
-request, then `/codefall-specify VISION-NNN`.
-
-Do not create issues. Do not start a specification.
+request, then `/codefall-scaffold` for a project not yet scaffolded, otherwise
+`/codefall-specify VISION-NNN`.
 
 ## Other modes
 

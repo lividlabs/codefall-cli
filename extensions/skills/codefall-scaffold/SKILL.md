@@ -324,7 +324,7 @@ and every `AGENTS.md` link resolves.
 - What the user still owes the project — always including boundary enforcement if it is not wired,
   and `codefall-equip` after a docs-only run.
 - **Last, what the user does next**: merge the pull request, what is owed above, then
-  `/codefall-envision`.
+  `/codefall-specify VISION-NNN`.
 
 ## Rules
 
@@ -334,8 +334,7 @@ and every `AGENTS.md` link resolves.
   package-by-component whether or not anyone has named them.
 - **Never show or improvise a profile that is not supported.** Planned profiles are exits, and
   ADRs for an unsupported language are never hand-authored.
-- **Recommend only what an ADR supports.** Where Codefall has no stance, say so and present the
-  options flat.
+- **Recommend only what an ADR supports.** Where Codefall has no stance, present the options flat.
 - **The inherited ADRs ship Accepted.** Amend only when the interview requires it, and report every
   amendment.
 - **Provenance is written every time and never hand-edited.** Hashes are computed, never invented.

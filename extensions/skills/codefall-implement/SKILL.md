@@ -317,6 +317,8 @@ close.
 
 ### 8. Report and stop
 
+Do not merge, and do not wait for merges; the next session's `bd gate check` finishes it.
+
 - Every bead built, with PR, branch, and what its close reason verified.
 - The merge order, bottom-up per stack, and what is blocked on the user.
 - Discovered work filed.
@@ -324,9 +326,7 @@ close.
 - The worktree list, with the cleanup offer.
 - Final `bd dolt push`.
 - **Last, what the user does next**: review the pull requests, merge them in the order above, then
-  `/codefall-test DESIGN-NNN` where a bead named a case.
-
-Do not merge. Do not wait for merges. The next session's `bd gate check` finishes the story.
+  `/codefall-test <area>/<slug>` for each case a bead named.
 
 ## Other modes
 

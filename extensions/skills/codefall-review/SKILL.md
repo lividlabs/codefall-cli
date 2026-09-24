@@ -258,8 +258,8 @@ Follow `../../../.codefall/shared/customizations.md` for this verb.
 7. **Report.** The target and reviewer; what was found, most severe first; what was fixed,
    dismissed, deferred; what could not be checked and why; where the files are; and the branch or
    worktree the fixes landed on if one was created. **End with what the user does next**: on a pull
-   request, merge it; on uncommitted work, commit the findings files with the work; otherwise
-   nothing is pending.
+   request or a branch, push the fixes and merge; on uncommitted work, the findings files are left
+   unstaged to commit with the work or not at all; otherwise nothing is pending.
 
 **Three runs end early, and each ends cleanly.**
 

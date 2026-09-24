@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "target": {
+    "kind": "branch",
+    "key": "skills-next-action",
+    "ref": "skills/next-action",
+    "revision": "091b516376a44820ddb267d63e0ecfebb6821df3",
+    "base": "5b77115dd10f9e8a1171648413f1226cef68076c"
+  },
+  "reviewer": {
+    "harness": "muse",
+    "model": "muse-spark"
+  },
+  "reviewedAt": "2026-09-24T03:52:44Z",
+  "lenses": [
+    "correctness",
+    "behaviour",
+    "conventions",
+    "docs",
+    "simplify"
+  ],
+  "notChecked": [
+    "Whether envision's unconditional next action (/codefall-specify VISION-NNN) is right when the vision was left Draft (user stopping and coming back) or when the project has not been scaffolded yet, since the workflow table has scaffold requiring a vision.",
+    "Whether scaffold's unconditional next action (then /codefall-envision) is right when scaffold ran from an existing vision, which would send the user back to re-envision work already framed.",
+    "Whether the new AGENTS.md last-line rule is meant to cover other-modes and early-exit reports (envision/specify/design other modes, review's three early exits), which gained no next-action line.",
+    "Whether review's 'otherwise nothing is pending' holds for branch, document, and path targets where fixes landed on a branch or worktree but no push or pull request was opened."
+  ],
+  "findings": [
+    {
+      "lens": "correctness",
+      "severity": "important",
+      "location": {
+        "path": "extensions/skills/codefall-graft/SKILL.md",
+        "startLine": 255,
+        "endLine": 256,
+        "heading": "Report what took"
+      },
+      "claim": "The graft next-action line drops the boundary-enforcement obligation the report just listed as owed, and 'Nothing else' denies it.",
+      "conditions": "After an adoption run, where the owed bullet names the hand-merges plus the boundary-enforcement obligation.",
+      "patch": "--- a/extensions/skills/codefall-graft/SKILL.md\n+++ b/extensions/skills/codefall-graft/SKILL.md\n@@\n-- **Last, what the user does next**: merge the pull request, then the hand-merges above. Nothing\n-  else.\n+- **Last, what the user does next**: merge the pull request, then what is owed above. Nothing\n+  else.\n",
+      "status": "fixed"
+    },
+    {
+      "lens": "correctness",
+      "severity": "important",
+      "location": {
+        "path": "extensions/skills/codefall-implement/SKILL.md",
+        "startLine": 326,
+        "endLine": 327,
+        "heading": "Report and stop"
+      },
+      "claim": "The implement next-action sends the user to `/codefall-test DESIGN-NNN`, an argument shape the test skill defines no target for and stops on instead of running.",
+      "conditions": "Whenever the user follows the line on a design whose bead named a case; the test skill's Targets table accepts suites, changed, a suite name, <area>/<slug>, or a case path, never a design identifier.",
+      "patch": "--- a/extensions/skills/codefall-implement/SKILL.md\n+++ b/extensions/skills/codefall-implement/SKILL.md\n@@\n - **Last, what the user does next**: review the pull requests, merge them in the order above, then\n-  `/codefall-test DESIGN-NNN` where a bead named a case.\n+  `/codefall-test <area>/<slug>` for each case a bead named, where one was named.\n",
+      "status": "fixed"
+    },
+    {
+      "lens": "correctness",
+      "severity": "important",
+      "location": {
+        "path": "extensions/skills/codefall-review/SKILL.md",
+        "startLine": 260,
+        "endLine": 262,
+        "heading": "Process"
+      },
+      "claim": "The review next-action tells the user to commit the findings files with uncommitted work, while the skill's own findings-file rule leaves them unstaged in that case.",
+      "conditions": "On a review whose target is uncommitted work.",
+      "patch": "--- a/extensions/skills/codefall-review/SKILL.md\n+++ b/extensions/skills/codefall-review/SKILL.md\n@@\n    worktree the fixes landed on if one was created. **End with what the user does next**: on a pull\n-   request, merge it; on uncommitted work, commit the findings files with the work; otherwise\n-   nothing is pending.\n+   request, merge it; otherwise nothing is pending, and on uncommitted work the findings files stay\n+   unstaged.\n",
+      "status": "fixed"
+    },
+    {
+      "lens": "conventions",
+      "severity": "minor",
+      "location": {
+        "path": "extensions/skills/codefall-envision/SKILL.md",
+        "startLine": 238,
+        "endLine": 238,
+        "heading": "Branch, write, land, and report"
+      },
+      "claim": "The section's last line is the old 'Do not create issues. Do not start a specification.' prohibition, not the next action the new AGENTS.md rule requires.",
+      "patch": "--- a/extensions/skills/codefall-envision/SKILL.md\n+++ b/extensions/skills/codefall-envision/SKILL.md\n@@\n+Do not create issues. Do not start a specification.\n+\n Report the path, the identifier, the status, every open question the document carries, the branch,\n and the pull request if one was opened. **End with what the user does next**: merge the pull\n request, then `/codefall-specify VISION-NNN`.\n-\n-Do not create issues. Do not start a specification.\n",
+      "status": "fixed"
+    },
+    {
+      "lens": "conventions",
+      "severity": "minor",
+      "location": {
+        "path": "extensions/skills/codefall-mock-up/SKILL.md",
+        "startLine": 332,
+        "endLine": 332,
+        "heading": "Land and wrap up"
+      },
+      "claim": "The section's last line is the old 'Do not create issues. Do not start a design.' prohibition, not the next action the new AGENTS.md rule requires.",
+      "patch": "--- a/extensions/skills/codefall-mock-up/SKILL.md\n+++ b/extensions/skills/codefall-mock-up/SKILL.md\n@@\n+Do not create issues. Do not start a design.\n+\n Report the directories, every file with what it shows, what the mockup was matched against, options\n offered and which was taken, states deliberately not made and why, anything assumed because the user\n did not answer, any labels cleared, the branch, and the pull request if one was opened. **End with\n what the user does next**: merge the pull request; then `/codefall-design SPEC-NNN` where a spec was\n waiting on this mockup, otherwise `/codefall-specify`.\n-\n-Do not create issues. Do not start a design.\n",
+      "status": "fixed"
+    },
+    {
+      "lens": "conventions",
+      "severity": "minor",
+      "location": {
+        "path": "extensions/skills/codefall-implement/SKILL.md",
+        "startLine": 329,
+        "endLine": 329,
+        "heading": "Report and stop"
+      },
+      "claim": "The section's last line is the 'Do not merge. Do not wait for merges.' directive, not the next action the new AGENTS.md rule requires.",
+      "patch": "--- a/extensions/skills/codefall-implement/SKILL.md\n+++ b/extensions/skills/codefall-implement/SKILL.md\n@@\n ### 8. Report and stop\n \n+Do not merge. Do not wait for merges. The next session's `bd gate check` finishes the story.\n+\n - Every bead built, with PR, branch, and what its close reason verified.\n - The merge order, bottom-up per stack, and what is blocked on the user.\n - Discovered work filed.\n - The tracker mirror's state, the vision transition if one fired.\n - The worktree list, with the cleanup offer.\n - Final `bd dolt push`.\n - **Last, what the user does next**: review the pull requests, merge them in the order above, then\n   `/codefall-test DESIGN-NNN` where a bead named a case.\n-\n-Do not merge. Do not wait for merges. The next session's `bd gate check` finishes the story.\n",
+      "status": "fixed"
+    }
+  ]
+}
