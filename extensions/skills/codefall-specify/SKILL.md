@@ -178,7 +178,7 @@ match `main`: say so and run `/codefall-refresh` before continuing. `refresh=und
 `/codefall-equip` instead. Never pull the checkout or run the local commands from here.
 
 **Never run the remedy.** `bd init` writes `.beads/`, git hooks, `.claude/settings.json`, and a
-block in `AGENTS.md` and `CLAUDE.md`, then commits all of it. That is the user's decision.
+block in `AGENTS.md` and `CLAUDE.md`, then commits; that is the user's decision.
 
 ### 2. Ask what they want to build
 
@@ -330,11 +330,11 @@ When the feature has a visual surface, ask whether a mockup exists.
 >
 > Does that match what you have in mind?
 
-**Every line is at least a sentence.** A line that collapses to a fragment or a dash means that
-topic was not interviewed — go back and ask.
+**Every line is at least a sentence.** A fragment or a dash means that topic was not interviewed —
+go back and ask.
 
 Advance when every line is substantive, the user has confirmed it, and you could write the criteria
-without guessing at any of them.
+without guessing.
 
 ### 10. Write, then confirm
 
@@ -396,7 +396,8 @@ own initiative. Each lands per `../../../.codefall/shared/landing.md`.
   A hand-edited issue body is never the source of truth.
 - **The specification says what, never how.** No file paths, no libraries, no services, no schema. A
   domain noun may be named and defined; its fields, types, and relations may not.
-- **Acceptance criteria are EARS, and nothing else is.** Pick the pattern that fits.
+- **Acceptance criteria are EARS, and nothing else is.** Pick the pattern that fits rather than
+  writing everything as `WHEN … THEN`.
 - **"so that" is mandatory** in every user story.
 - **Criteria are observable in a running system**, and the instrumentation to make them so is part of
   the requirement — surfaced out loud, never absorbed silently.
