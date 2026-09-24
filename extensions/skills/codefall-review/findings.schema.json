@@ -16,11 +16,11 @@
       "properties": {
         "kind": {
           "type": "string",
-          "enum": ["uncommitted", "branch", "pr", "path", "prose", "vision", "spec", "design", "adr"]
+          "enum": ["uncommitted", "branch", "pr", "range", "path", "prose", "vision", "spec", "design", "adr"]
         },
         "key": {
           "type": "string",
-          "description": "The suffix of the filename stem, slugged: pr-51-init-below-root, SPEC-004-trip-sharing, feat-bd-unz-stage-context, src-fulfillment, adhoc, uncommitted."
+          "description": "The suffix of the filename stem, slugged: pr-51-init-below-root, SPEC-004-trip-sharing, feat-bd-unz-stage-context, range-a1b2c3d-e4f5a6b, src-fulfillment, adhoc, uncommitted."
         },
         "ref": {
           "type": "string",
@@ -36,7 +36,7 @@
         },
         "base": {
           "type": "string",
-          "description": "For a branch, the merge-base with the default branch. For a pull request, baseRefOid."
+          "description": "For a branch, the merge-base with the default branch. For a pull request, baseRefOid. For a range, its from commit."
         },
         "files": {
           "type": "array",

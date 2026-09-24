@@ -1265,6 +1265,18 @@ Decided at scaffold, 2026-08-16.
   the run the turn stopped, which a table per verb cannot say. Left for later: reviewing several
   pull requests in one run — a stack is one commit range, pull requests against the default branch
   are one pass each — which the review skill does not yet describe.
+- **Review takes a commit range, and says how several pull requests are reviewed, 2026-09-24.**
+  `codefall-implement` leaves one pull request per task, and the review skill said nothing about
+  reviewing them together. A stack, where each pull request is based on the one below it, is one
+  target: its top branch already diffed against the default branch, and now `<from>..<to>` names
+  the same work by its ends, resolved by `git diff <from> <to>` with both commits reachable from a
+  live branch, fixes landing on the branch whose tip is `<to>`, `range` in the schema's target
+  kinds, and `range-<from7>-<to7>` as the findings-file key. Pull requests against the default
+  branch share nothing and are one invocation each, in the order the implement report listed them;
+  implement's next-action line says so. A single commit stays refused: a range is live work between
+  two points, a commit is history. Seen and not taken: an epic identifier as a review target that
+  fans out to one review per pull request, which would change one invocation being one review for a
+  case the user can run as several.
 
 ## Open
 
