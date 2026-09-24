@@ -6,6 +6,20 @@ below were written by hand, before that was wired up.
 Tags are bare version numbers (`0.1.2`), not `v`-prefixed, so they match the `ref` the marketplace
 pins. A `v0.1.1` tag also exists from before that convention was settled.
 
+## [0.17.0](https://github.com/lividlabs/codefall-cli/compare/v0.16.0...v0.17.0) (2026-09-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* **skills:** codefall-conceptualize is now codefall-envision, and the documents it writes moved from docs/concepts/CONCEPT-NNN-slug.md to docs/visions/VISION-NNN-slug.md. A project that ran the old verb keeps its old paths until graft brings them forward.
+* **skills:** the Beads section of a project's AGENTS.md now says to commit on the work's branch and never merge or push the default branch. A project on an earlier codefall carries the old sentence until it reruns `codefall init`.
+
+### Features
+
+* **skills:** land every writing verb on a branch with an offered pull request ([#107](https://github.com/lividlabs/codefall-cli/issues/107)) ([d84f23a](https://github.com/lividlabs/codefall-cli/commit/d84f23a9982943f1e2de6567d2c3d5101ce3661b))
+* **skills:** name beads by design number, tracker issue, or slug ([#109](https://github.com/lividlabs/codefall-cli/issues/109)) ([4a1a22c](https://github.com/lividlabs/codefall-cli/commit/4a1a22c050f35772e7f44657edabc63fbd37d50f))
+* **skills:** rename conceptualize to envision and CONCEPT docs to VISION ([#110](https://github.com/lividlabs/codefall-cli/issues/110)) ([889f82d](https://github.com/lividlabs/codefall-cli/commit/889f82dfb219826ca7110a2acbb92be08a381c1d))
+
 ## [0.16.0](https://github.com/lividlabs/codefall-cli/compare/v0.15.1...v0.16.0) (2026-09-22)
 
 
