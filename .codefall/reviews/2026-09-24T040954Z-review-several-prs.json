@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "target": {
+    "kind": "branch",
+    "key": "review-several-prs",
+    "ref": "review/several-prs",
+    "revision": "3a0f9122a555d00cd5a9c1040799c9d4d5917c25",
+    "base": "069c90f5bb4c3bdf468f788468c5d844e087fe2f"
+  },
+  "reviewer": {
+    "harness": "muse",
+    "model": "muse-spark"
+  },
+  "reviewedAt": "2026-09-24T04:09:54Z",
+  "lenses": [
+    "correctness",
+    "behaviour",
+    "conventions",
+    "docs",
+    "simplify"
+  ],
+  "notChecked": [
+    "Whether a range exactly one commit apart coherently escapes the single-commit refusal, given the range fix rule requires <to> to be a live branch tip while a bare commit need not be one; no session evidence was examined.",
+    "Whether a range review covering stacked pull requests should post anything under reference/posting.md, which only describes the open-pull-request target; the skill is silent.",
+    "Full extensions/scripts/skill-health.sh --strict was not executed; line and token counts were estimated from body word and character counts and the schema was validated by JSON parse only."
+  ],
+  "findings": [
+    {
+      "lens": "correctness",
+      "severity": "minor",
+      "location": {
+        "path": "extensions/skills/codefall-review/findings.schema.json",
+        "startLine": 29,
+        "endLine": 31
+      },
+      "claim": "The schema's revision description omits the range target even though kind, key, base, and the findings-file table all define it.",
+      "patch": "--- a/extensions/skills/codefall-review/findings.schema.json\n+++ b/extensions/skills/codefall-review/findings.schema.json\n@@\n-          \"description\": \"The state reviewed, and the target's own rather than the session's: branch tip for a branch, headRefOid for a pull request, the last commit that touched a document, HEAD otherwise.\"\n+          \"description\": \"The state reviewed, and the target's own rather than the session's: branch tip for a branch, headRefOid for a pull request, <to> for a range, the last commit that touched a document, HEAD otherwise.\"",
+      "status": "fixed"
+    },
+    {
+      "lens": "correctness",
+      "severity": "minor",
+      "location": {
+        "path": "extensions/skills/codefall-review/SKILL.md",
+        "startLine": 200,
+        "endLine": 202
+      },
+      "claim": "The fix-landing table adds a range row but Getting there still only tells the session how to fetch and check out branch and pull-request targets.",
+      "conditions": "When the range tip is not already checked out, which is the normal case when reviewing a stack from the default branch.",
+      "patch": "--- a/extensions/skills/codefall-review/SKILL.md\n+++ b/extensions/skills/codefall-review/SKILL.md\n@@\n-**Getting there.** A branch or PR target that is not already checked out is fetched and checked out\n-before any fix is applied — `git fetch origin` then `git checkout <branch>`, taking the branch name\n-from `headRefName` for a pull request. A new worktree is `git worktree add` off the default branch.\n+**Getting there.** A branch, PR, or range target that is not already checked out is fetched and checked out\n+before any fix is applied — `git fetch origin` then `git checkout <branch>`, taking the branch name\n+from `headRefName` for a pull request and the branch whose tip is `<to>` for a range. A new worktree is `git worktree add` off the default branch.",
+      "status": "fixed"
+    },
+    {
+      "lens": "correctness",
+      "severity": "important",
+      "location": {
+        "path": "extensions/skills/codefall-review/SKILL.md",
+        "startLine": 66,
+        "endLine": 69
+      },
+      "claim": "The stack-as-range form never says which commit <from> is, so it stops matching the top-branch form once the default branch has moved.",
+      "conditions": "When the default branch advanced after the stack branched and the reviewer passes its tip as <from>; the two-dot diff then includes unrelated default-branch commits that the top branch's three-dot diff excludes.",
+      "patch": "--- a/extensions/skills/codefall-review/SKILL.md\n+++ b/extensions/skills/codefall-review/SKILL.md\n@@\n-**Several pull requests** — `codefall-implement` leaves one per task. A stack, where each pull\n-request is based on the one below it, is one target: the top branch, or the range from the stack's\n-base to its tip, holds every pull request's diff. Pull requests against the default branch share\n-nothing and are one invocation each, in the order the implement report listed them.\n+**Several pull requests** — `codefall-implement` leaves one per task. A stack, where each pull\n+request is based on the one below it, is one target: the top branch, or the range from the stack's\n+base — the merge-base of its tip with the default branch — to its tip, holds every pull request's diff. Pull requests against the default branch share\n+nothing and are one invocation each, in the order the implement report listed them.",
+      "status": "fixed"
+    },
+    {
+      "lens": "docs",
+      "severity": "minor",
+      "location": {
+        "path": "docs/workflow.md",
+        "startLine": 51,
+        "endLine": 51
+      },
+      "claim": "The chain table's review row still enumerates uncommitted work, branch, PR, path, and document with no range, as do its installed copy in extensions/shared/workflow.md and the Reviews section and skills table in README.md (all amendable project documents, the shared copy via workflow-sync from docs/workflow.md).",
+      "patch": "--- a/docs/workflow.md\n+++ b/docs/workflow.md\n@@\n-|| `review` | anything live: uncommitted work, a branch, a PR, a path, a document | `.codefall/reviews/`, a JSON and Markdown pair per review; fixes on the target's branch for the findings the user takes | the human |\n+|| `review` | anything live: uncommitted work, a branch, a PR, a commit range, a path, a document | `.codefall/reviews/`, a JSON and Markdown pair per review; fixes on the target's branch for the findings the user takes | the human |",
+      "status": "fixed"
+    }
+  ]
+}

@@ -28,7 +28,7 @@
         },
         "revision": {
           "type": "string",
-          "description": "The state reviewed, and the target's own rather than the session's: branch tip for a branch, headRefOid for a pull request, the last commit that touched a document, HEAD otherwise."
+          "description": "The state reviewed, and the target's own rather than the session's: branch tip for a branch, headRefOid for a pull request, the to commit for a range, the last commit that touched a document, HEAD otherwise."
         },
         "dirty": {
           "type": "string",

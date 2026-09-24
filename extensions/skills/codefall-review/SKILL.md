@@ -64,8 +64,8 @@ prefix stripped, falling back to `git remote show origin` when that ref was neve
 to the current checkout's initial branch when there is no remote. Resolve it once per run.
 
 **Several pull requests** — `codefall-implement` leaves one per task. A stack, where each pull
-request is based on the one below it, is one target: the top branch, or the range from the stack's
-base to its tip, holds every pull request's diff. Pull requests against the default branch share
+request is based on the one below it, is one target: the top branch, or the range from the merge-base
+of its tip with the default branch to its tip, holds every pull request's diff. Pull requests against the default branch share
 nothing and are one invocation each, in the order the implement report listed them.
 
 **Document identifiers** are the ones the other verbs define. Resolve one by globbing its directory
@@ -197,9 +197,9 @@ reported, never worked around.
 | A document or path, when something is already checked out for it | There |
 | A document or path on the default branch | A new worktree, branched from the default branch |
 
-**Getting there.** A branch or PR target that is not already checked out is fetched and checked out
-before any fix is applied — `git fetch origin` then `git checkout <branch>`, taking the branch name
-from `headRefName` for a pull request. A new worktree is `git worktree add` off the default branch.
+**Getting there.** A branch, PR, or range target that is not already checked out is fetched and
+checked out before any fix is applied — `git fetch origin` then `git checkout <branch>`, taking the
+branch name from `headRefName` for a pull request and the branch whose tip is `<to>` for a range. A new worktree is `git worktree add` off the default branch.
 
 **A dirty working tree stops the move.** When the tree is dirty and the fixes belong somewhere else,
 report the findings, say the fixes were not applied and why, and leave the tree exactly as it is.
