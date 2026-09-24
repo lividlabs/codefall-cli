@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "target": {
+    "kind": "branch",
+    "key": "design-task-plan-stays",
+    "ref": "design/task-plan-stays",
+    "revision": "602a4a40542d83aabbdd33620c887727e0db5ec1",
+    "base": "26fc5d78ae3eab29d02577a8b11c38a5b1f5c80d"
+  },
+  "reviewer": {
+    "harness": "muse",
+    "model": "muse-spark"
+  },
+  "reviewedAt": "2026-09-24T01:39:39Z",
+  "lenses": [
+    "correctness",
+    "behaviour",
+    "conventions",
+    "docs",
+    "simplify"
+  ],
+  "notChecked": [
+    "Whether the older docs/decision-log.md bullets that name the mapping line and the collapse (lines 1194, 1215, 1223) should be amended or left as append-only history; the branch appends a new bullet without touching them, matching the precedent where the envision rename left the earlier conceptualize wording in place, so they were read but not filed."
+  ],
+  "findings": [
+    {
+      "lens": "behaviour",
+      "severity": "important",
+      "location": {
+        "path": "README.md",
+        "startLine": 299,
+        "endLine": 303
+      },
+      "claim": "README.md still describes the Task Plan table as replaced by an ID-mapping line on approval, contradicting the change that keeps the table.",
+      "conditions": "Whenever a reader reads the README section on the task plan at the reviewed revision.",
+      "patch": "--- a/README.md\n+++ b/README.md\n@@ -296,9 +296,10 @@\n-Once you approve it, those rows become beads and the table is replaced by the line that records what\n-became what — `Epic: booking-DESIGN-007 · T1→booking-DESIGN-007-T1 · T2→booking-DESIGN-007-T2`. The\n-bead IDs are the document's own numbering behind the project's Beads prefix, so a person can read\n-and say them. Beads is authoritative from that moment, and a\n-duplicate task list left behind in a git-tracked file would drift from it. The mapping is what lets a\n-later run update the graph instead of duplicating it.\n+Once you approve it, those rows become beads and the table stays. The callout above it records the\n+date and the epic, one bead per row as `<prefix>-DESIGN-NNN-Tn`. Beads is authoritative for work\n+state from that moment; the table holds only the tasks, edges, and design refs, and a later run\n+revises the design rather than duplicating the graph.\n",
+      "status": "fixed"
+    }
+  ]
+}
