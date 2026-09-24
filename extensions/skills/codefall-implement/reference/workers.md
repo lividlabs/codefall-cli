@@ -45,12 +45,16 @@ The worker's final message is exactly one JSON object:
 ```json
 {"bead": "booking-DESIGN-007-T2", "status": "success", "pr": 102,
  "branch": "feat/booking-DESIGN-007-T2-wire-context",
- "discovered": [{"title": "Parser drops trailing comma", "context": "…",
-                 "from": "booking-DESIGN-007-T2"}]}
+ "discovered": [{"kind": "code", "title": "Parser drops trailing comma", "context": "…",
+                 "from": "booking-DESIGN-007-T2"},
+                {"kind": "design", "title": "§ Architecture names a StageStore the code replaced",
+                 "context": "…", "from": "booking-DESIGN-007-T2"}]}
 ```
 
 or `{"bead": "…", "status": "failure", "reason": "…"}`. The `discovered` list is how tangent work
-reaches the root, which files it — the worker's diff stays scoped to its bead.
+reaches the root, which files it — the worker's diff stays scoped to its bead. `kind` is `code` or
+`design` and picks the form under *Discovered work* in `beads.md`, so the root files each item
+without re-reading the worker's prose.
 
 ## Failure handling
 

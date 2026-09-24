@@ -38,8 +38,8 @@ Read each when its step says to; none is loaded up front.
   Technical Context and Hard Constraints blocks, the Task Plan and its callout. Read before step 5.
 - `reference/beads.md` — what gets created in Beads, the test case a bead's criteria name, the plan
   file, the edge direction, and how to verify the graph. Read before step 9.
-- `reference/revising.md` — reconciling the graph when a design changes after its beads exist. Read
-  for the Revise mode.
+- `reference/revising.md` — reconciling the graph when a design changes after its beads exist, and
+  settling the revision beads filed against it. Read for the Revise mode.
 - `templates/designs/AGENTS.md` — the operative rules this skill installs at `docs/designs/AGENTS.md`.
 
 ## Scope — how, not what and not whether
@@ -74,12 +74,11 @@ Three tiers. The work picks the tier; the user can overrule it.
 | **1 — minimal document** | Anything that crosses a component boundary, or fans out past roughly three dependent tasks | The three required sections |
 | **2 — full document** | The same, plus any conditional section whose trigger fires | Required three plus what triggered |
 
-- **Simple bug fixes land at tier 0.** Create the bead directly with the reproduction and the cause.
+- **Simple bug fixes land at tier 0.** One bead, with the reproduction and the cause.
 - **Tier 1 and tier 2 are not decided separately.** Write the required three, then walk the
   conditional triggers; whichever fire, fire.
 - **An ADR is not gated on the tier.** A one-component fix can produce an ADR and no document.
-- **Say the tier out loud, with the reason, before writing anything** — step 4 has the shape. The
-  judgement is yours to make and the user's to overrule.
+- **Say the tier out loud, with the reason, before writing anything** — step 4 has the shape.
 
 ## The document
 
@@ -121,7 +120,7 @@ Three states, one word plus a date.
 | `Archived — <date>` | Superseded or dropped | `docs/designs/archive/` |
 
 - **Status describes the document, never the work.** Work state is Beads' — `bd list` and
-  `bd ready`. There is no `Active` and nothing for `codefall-implement` to transition.
+  `bd ready`.
 - `Archived` moves the file to `docs/designs/archive/` under the same name; citations still resolve.
 - A design that no longer describes the code is revised or archived, not labelled. Revising
   reconciles the graph — `reference/revising.md`.
@@ -167,8 +166,7 @@ Then read the checkout lines. `behind` above `0` or `refresh=stale` means the en
 match `main`: say so and run `/codefall-refresh` before continuing. `refresh=undeclared` names
 `/codefall-equip` instead. Never pull the checkout or run the local commands from here.
 
-**Never run the remedy.** `bd init` writes `.beads/`, git hooks, and blocks in `AGENTS.md` and
-`CLAUDE.md`, then commits; that is the user's decision.
+**Never run the remedy.** `bd init` writes and commits real files; that is the user's decision.
 
 Beads is a hard gate: the graph is this skill's output.
 
@@ -192,8 +190,7 @@ has no written target and offer `/specify`. On no, continue.
   `../codefall-specify/trackers/<name>/PROFILE.md`; if the tracker is unreachable, say so and ask
   whether the mockups exist rather than guessing.
 
-Name the gate, say what clears it, and stop. Do not design half of a spec around a blocked
-requirement.
+Name the gate, say what clears it, and stop.
 
 **Then read what frames it.** The spec's vision, if it names one. `docs/visions/` if no spec
 framed the work. A vision's **Environment & constraints** section is written for this moment.
@@ -208,8 +205,11 @@ framed the work. A vision's **Environment & constraints** section is written for
   use. Read the artifacts, not their names.
 - **The graph** — `bd dolt pull`, then `bd list` and `bd search` for existing work. A task
   this design would create that is already a bead is a dependency edge, not a new task.
+- **Revision requests**, on an existing design — `bd list -l design-revision --spec <its path>`,
+  each a place `codefall-implement` or `codefall-review` found the document wrong.
 
-Report what you found before designing. If the work already exists, say so and stop.
+Report what you found before designing — open revision requests first; they decide between
+Revise and Add tasks. If the work already exists, say so and stop.
 
 ### 4. Decide the tier, and whether there is an ADR
 
@@ -240,7 +240,7 @@ Architecture.
 
 **"Like $LIBRARY does it."** When the user references another project or library, offer once to look
 it up. On yes, research it and summarize only what changes a decision here; confirm the summary
-before it reaches the document. On no, move on without searching.
+before it reaches the document.
 
 **Raise a concern once, then defer.** Name it, say why, and let them decide. Cap at two rounds;
 unresolved, it goes into the document as a stated risk.
@@ -304,8 +304,7 @@ is a tier 0 run with no ADR, which writes no file.
 Write `docs/designs/DESIGN-NNN-slug.md` with the Task Plan **staged**, the ADR if there is one,
 and `docs/designs/AGENTS.md` if it was missing.
 
-Write the document before creating the beads, so a failed creation leaves a resumable run rather
-than a graph nothing explains.
+Write the document before creating the beads, so a failed creation leaves a resumable run.
 
 ### 9. Create the graph
 
@@ -350,8 +349,8 @@ Report:
 Invoking this skill on an existing design does one of four things. Ask which if it is not obvious.
 
 - **Promote** `Draft` to `Ready`, or **reopen** `Ready` to `Draft` when no beads exist yet.
-- **Revise** a design and reconcile its graph, per `reference/revising.md`. A design the code has
-  moved past is revised, not labelled.
+- **Revise** a design and reconcile its graph, per `reference/revising.md`, which also settles
+  every open `design-revision` bead. A design the code has moved past is revised, not labelled.
 - **Archive** a design: set `Status: Archived`, add `**Replaced by:**` if something took its place,
   move the file to `docs/designs/archive/`, and report its open beads to the user rather than
   closing them.
@@ -367,16 +366,14 @@ your own initiative.
   the beads.
 - **Scale the artifact to the work.** Tier 0 is a real outcome, not a failure to write a document.
 - **Never fill a heading.** A conditional section with nothing behind it is deleted, heading and all.
-- **The design says how, never what.** What a consumer observes belongs to `codefall-specify`; a
-  design that restates it duplicates a document that will change without it.
+- **The design says how, never what.** What a consumer observes belongs to `codefall-specify`.
 - **Design within the project's ADRs.** Changing the stance is a superseding ADR, said out loud,
   never a quiet exception; a ratified ADR is never rewritten.
 - **Identifiers are append-only** — design numbers, and local task IDs within a design.
 - **Beads is authoritative for work state once the tasks exist.** The Task Plan keeps the tasks,
   edges, and refs it decided, and never grows a status column.
 - **Every task bead carries acceptance criteria** — checkable, citing spec requirement IDs where
-  they trace, and naming the test case where the task is verified through the wired product. They
-  are what `codefall-implement` verifies before closing the bead.
+  they trace, and naming the test case where the task is verified through the wired product.
 - **A task that introduces infrastructure, a dependency, a migration, or generated code names the
   local-script change in its criteria.** The scripts stay current at the point of introduction,
   never as a follow-up.
@@ -385,12 +382,13 @@ your own initiative.
 - **Every bead write is pushed**: step 9, and every revision.
 - **A removed task's bead is reported, never closed silently.** Work may already have happened
   against it.
+- **A revision bead ends closed** — amended into the document, turned into a task row, or rejected
+  with why. An open one after a revision means the loop is not finished.
 - **A ticket must not change under someone holding it.** An untouched bead is edited whatever
   changed; a bead someone is holding is replaced when the work already done would no longer count.
 - **Status describes the document, never the work.** Work state belongs to Beads.
 - **Never record a hop you can derive.** A design carries its spec, or its vision when there is no
   spec — not both.
 - **Research goes inline**, attached to the decision it informed. No sibling research files.
-- **Push back once, then defer** — on the tier, on the approach, on the cut. The user knows the
-  system and you may be wrong.
+- **Push back once, then defer** — on the tier, on the approach, on the cut.
 - **Never overwrite a file that has drifted.** Show the difference and ask.

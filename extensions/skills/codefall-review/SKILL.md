@@ -220,6 +220,15 @@ Apply the accepted fixes with this session's tools, code and documents alike. A 
 `patch` is a starting point, not a script — apply the intent, matching the surrounding code. Fixes
 are not re-reviewed here.
 
+**A deferred finding the design caused is offered as a bead.** When the finding is that the design
+behind the work says one thing and the code needed another, or that the design and its spec
+disagree, deferring it into the findings file alone leaves `codefall-design` never hearing of it.
+Offer, at triage, to file it in the `design` form under *Discovered work* in
+`../codefall-implement/reference/beads.md`: `--spec-id` the design's path, the label
+`design-revision`, and a `discovered-from` edge to the bead the branch names when there is one.
+On yes, create it, `bd dolt push`, and record its ID as the finding's `bead`. Never file one
+unasked, and never for a finding whose cause is the code.
+
 ## The findings file
 
 Two files per invocation under `.codefall/reviews/`, a `.json` record and a `.md` written to be
@@ -266,7 +275,9 @@ Follow `../../../.codefall/shared/customizations.md` for this verb.
    dismissed, deferred; what could not be checked and why; where the files are; and the branch or
    worktree the fixes landed on if one was created. **End with what the user does next**: on a pull
    request or a branch, push the fixes and merge; on uncommitted work, the findings files are left
-   unstaged to commit with the work or not at all; otherwise nothing is pending.
+   unstaged to commit with the work or not at all; otherwise nothing is pending. Where revision
+   beads were filed, `/codefall-design DESIGN-NNN` comes before the merge, so the document is
+   corrected while the work that found it wrong is still in view.
 
 **Three runs end early, and each ends cleanly.**
 
@@ -299,4 +310,6 @@ Follow `../../../.codefall/shared/customizations.md` for this verb.
   ADR, an archived document, a specific commit — and say which.
 - **An identifier that resolves to nothing is a stop**, not a guess.
 - **Only `fixed` and `deferred` findings reach a pull request.** A dismissed one was judged wrong.
+- **A revision bead is offered, never filed unasked**, and only for a deferred finding the design
+  caused. The graph stays `codefall-design`'s; the bead is a request to it.
 - **The `.ignore` entry is offered, never added unasked**, and appended rather than written over.
