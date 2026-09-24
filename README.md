@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/codefall-logo.svg" alt="Codefall" width="460">
+</p>
+
 codefall
 --------
 
