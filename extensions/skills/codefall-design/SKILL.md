@@ -295,7 +295,7 @@ persists" — so the user can catch an omission that was a gap.
 and every spec or vision amendment. Approving the plan is the sign-off those need; nothing later
 asks for it.
 
-Show the ADR too, if there is one, and say plainly that it ships `Accepted`.
+Show the ADR too, if there is one; it ships `Accepted`.
 
 Then set the status: `Ready`, unless they said they are stopping and coming back, which is `Draft`.
 
@@ -308,7 +308,8 @@ Branch first, per `../../../.codefall/shared/landing.md` — `design/DESIGN-NNN-
 is a tier 0 run with no ADR, which writes no file.
 
 Write `docs/designs/DESIGN-NNN-slug.md` with the Task Plan **staged**, the ADR if there is one,
-`docs/designs/AGENTS.md` if it was missing, and the amendments the user took, each mirrored.
+`docs/designs/AGENTS.md` if it was missing, and the amendments the user took: a spec's mirrored, a
+vision's committed beside the design.
 
 Write the document before creating the beads, so a failed creation leaves a resumable run.
 

@@ -134,7 +134,8 @@ boundary, before the next wave is claimed:
   silently.
 - **A spec was amended.** Regenerate the requirement's tracker issue, the existing-requirement case
   of the *Refreshing* sequence in the spec's tracker profile, as the mirror reference beside this
-  file says.
+  file says. The amended text is on the worker's branch and nowhere else: read it with
+  `git show origin/<branch>:<path>`, never from the primary checkout, which does not carry it.
 - **The close reason** names the amendment beside what was verified, so the bead's record says the
   document moved with the work.
 

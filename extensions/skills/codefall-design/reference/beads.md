@@ -71,8 +71,7 @@ identifier in full; the spec is edited on this run's branch at step 8, and the r
 issue is regenerated per the *Refreshing* sequence in
 `../../codefall-specify/trackers/<name>/PROFILE.md`, the existing-requirement case alone. On no, the
 criterion is written marked `derived`, which from here on means the spec was offered it and
-declined. A spec that is `Draft` is amended the same way; one that is `Archived` is not a target
-for design at all. Nothing is patched into the case.
+declined. Nothing is patched into the case.
 
 **The user's approval of the task plan is the sign-off** the derived criteria need, so every such
 criterion is shown at step 7 and nothing later asks again.

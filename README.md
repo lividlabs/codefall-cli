@@ -313,9 +313,10 @@ edited, whatever changed. A bead someone has claimed, commented on, or closed is
 the work already done against the old wording would no longer count — a ticket should not change
 under the person holding it. A task that leaves the design is reported to you, never closed on its
 own, because someone may still be working it. A request to revise can also arrive from downstream,
-as a `design-revision` bead, but only for a disagreement that moves work: `implement` and `review`
-amend the design's text themselves when the code disagrees with it, in their own pull request, and
-file the bead when the fix would change a task row or a criterion a bead cites.
+as a `design-revision` bead, when the verb that found it could not amend it: `implement` and
+`review` amend the design's text themselves when the code disagrees with it, in their own pull
+request, and file the bead when the fix would change a task row or a criterion a bead cites, when
+the document is frozen, or when you declined the amendment.
 
 **`design` also decides which tasks need a test case.** A task verified through the wired product —
 the real interface, against the real services — has the case named in its bead's acceptance
@@ -369,9 +370,10 @@ fresh-context retesting stay with the `test` verb.
 **A design the work proves wrong is amended by the work, not worked around.** A worker that can
 finish its task despite the design's text, or the spec's, disagreeing with the code amends that text
 in its own branch, names the amendment in its pull request, and the root re-mirrors a spec change to
-its tracker issue. Only a disagreement that would move work — a task row, a criterion a bead cites —
-is filed as a `design-revision` bead, and the close-out names those beads separately from code
-follow-ups and tells you to run `design` on that document. A disagreement the task cannot finish
+its tracker issue. A disagreement the worker could not amend — one that would move work, a task row
+or a criterion a bead cites; one in a frozen document; one you declined — is filed as a
+`design-revision` bead, and the close-out names those beads separately from code follow-ups and
+tells you to run `design` on that document. A disagreement the task cannot finish
 under stops the run instead. [ADR-008](docs/adrs/ADR-008-upstream-amendments.md) holds the rule,
 and it applies at any distance up the chain.
 
