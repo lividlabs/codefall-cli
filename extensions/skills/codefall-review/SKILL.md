@@ -122,7 +122,7 @@ says where fixes will land when that would create a worktree or branch.
 4. The project's `AGENTS.md` and `docs/adrs/`. The root `AGENTS.md` always; a scoped one whenever a
    touched file sits under its directory, nearest first. A project with neither is reviewed against
    its own surrounding code, and the report says so.
-5. The design behind the work when there is one. A branch named `feat/bd-unz-…` carries a bead ID;
+5. The design behind the work when there is one. A branch named `feat/booking-DESIGN-007-T1-…` carries a bead ID;
    `bd show <id> --json` gives `spec_id`, the design document's path. From the design,
    `codefall-design` defines the row that reaches the spec, and `codefall-specify` the row that
    reaches the concept.

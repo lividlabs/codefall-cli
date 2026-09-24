@@ -31,10 +31,11 @@ bd dolt push                        # the claim is visible to the team before th
 Single-bead scope claims only its bead — the epic stays unclaimed so coworkers can take siblings —
 and creates no landed bead; the PR-link comment is the merge trail.
 
-Work happens in git; commits carry the bead ID — `feat: add StageContext type (bd-unz)`.
+Work happens in git; commits carry the bead ID — `feat: add StageContext type
+(booking-DESIGN-007-T1)`.
 
 ```bash
-bd comment <bead> "PR #101 · feat/bd-unz-stage-context · built with opus/high"
+bd comment <bead> "PR #101 · feat/booking-DESIGN-007-T1-stage-context · built with opus/high"
 bd close <bead> -r "done: criteria R1,R2 verified, checks green, PR #101 open" --suggest-next
 bd dolt push
 ```
@@ -46,11 +47,14 @@ gates below.
 ## The landed bead and its gates
 
 An epic cannot be gated directly and refuses to close while children are open. So an epic run's
-first claim also creates one extra child task — `Land: all PRs merged to main` — with gates
-blocking it:
+first claim also creates one extra child task — `Land: all PRs merged to main`, named
+`<epic>-MERGED` — with gates blocking it. `--id` and `--parent` do not combine on one `bd create`,
+so the parent is set in a second call:
 
 ```bash
-bd gate create --type=gh:pr --blocks <land-bead> --await-id=<pr-number> -r "PR #<n>"
+bd create "Land: all PRs merged to main" --id <epic>-MERGED
+bd update <epic>-MERGED --parent <epic>
+bd gate create --type=gh:pr --blocks <epic>-MERGED --await-id=<pr-number> -r "PR #<n>"
 ```
 
 `bd close` refuses an issue with unsatisfied gates, so the landed bead cannot close — and therefore
@@ -65,12 +69,15 @@ bead gets no gate.
 ## Discovered work
 
 ```bash
-bd create "Parser drops trailing comma" --deps discovered-from:<bead> -p 2
+bd create "Parser drops trailing comma" --id "$(bd config get issue_prefix)-parser-trailing-comma" \
+  --deps discovered-from:<bead> -p 2
 bd dolt push
 ```
 
-Workers report discoveries in their result JSON; the root files them, and pushes as after every
-other write.
+Every discovered bead is named: `<prefix>-<tracker ref>` (`gh-123`, `jira-ABC-42`), with
+`--external-ref` set to the same value, where a tracker issue exists; `<prefix>-<slug>` otherwise.
+A taken ID is refused; append `-2` and retry. Never `--force`. Workers report discoveries in their
+result JSON; the root files them, and pushes as after every other write.
 
 ## Session end
 

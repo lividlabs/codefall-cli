@@ -7,6 +7,7 @@ Read before creating the graph (step 9).
 - What gets created
 - The test case in a bead's criteria
 - The plan file
+- Name the beads
 - Verify the graph
 - Publish the graph
 
@@ -23,7 +24,10 @@ a spec requirement cites it (`R3: context survives a restart`). Write them as ch
 task text; `codefall-implement` verifies them before closing the bead.
 
 Tier 0 has no epic. One or two beads are created directly, with the reproduction, the cause, and
-acceptance criteria in the body — the bead must be self-sufficient.
+acceptance criteria in the body — the bead must be self-sufficient. Each is created with `--id`:
+`<prefix>-<tracker ref>` (`gh-123`, `jira-ABC-42`) where a tracker issue exists, with
+`--external-ref` set to the same value, else `<prefix>-<slug>`. A taken ID is refused; append `-2`
+and retry. `<prefix>` is what `bd config get issue_prefix` prints.
 
 ## The test case in a bead's criteria
 
@@ -104,9 +108,9 @@ bd create --graph <plan.json>
 
 ```
 Created 3 issues
-  EPIC -> bd-a2g
-  T1 -> bd-unz
-  T2 -> bd-s58
+  EPIC -> booking-a2g
+  T1 -> booking-unz
+  T2 -> booking-s58
 ```
 
 **The edge direction is the trap.** Despite the type name, `from_key` is the **dependent** and
@@ -117,13 +121,38 @@ reverse, and nothing but the ready set will tell you.
 
 **The plan file carries only these fields.** `key`, `title`, `type`, `description`, `labels`,
 `priority`, `parent_key` on a node; `from_key`, `to_key`, `type` on an edge. Anything else is
-**silently dropped** with a warning. Neither `--spec-id` nor `--acceptance` is among them, so both
-are set afterwards, in one update pass over the creation output:
+**silently dropped** with a warning. Neither `--spec-id` nor `--acceptance` is among them, and
+there is no ID field, so all three are set afterwards, in one pass over the creation output: the
+rename below, then the update.
 
 ```bash
 bd update <id> --spec-id docs/designs/DESIGN-007-stage-context.md \
   --acceptance $'R3: context survives a restart\nHard constraint: one open write txn per booking'
 ```
+
+## Name the beads
+
+The graph is created with the hash IDs `bd` picks and renamed to the document's own numbering,
+behind the project's prefix, before anything cites them:
+
+| Bead | ID |
+| --- | --- |
+| Epic | `<prefix>-DESIGN-NNN` |
+| Task `Tn` | `<prefix>-DESIGN-NNN-Tn` |
+
+`<prefix>` is what `bd config get issue_prefix` prints. Never write a project's prefix into a
+skill or a template; `bd create` and `bd rename` refuse an ID under another prefix. `bd rename`
+carries the parent, the edges, and every reference with it.
+
+```bash
+bd rename booking-a2g booking-DESIGN-007
+bd rename booking-unz booking-DESIGN-007-T1
+bd rename booking-s58 booking-DESIGN-007-T2
+```
+
+A rename refused because the ID exists means this design's beads were created before and the
+mapping line was lost. Find them by `spec_id` and reconcile per `revising.md`; never create a
+second graph beside the first.
 
 ## Verify the graph
 

@@ -43,8 +43,10 @@ checks, never trusts.
 The worker's final message is exactly one JSON object:
 
 ```json
-{"bead": "bd-s58", "status": "success", "pr": 102, "branch": "feat/bd-s58-wire-context",
- "discovered": [{"title": "Parser drops trailing comma", "context": "…", "from": "bd-s58"}]}
+{"bead": "booking-DESIGN-007-T2", "status": "success", "pr": 102,
+ "branch": "feat/booking-DESIGN-007-T2-wire-context",
+ "discovered": [{"title": "Parser drops trailing comma", "context": "…",
+                 "from": "booking-DESIGN-007-T2"}]}
 ```
 
 or `{"bead": "…", "status": "failure", "reason": "…"}`. The `discovered` list is how tangent work

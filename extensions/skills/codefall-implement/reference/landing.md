@@ -42,16 +42,16 @@ conflict found there is resolved deliberately, in the open — not by an automat
 The go gate renders the plan as a branch diagram built from the actual graph. Stacked:
 
 ```
-main ──┬── bd-a1 ── bd-a2 ── bd-a3 ── bd-a4    stack A · parser chain    [src/parse/**]
-       └── bd-b1 ── bd-b2                      stack B · CLI chain       [src/cli/**]
-             2 stacks in parallel · merges drain bottom-up · A and B independent
+main ──┬── T1 ── T2 ── T3 ── T4    stack A · parser chain    [src/parse/**]
+       └── T5 ── T6                stack B · CLI chain       [src/cli/**]
+         2 stacks in parallel · merges drain bottom-up · A and B independent
 ```
 
 Epic branch:
 
 ```
-main ── epic/bd-e7-stage-context
-          ├── bd-t1 ─┐
-          ├── bd-t2 ─┼── bd-t4    fan-in: t4 needs t1 + t2
-          └── bd-t3 ─┘            wave 1: t1 t2 t3 · wave 2: t4
+main ── epic/booking-DESIGN-007-stage-context
+          ├── T1 ─┐
+          ├── T2 ─┼── T4    fan-in: T4 needs T1 + T2
+          └── T3 ─┘         wave 1: T1 T2 T3 · wave 2: T4
 ```

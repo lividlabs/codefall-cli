@@ -11,7 +11,7 @@ Then, row by row:
 | Case | What happens |
 | --- | --- |
 | The row changed | Edited or replaced, decided by whether anyone is holding the bead — below |
-| The row is new | A new local ID, a new bead, appended to the mapping line |
+| The row is new | A new local ID, a new bead named `<prefix>-DESIGN-NNN-Tn`, appended to the mapping line |
 | An edge changed | `bd dep add` or `bd dep remove`, then re-verify with `bd ready` and `bd dep cycles` |
 | The row is gone | Its local ID retires. **Report the bead and let the user choose** — close it, or leave it open because work already happened against it |
 
@@ -27,7 +27,9 @@ the old wording, so the size of the change does not matter.
 
 **Touched** — claimed, in progress, commented on, or closed — asks one question: would the work done
 against the old wording still be correct and sufficient under the new wording? Yes, edit it. No,
-replace it: create the new bead, `bd supersede <old> --with <new>`, and repoint the mapping line.
+replace it: `bd rename <id> <id>-superseded` to move the old bead out of the way, create the new
+bead under the plain `<id>`, and `bd supersede <id>-superseded --with <id>`. The mapping line does
+not change: the current bead always holds the plain ID.
 
 A ticket must not change under someone holding it. Where nobody is holding it, editing costs
 nothing.

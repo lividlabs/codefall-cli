@@ -137,9 +137,9 @@ difference and ask. Replace only on a yes; on a no, leave it and say nothing fur
 
 ## Beads
 
-Beads holds the tasks and the graph; the document holds the approach. One epic per design document
-and one task bead per Task Plan row. Tier 0 has no epic: one or two self-sufficient beads. The rest
-is in `reference/beads.md`.
+Beads holds the tasks and the graph; the document holds the approach. One epic, `<prefix>-DESIGN-NNN`,
+and one task bead per row, `<prefix>-DESIGN-NNN-Tn`. Tier 0 has no epic: one or two self-sufficient
+beads. More in `reference/beads.md`.
 
 ## Project customizations
 
@@ -311,11 +311,10 @@ than a graph nothing explains.
 
 ### 9. Create the graph
 
-Read `reference/beads.md`. Build the plan file from the staging table, dry-run it, create it, set
-`--spec-id` and `--acceptance` on every task bead, verify with `bd ready` and `bd dep cycles`, and push.
+Read `reference/beads.md`. Build the plan file from the table, dry-run it, create it, rename to the
+IDs, set `--spec-id` and `--acceptance`, verify with `bd ready` and `bd dep cycles`, and push.
 
-If the ready set does not match the roots of the staging table, fix the edges now, before the table
-collapses.
+If the ready set does not match the table's roots, fix the edges now, before the table collapses.
 
 ### 10. Collapse the Task Plan
 
