@@ -232,7 +232,8 @@ missing. Then commit those files by path and offer the push and the pull request
 procedure. The merge is the user's.
 
 Report the path, the identifier, the status, every open question the document carries, the branch,
-and the pull request if one was opened.
+and the pull request if one was opened. **End with what the user does next**: merge the pull
+request, then `/codefall-specify VISION-NNN`.
 
 Do not create issues. Do not start a specification.
 

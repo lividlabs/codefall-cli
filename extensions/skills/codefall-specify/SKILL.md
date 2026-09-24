@@ -165,7 +165,7 @@ Run the shared check against the user's project. It reports what is set up and r
 ```
 
 `beads=ok` advances to step 2. Otherwise read `beads_reason`, tell the user what is missing, hand
-over the command that fixes it, and **stop**:
+over the command that fixes it, say to rerun this verb after it, and **stop**:
 
 | `beads_reason` | What is wrong | Give them |
 | --- | --- | --- |
@@ -370,7 +370,9 @@ the vision — and offer the push and pull request, its body carrying `Relates t
 The merge is the user's.
 
 Report the spec path, its identifier, its status, every open question it carries, the issues that
-were created with links, the branch, and the pull request if one was opened.
+were created with links, the branch, and the pull request if one was opened. **End with what the
+user does next**: merge the pull request; then `/codefall-mock-up` where a requirement carries
+`requires-mockup`, otherwise `/codefall-design SPEC-NNN`.
 
 ## Other modes
 
@@ -389,23 +391,20 @@ own initiative. Each lands per `../../../.codefall/shared/landing.md`.
 
 ## Rules
 
-- **Nothing is written without the user confirming the full document first.**
+- **Nothing is written without the user confirming the document first.**
 - **The document is canonical.** Tracker issues are generated from it and regenerated on later runs.
-  Never treat a hand-edited issue body as the source of truth.
+  A hand-edited issue body is never the source of truth.
 - **The specification says what, never how.** No file paths, no libraries, no services, no schema. A
   domain noun may be named and defined; its fields, types, and relations may not.
-- **Acceptance criteria are EARS, and nothing else is.** Pick the pattern that fits rather than
-  writing everything as `WHEN … THEN`.
+- **Acceptance criteria are EARS, and nothing else is.** Pick the pattern that fits.
 - **"so that" is mandatory** in every user story.
 - **Criteria are observable in a running system**, and the instrumentation to make them so is part of
   the requirement — surfaced out loud, never absorbed silently.
-- **Criteria exist for coverage, not symmetry.** Requirements with different criteria counts are
-  expected.
+- **Criteria exist for coverage, not symmetry.**
 - **Numbering is append-only at every level.** Retired numbers are never reused.
 - **Status describes the document, never the work.** Work state belongs to the tracker.
 - **Silent omission is never a deletion.** A removal is always its own criterion.
 - **Mockups are keyed by surface**, never filed under a spec.
-- **Push back once, then defer.** On vagueness, on design concerns, on cohesion. The user knows the
-  domain and you may be wrong.
-- **Unresolved is recorded, not dropped.** Open questions go in the document.
+- **Push back once, then defer** — on vagueness, on design concerns, on cohesion.
+- **Unresolved is recorded, not dropped**, as open questions in the document.
 - **Never overwrite a file that has drifted.** Show the difference and ask.

@@ -24,6 +24,9 @@ writing and changing a skill; the extension-wide rules, ADR immutability, prose,
   tracker — those are exits. Disagreeing about size, altitude, or fit is not: say what you think and
   why, then do what the user asks. `codefall-envision`'s floor and `codefall-specify`'s cohesion check are both
   this shape.
+- **A report ends with what the user does next** — merge the pull request, run the next verb,
+  answer a question — as its last line, and a stop that hands over a remedy says to rerun the verb
+  after it. A user should never have to work out the next step from what was produced.
 - Never present an option that would be refused — unsupported stacks and planned profiles are
   exits, not menu choices. See the stack question in `codefall-scaffold`'s SKILL.md.
 - Every verb reads `.codefall/skills/<verb>/CUSTOMIZE.md` from the user's project when it exists —

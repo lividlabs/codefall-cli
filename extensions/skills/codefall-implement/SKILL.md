@@ -233,7 +233,7 @@ Run the shared check against the user's project.
 ```
 
 `beads=ok` advances. Otherwise read `beads_reason`, tell the user what is missing, hand over the
-command that fixes it, and stop:
+command that fixes it, say to rerun this verb after it, and stop:
 
 | `beads_reason` | What is wrong | Give them |
 | --- | --- | --- |
@@ -323,6 +323,8 @@ close.
 - The tracker mirror's state, the vision transition if one fired.
 - The worktree list, with the cleanup offer.
 - Final `bd dolt push`.
+- **Last, what the user does next**: review the pull requests, merge them in the order above, then
+  `/codefall-test DESIGN-NNN` where a bead named a case.
 
 Do not merge. Do not wait for merges. The next session's `bd gate check` finishes the story.
 

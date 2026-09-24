@@ -160,8 +160,8 @@ One block, short:
 - The beads: synced, no remote, skipped because beads is blocked, or halted and why.
 - The environment: `start` ran; `update` ran or was skipped as current.
 - The stamp: written at `<short>`, or not, and why.
-- Anything owed: the rebase the user has to do, the `codefall init` for `.gitignore`, the
-  `/codefall-equip` for a broken script.
+- **Last, what the user does next**: nothing, or the rebase the user has to do, the `codefall init`
+  for `.gitignore`, the `/codefall-equip` for a broken script.
 
 ## Rules
 

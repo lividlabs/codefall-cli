@@ -1251,6 +1251,20 @@ Decided at scaffold, 2026-08-16.
   resolves, its epic being `<prefix>-DESIGN-NNN` regardless: `/implement DESIGN-NNN` checks the epic
   with `bd show` rather than the line, and the design's first revision rebuilds the table from the
   beads.
+- **Every report ends with what the user does next, 2026-09-24.** The skills reported what they
+  produced and ended with a prohibition — "do not start a specification", "do not merge" — and
+  the user was left to work out the next step from the output. Now the last line of every verb's
+  report is the user's next action: merge the pull request and run the next verb, in the chain's
+  order (`envision` → `specify` → `mock-up` where a requirement carries `requires-mockup` →
+  `design` → `implement` → review and merge the pull requests → `test`), or the remedy that is
+  owed, or nothing. A preflight stop that hands over a remedy says to rerun the verb after it. The
+  line lives in each `SKILL.md`, because that is the only file a project session loads; the rule
+  in `extensions/skills/AGENTS.md` binds authors here and reaches no project. Three skills sat at
+  the 5,000-token guideline and were trimmed of restated reasoning to make room. Seen and not
+  taken: a shared `next.md` under `.codefall/shared/`, because the next action depends on where in
+  the run the turn stopped, which a table per verb cannot say. Left for later: reviewing several
+  pull requests in one run — a stack is one commit range, pull requests against the default branch
+  are one pass each — which the review skill does not yet describe.
 
 ## Open
 

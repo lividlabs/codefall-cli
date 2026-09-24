@@ -325,7 +325,9 @@ push and the pull request. The merge is the user's.
 
 Report the directories, every file with what it shows, what the mockup was matched against, options
 offered and which was taken, states deliberately not made and why, anything assumed because the user
-did not answer, any labels cleared, the branch, and the pull request if one was opened.
+did not answer, any labels cleared, the branch, and the pull request if one was opened. **End with
+what the user does next**: merge the pull request; then `/codefall-design SPEC-NNN` where a spec was
+waiting on this mockup, otherwise `/codefall-specify`.
 
 Do not create issues. Do not start a design.
 
