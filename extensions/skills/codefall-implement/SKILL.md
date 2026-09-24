@@ -58,8 +58,8 @@ Read each when its step says to; none is loaded up front.
 **A task that turns out to be wrong is reported, not redesigned.** When the design's cut does not
 survive contact with the code, say what you found and hand the graph back to `codefall-design`. A
 smaller disagreement the task can finish under — the design's text against the code, or against
-the spec — is filed as a `design-revision` bead per `reference/beads.md`, which `codefall-design`
-reads on its next run.
+the spec — is filed as a `design-revision` bead per `reference/beads.md`. `codefall-design` lists
+those on its next run.
 
 - **Implement writes every test the current work needs** — planned by the design's Testing Strategy
   or discovered mid-task, unit through end-to-end. A missing test is written, not sent back to

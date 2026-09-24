@@ -208,7 +208,7 @@ framed the work. A vision's **Environment & constraints** section is written for
 - **Revision requests**, on an existing design — `bd list -l design-revision --spec <its path>`,
   each a place `codefall-implement` or `codefall-review` found the document wrong.
 
-Report what you found before designing — open revision requests first; they decide between
+Report what you found before designing — open revision requests first; use them to decide between
 Revise and Add tasks. If the work already exists, say so and stop.
 
 ### 4. Decide the tier, and whether there is an ADR
