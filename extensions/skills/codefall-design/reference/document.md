@@ -121,14 +121,16 @@ fifteen lines rather than the whole document.
 ## Task Plan
 > Created in Beads 2026-08-29. Beads is authoritative.
 
-Epic: bd-a2g · T1→bd-unz · T2→bd-s58 · T3→bd-cj4 · T4→bd-p71
+Epic: booking-DESIGN-007 · T1→booking-DESIGN-007-T1 · T2→booking-DESIGN-007-T2 · T3→booking-DESIGN-007-T3 · T4→booking-DESIGN-007-T4
 ```
 
 Beads is the source of truth once the issues exist; the staging table comes out. The mapping line
 stays so a later run on a changed document can update the graph rather than duplicate it.
 
-Bead identifiers are `<prefix>-<hash>`, where the prefix is the project's — `bd-unz`, `booking-a2g`.
-They are not sequential; take them from the creation output.
+Bead identifiers are the document's own numbering behind the project's prefix —
+`<prefix>-DESIGN-NNN` for the epic, `<prefix>-DESIGN-NNN-Tn` for each task — set by `bd rename`
+after creation, per `beads.md`. The line lists them anyway: a replaced task's bead is
+`<prefix>-DESIGN-NNN-Tn-2`, and the line is what says which bead is current.
 
 ## Local IDs are append-only
 

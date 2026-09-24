@@ -11,6 +11,10 @@ git-authority note or close protocol, decides Dolt sync here.
 - `bd dolt push` after every write — a create, a claim, a close, a dependency change — and
   before the work that follows it.
 - Work found along the way becomes an issue linked `discovered-from` the current one.
+- Every bead is created with `--id`, never with the hash `bd` would pick: a design's epic is
+  `<prefix>-DESIGN-NNN` and its tasks `<prefix>-DESIGN-NNN-Tn`; other work is `<prefix>-<tracker
+  ref>` (`gh-123`, `jira-ABC-42`) where an issue exists, else `<prefix>-<slug>`. `<prefix>` is what
+  `bd config get issue_prefix` prints. A taken ID is refused: add `-2` and retry. Never `--force`.
 - No Dolt remote (`bd dolt pull` says `no remote`): say so once and carry on. `bd dolt push --yes`
   adopts the git origin; running it is the user's decision.
 - `.beads/interactions.jsonl` is bd's append-only log and lands in the next commit after a bead
@@ -22,6 +26,7 @@ bd dolt pull             # first
 bd ready                 # unblocked work
 bd show <id>             # one issue
 bd update <id> --claim   # take it
+bd create "<title>" --id <prefix>-<slug>   # new work, named
 bd close <id>            # finish it
 bd dolt push             # after every write
 ```

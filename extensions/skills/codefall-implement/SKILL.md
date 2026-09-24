@@ -69,9 +69,9 @@ The argument fixes the scope; the skill never infers it.
 
 | Invocation | Scope |
 | --- | --- |
-| `/implement bd-abc` | That bead, alone |
-| `/implement bd-a2g` (an epic) | The epic's whole graph, until its ready set is empty or a gate stops the run |
-| `/implement DESIGN-007` | The design's epic, via the mapping line in its Task Plan |
+| `/implement booking-parser-trailing-comma` | That bead, alone |
+| `/implement booking-DESIGN-007` (an epic) | The epic's whole graph, until its ready set is empty or a gate stops the run |
+| `/implement DESIGN-007` | The design's epic, `<prefix>-DESIGN-007`, checked against the mapping line in its Task Plan |
 | `/implement` | Show ready work grouped by epic and ask |
 
 A design whose Task Plan still says `Staged. Not yet in Beads` has no graph to walk. Refuse and
