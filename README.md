@@ -431,8 +431,8 @@ handle flight fulfillment" — and it searches, shows you the files it found, an
 a line of them.
 
 **The context that finds a problem is never the one that fixes it.** The review runs in a subagent,
-or in another harness entirely — `via=codex`, `via=gemini`, `via=claude`, `via=opencode`, each in its
-own read-only mode. Then you triage, and this session applies what you took. A model that both finds
+or in another harness entirely — `via=codex`, `via=gemini`, `via=claude`, `via=opencode`,
+`via=muse`, each in its own read-only mode. Then you triage, and this session applies what you took. A model that both finds
 and fixes grades its own work on the next pass, and the second reading goes through the same blind
 spots that made the first one worth doing.
 

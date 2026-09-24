@@ -15,14 +15,15 @@
 # Usage: review-via.sh [--model <model>] <harness> <prompt-file> <schema-file> <out-file>
 #
 #   --model      the model to use; omitted, the harness picks its own
-#   harness      codex | claude | opencode | gemini
+#   harness      codex | claude | opencode | gemini | muse
 #   prompt-file  the review prompt, already written
 #   schema-file  findings.schema.json, beside this script's parent
 #   out-file     where the harness's final message is written
 #
 # The prompt carries the schema for every harness. Codex and Claude Code also
 # take it as a flag, which constrains their output instead of requesting it; the
-# other two have no equivalent and rely on the prompt alone.
+# other three rely on the prompt alone — OpenCode and Gemini because they have no
+# such flag, Muse because its flag rejects this schema (see run_muse).
 #
 # Environment
 #   CODEFALL_REVIEW_TIMEOUT   seconds before the run is killed (default 900)
@@ -37,7 +38,7 @@
 
 set -uo pipefail
 
-readonly USAGE="usage: review-via.sh [--model <model>] <codex|claude|opencode|gemini> <prompt> <schema> <out>"
+readonly USAGE="usage: review-via.sh [--model <model>] <codex|claude|opencode|gemini|muse> <prompt> <schema> <out>"
 
 fail() {
   local code=$1
@@ -86,7 +87,7 @@ schema=$3
 out=$4
 
 case $harness in
-  codex | claude | opencode | gemini) ;;
+  codex | claude | opencode | gemini | muse) ;;
   *) fail 64 "unknown harness \"$harness\" ($USAGE)" ;;
 esac
 
@@ -166,6 +167,26 @@ run_gemini() {
     --output-format text \
     -p "Review as the text above says. Reply with findings JSON only." \
     <"$prompt" >"$out"
+}
+
+# Muse's headless mode is `exec`. Its read-only mode is three flags rather than
+# one: --disable-write refuses the workspace file tools, --disable-web-tools the
+# network, and --approval-mode never keeps a run with nobody at the terminal from
+# waiting on a prompt; the OS sandbox stays on by default and covers the shell.
+# Muse has an --output-schema flag like codex's, and it is not used: the API
+# behind it rejects the `if`/`then` clause that makes `reason` required on a
+# dismissed finding, and the run fails before the model reads a file. The copy
+# in the prompt is what it gets. Muse has been seen to print its final object
+# twice in a row; the skill's parse retry covers that, and this script does not.
+run_muse() {
+  muse exec \
+    "${model_flag[@]+"${model_flag[@]}"}" \
+    --prompt-file "$prompt" \
+    --disable-write \
+    --disable-web-tools \
+    --approval-mode never \
+    --user-input-auto-resolve \
+    >"$out"
 }
 
 # A review that hangs is the failure this guards against. There is no portable
