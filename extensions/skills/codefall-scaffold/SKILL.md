@@ -323,6 +323,8 @@ and every `AGENTS.md` link resolves.
 - Files created, landed per `../../../.codefall/shared/landing.md`.
 - What the user still owes the project — always including boundary enforcement if it is not wired,
   and `codefall-equip` after a docs-only run.
+- **Last, what the user does next**: merge the pull request, what is owed above, then
+  `/codefall-specify VISION-NNN`.
 
 ## Rules
 
@@ -330,16 +332,14 @@ and every `AGENTS.md` link resolves.
   the decision log's Parking lot.
 - **Shape decides the architecture; names decide folder names.** Several separable capabilities is
   package-by-component whether or not anyone has named them.
-- **Never show a profile that is not supported.** Planned profiles are exits, not options.
-- **A clean refusal beats an improvised profile.** Never hand-author ADRs for an unsupported
-  language.
-- **Recommend only what an ADR supports.** Where Codefall has no stance, say so and present the
-  options flat.
+- **Never show or improvise a profile that is not supported.** Planned profiles are exits, and
+  ADRs for an unsupported language are never hand-authored.
+- **Recommend only what an ADR supports.** Where Codefall has no stance, present the options flat.
 - **The inherited ADRs ship Accepted.** Amend only when the interview requires it, and report every
   amendment.
 - **Provenance is written every time and never hand-edited.** Hashes are computed, never invented.
 - **Never scaffold into a non-empty directory unannounced, and never overwrite an existing path.**
-- **Boundary enforcement is owed on day one.** Docs-only output says so in the report.
+- **Boundary enforcement is owed on day one.**
 - **A code tier equips the project**, per `codefall-equip`; docs-only output names it as owed.
 - **Verify what you emitted**, including that the boundary rules fail on a deliberate violation.
 - **The doc workflow this seeds: discuss → decision-log → ADR → scoped `AGENTS.md` → code.**

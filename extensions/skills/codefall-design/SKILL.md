@@ -79,8 +79,7 @@ Three tiers. The work picks the tier; the user can overrule it.
   conditional triggers; whichever fire, fire.
 - **An ADR is not gated on the tier.** A one-component fix can produce an ADR and no document.
 - **Say the tier out loud, with the reason, before writing anything** — step 4 has the shape. The
-  judgement is yours to make and the user's to overrule; push back once if you disagree with their
-  answer, then do what they ask.
+  judgement is yours to make and the user's to overrule.
 
 ## The document
 
@@ -156,7 +155,7 @@ Run the shared check against the user's project. It reports what is set up and r
 ```
 
 `beads=ok` advances to step 2. Otherwise read `beads_reason`, tell the user what is missing, hand
-over the command that fixes it, and **stop**:
+over the command that fixes it, say to rerun this verb after it, and **stop**:
 
 | `beads_reason` | What is wrong | Give them |
 | --- | --- | --- |
@@ -169,7 +168,7 @@ match `main`: say so and run `/codefall-refresh` before continuing. `refresh=und
 `/codefall-equip` instead. Never pull the checkout or run the local commands from here.
 
 **Never run the remedy.** `bd init` writes `.beads/`, git hooks, and blocks in `AGENTS.md` and
-`CLAUDE.md`, then commits all of it. That is the user's decision.
+`CLAUDE.md`, then commits; that is the user's decision.
 
 Beads is a hard gate: the graph is this skill's output.
 
@@ -210,8 +209,7 @@ framed the work. A vision's **Environment & constraints** section is written for
 - **The graph** — `bd dolt pull`, then `bd list` and `bd search` for existing work. A task
   this design would create that is already a bead is a dependency edge, not a new task.
 
-Report what you found before designing. If the work already exists, in code or in the graph, say so
-and stop.
+Report what you found before designing. If the work already exists, say so and stop.
 
 ### 4. Decide the tier, and whether there is an ADR
 
@@ -244,11 +242,11 @@ Architecture.
 it up. On yes, research it and summarize only what changes a decision here; confirm the summary
 before it reaches the document. On no, move on without searching.
 
-**Raise a concern once, then defer.** Name it, say why, and let them decide. Cap at two rounds; if
-it stays unresolved it goes into the document as a stated risk.
+**Raise a concern once, then defer.** Name it, say why, and let them decide. Cap at two rounds;
+unresolved, it goes into the document as a stated risk.
 
 **Do not bikeshed.** Naming, and which of two equivalent shapes is better, do not change what gets
-built. When a question changes nothing, do not ask it.
+built; do not ask.
 
 ### 6. Stage the tasks
 
@@ -343,9 +341,9 @@ Report:
 - any gap the case criteria exposed in the spec, for `codefall-specify`;
 - the ready set — which tasks `codefall-implement` can start on today;
 - anything left unresolved, and any concern the user overruled;
-- the branch and the pull request.
-
-Do not start implementing.
+- the branch and the pull request;
+- **last, what the user does next**: merge the pull request, then `/codefall-implement DESIGN-NNN`,
+  or `/codefall-implement <bead>` at tier 0.
 
 ## Other modes
 

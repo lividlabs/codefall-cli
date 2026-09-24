@@ -323,11 +323,13 @@ Land the run per `../../../.codefall/shared/landing.md`: commit the mockup direc
 if it was written, and the spec or vision if one was edited — by path, nothing else — and offer the
 push and the pull request. The merge is the user's.
 
+Do not create issues. Do not start a design.
+
 Report the directories, every file with what it shows, what the mockup was matched against, options
 offered and which was taken, states deliberately not made and why, anything assumed because the user
-did not answer, any labels cleared, the branch, and the pull request if one was opened.
-
-Do not create issues. Do not start a design.
+did not answer, any labels cleared, the branch, and the pull request if one was opened. **End with
+what the user does next**: merge the pull request; then `/codefall-design SPEC-NNN` where a spec was
+waiting on this mockup, otherwise `/codefall-specify`.
 
 ## Rules
 

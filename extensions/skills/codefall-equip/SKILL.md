@@ -234,8 +234,8 @@ stamp not being git-ignored is `codefall init`'s to fix; name it in the report.
 - The landing, per `../../../.codefall/shared/landing.md`: the scripts and the settings committed by
   path on the branch, and the push and pull request offered — its own pull request, never another
   verb's. The merge is the user's.
-- What the user still owes the project: run `/codefall-refresh` once so the stamp exists;
-  `codefall init` if doctor warned about `.gitignore`.
+- **Last, what the user does next**: merge the pull request, run `/codefall-refresh` once so the
+  stamp exists, and `codefall init` if doctor warned about `.gitignore`.
 
 ## Process — the test harness
 
@@ -298,8 +298,8 @@ What was declared and whether it was found or installed; where the runner's line
 `update` gained; what the proof showed. Then the landing, per `../../../.codefall/shared/landing.md`:
 the configuration, the settings, `<root>/AGENTS.md`, and the `update` revision committed by path on
 the branch, and the push and pull request offered — its own pull request, never another verb's.
-The merge is the user's. What the user still owes: write the first case through
-`/codefall-implement`.
+The merge is the user's. **End with what the user does next**: merge the pull request; the first
+case is written by `/codefall-implement` when a bead names one.
 
 ## Rules
 

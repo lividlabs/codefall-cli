@@ -233,7 +233,7 @@ Run the shared check against the user's project.
 ```
 
 `beads=ok` advances. Otherwise read `beads_reason`, tell the user what is missing, hand over the
-command that fixes it, and stop:
+command that fixes it, say to rerun this verb after it, and stop:
 
 | `beads_reason` | What is wrong | Give them |
 | --- | --- | --- |
@@ -317,14 +317,16 @@ close.
 
 ### 8. Report and stop
 
+Do not merge, and do not wait for merges; the next session's `bd gate check` finishes it.
+
 - Every bead built, with PR, branch, and what its close reason verified.
 - The merge order, bottom-up per stack, and what is blocked on the user.
 - Discovered work filed.
 - The tracker mirror's state, the vision transition if one fired.
 - The worktree list, with the cleanup offer.
 - Final `bd dolt push`.
-
-Do not merge. Do not wait for merges. The next session's `bd gate check` finishes the story.
+- **Last, what the user does next**: review the pull requests, merge them in the order above, then
+  `/codefall-test <area>/<slug>` for each case a bead named.
 
 ## Other modes
 

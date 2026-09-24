@@ -252,6 +252,8 @@ the graft should be reviewable as one coherent change.
 - What the user still owes the project: the hand-merges they said they'd do, and — after an
   adoption — the boundary-enforcement obligation, named exactly as `codefall-scaffold` names it after a
   docs-only run.
+- **Last, what the user does next**: merge the pull request, then what is owed above. Nothing
+  else.
 
 ## Rules
 
