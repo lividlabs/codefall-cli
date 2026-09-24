@@ -296,12 +296,13 @@ catch the thing review is for, which is a wrong ordering or a missing prerequisi
 | T2 | Wire context load into `/scaffold`| T1         | Architecture |
 ```
 
-Once you approve it, those rows become beads and the table is replaced by the line that records what
-became what — `Epic: booking-DESIGN-007 · T1→booking-DESIGN-007-T1 · T2→booking-DESIGN-007-T2`. The
-bead IDs are the document's own numbering behind the project's Beads prefix, so a person can read
-and say them. Beads is authoritative from that moment, and a
-duplicate task list left behind in a git-tracked file would drift from it. The mapping is what lets a
-later run update the graph instead of duplicating it.
+Once you approve it, those rows become beads and the table stays. The callout above it records the
+date, the epic — `booking-DESIGN-007` — and that each row is `booking-DESIGN-007-Tn`: the bead IDs
+are the document's own numbering behind the project's Beads prefix, so a person can read and say
+them. Beads is authoritative for work state from that moment, and the table holds only what the
+design decided — the tasks, their edges, and the section each came from — never a status column. A
+row changes only through a revision, which edits the row and the bead together, so the two stay
+level; a removed row's identifier is listed under the table and never reused.
 
 **Revising a design reconciles the graph rather than rebuilding it.** A bead nobody has touched is
 edited, whatever changed. A bead someone has claimed, commented on, or closed is replaced only when
