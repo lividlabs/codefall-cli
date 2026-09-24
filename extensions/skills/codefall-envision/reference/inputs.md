@@ -1,6 +1,6 @@
 # What the user already has
 
-A vision may arrive as more than a conversation: notes, a transcript, a pitch document, a
+The idea may arrive as more than a conversation: notes, a transcript, a pitch document, a
 whiteboard photo, sketches, screenshots, a folder of design-tool exports, a link to a design tool,
 or several of those at once. **All of it is fine, and none of it is discarded.** Read at step 2 when
 the user points at material.
@@ -27,7 +27,7 @@ points at wherever it landed.
 
 **Never edit the user's original in place, and never delete it.**
 
-## Documents that could be the vision
+## Pitch documents that could become the vision
 
 When what they brought is a written document, one of two things happens:
 

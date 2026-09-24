@@ -185,14 +185,14 @@ If they pointed at anything, read it and follow `reference/inputs.md`.
 
 ### 3. Check the altitude
 
-Before interviewing, judge whether this is a vision at all. Apply
+Before interviewing, judge whether this calls for a vision at all. Apply
 [the specify off-ramp](#the-specify-off-ramp) and [the floor](#how-big-a-vision-is). Doing this
 now costs one exchange; doing it after the interview wastes the whole session.
 
 ### 4. Interview
 
 Only for what is genuinely missing. A user who arrived with a clear problem and a rough answer has
-given you a vision already — write it.
+given you everything a vision needs — write it.
 
 Ask about, in this order, and skip anything already answered:
 
