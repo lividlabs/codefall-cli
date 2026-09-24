@@ -297,7 +297,9 @@ catch the thing review is for, which is a wrong ordering or a missing prerequisi
 ```
 
 Once you approve it, those rows become beads and the table is replaced by the line that records what
-became what — `Epic: bd-a2g · T1→bd-unz · T2→bd-s58`. Beads is authoritative from that moment, and a
+became what — `Epic: booking-DESIGN-007 · T1→booking-DESIGN-007-T1 · T2→booking-DESIGN-007-T2`. The
+bead IDs are the document's own numbering behind the project's Beads prefix, so a person can read
+and say them. Beads is authoritative from that moment, and a
 duplicate task list left behind in a git-tracked file would drift from it. The mapping is what lets a
 later run update the graph instead of duplicating it.
 

@@ -1201,6 +1201,28 @@ Decided at scaffold, 2026-08-16.
   merge or push the default branch, which is what the hook enforces. The tracker profile's
   `blob/main` link resolves once the pull request merges, and says so.
 
+- **Beads are named, never hashed, 2026-09-23.** `bd` picks `<prefix>-<hash>` for a new issue —
+  `codefall-k3f9` — which is unique across branches and unreadable to a person: no order, no
+  meaning, nothing to say aloud. Checked against `bd` 1.3.0: `bd create --id` takes any ID under
+  the database's prefix, uppercase and dots included; a taken ID is refused at creation; an ID under
+  another prefix is refused unless `--force`; `bd rename` moves an ID and carries the parent, the
+  edges, and every reference with it; `--id` and `--parent` do not combine on one create; the graph
+  plan file has no ID field; `bd config get issue_prefix` prints the bare prefix. So every bead is
+  now created with `--id`. A design's beads take the document's own numbering, which was already
+  unique and append-only: `<prefix>-DESIGN-NNN` for the epic and `<prefix>-DESIGN-NNN-Tn` for a
+  task, set by a rename pass right after `bd create --graph`, beside the pass that sets `spec_id`. A
+  replacement bead under Revise is `<old>-2`, so the mapping line still says which is current, and
+  the landed bead is `<epic>-LAND`. Other work — tier 0, discovered — is `<prefix>-<tracker ref>`
+  with `--external-ref` set to the same value where an issue exists, else `<prefix>-<slug>`, and a
+  refused duplicate gets `-2`. Seen and not taken: a slug on the design form
+  (`<prefix>-DESIGN-007-T2-stage-context`), which the title already carries; a hash suffix on the
+  slug form (`<prefix>-<slug>-<hash>`), which puts the noise back to defend against a case
+  creation already refuses; a shorter prefix, which is the project's to choose and never a skill's
+  to write — the prefix is read from `bd config get issue_prefix` and no skill or template names
+  one. The mapping line stays and lists the IDs in full, so `revising.md` and `/implement
+  DESIGN-NNN` work as before. Existing hash IDs keep working: nothing must be renamed, and the
+  Beads section of `AGENTS.md` grows by one bullet (chars/4 on 2026-09-23: 413 → 525 tokens).
+
 ## Open
 
 - **UI composition.** Half settled by **Shared modules, 2026-08-27** above: the theme, the styles,
