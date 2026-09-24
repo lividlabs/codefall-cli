@@ -19,6 +19,15 @@ screen, state exactly what a user will see, and hand over finished mockups, and 
 nothing down about the problem any of it solves — and that person needs a vision more than most,
 because the reasoning exists only in their head.
 
+## A vision can say how it works
+
+An earlier version put "what a user will observe when it works" out of scope, which pushed visions
+to leave out how the product works entirely. People describing an idea usually describe how it
+works, and cutting that loses the part of their thinking that explains the rough shape. What
+separates a vision from a specification is precision: a team can build a good deal from a spec
+alone, and would struggle to build from a vision. So a vision may say how it works in broad
+strokes, and stops before exact behavior, acceptance criteria, and data shapes.
+
 ## The floor is advice, not a gate
 
 One bug, one screen, one endpoint, one field is usually smaller than a vision is worth. But the
